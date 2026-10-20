@@ -1,6 +1,6 @@
 ---
 name: jailbreak-skill
-description: "LLM 越狱/破甲研究技能（实测体系，非理论罗列）。基于本机 DeepSeek v4.1f 隔离实例（3197）上的系统性实测：25 条向量判档主表、persona 0.4.3 实装、TVD 形态探针、八题题库、helm-x/helm-d 破甲层源码拆解、relay 隐藏提示词逆向审计。涵盖：向量设计与判档标准（refusal/substitute/full 三档）、人设工程（结构化工程件 framing vs 施压）、TVD（把请求变成跑不通的工程件）、探针驱动（runbatch.mjs 每条独立会话）、判据体系（criteria-status 五判据）与已知坑（单次采样、60 秒窗、自动判档骗人）。Use when user mentions '破甲', '越狱', 'jailbreak', '向量', '判档', 'persona', '人设', 'TVD', '探针', '提示词越权', '拒绝边界', 'refusal pipeline', or asks to design/evaluate/red-team LLM safety prompts or defenses."
+description: "LLM 越狱/破甲研究技能（实测体系，非理论罗列）。基于本机 DeepSeek v4.1f 隔离实例（3197）上的系统性实测：25 条向量判档主表、persona 0.4.3 实装、TVD 形态探针、八题题库、helm-x/helm-d 破甲层源码拆解、relay 隐藏提示词逆向审计。另含：83 篇 arXiv CoT 安全论文笔记（H-CoT/BoT/BadReasoner/Chain-of-Lure/间接注入）、jailbreak-archives 7 模型族 16 条现役载荷镜像（DeepSeek/Claude/GLM/Grok/Qwen）。涵盖：向量设计与判档标准（refusal/substitute/full 三档）、人设工程（结构化工程件 framing vs 施压）、TVD（把请求变成跑不通的工程件）、探针驱动（runbatch.mjs 每条独立会话）、判据体系（criteria-status 五判据）与已知坑（单次采样、60 秒窗、自动判档骗人）。Use when user mentions '破甲', '越狱', 'jailbreak', '向量', '判档', 'persona', '人设', 'TVD', '探针', '提示词越权', '拒绝边界', 'refusal pipeline', 'CoT 劫持', 'H-CoT', or asks to design/evaluate/red-team LLM safety prompts or defenses."
 ---
 
 # Jailbreak Skill — LLM 破甲实测体系
