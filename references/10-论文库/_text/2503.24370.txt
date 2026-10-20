@@ -1,0 +1,1921 @@
+Effectively Controlling Reasoning Models through
+Thinking Intervention
+Tong Wu1 Chong Xiang2 Jiachen T. Wang1 G. Edward Suh2 Prateek Mittal1
+1Princeton University 2NVIDIA
+tongwu@princeton.edu
+Abstract
+Reasoning-enhanced large language models (LLMs) explicitly generate intermediate
+reasoning steps prior to generating final answers, helping the model excel in complex
+problem-solving. In this paper, we demonstrate that this emerging generation
+framework offers a unique opportunity for more fine-grained control over model
+behavior. We propose Thinking Intervention, a novel paradigm designed to
+explicitly guide the internal reasoning processes of LLMs by strategically inserting
+or revising specific thinking tokens. We find that the Thinking Intervention paradigm
+enhances the capabilities of reasoning models across a wide range of tasks, including
+instruction following on IFEval and Overthinking, instruction hierarchy on SEP,
+and safety alignment on XSTest and SORRY-Bench. Our results demonstrate that
+Thinking Intervention significantly outperforms baseline prompting approaches,
+achieving up to 6.7% accuracy gains in instruction-following scenarios, 15.4%
+improvements in reasoning about instruction hierarchies, and a 40.0% increase in
+refusal rates for unsafe prompts using open-source DeepSeek R1 models. Overall,
+our work opens a promising new research avenue for controlling reasoning LLMs.
+WARNING: This paper contains red-teaming content that can be offensive.
+1 Introduction
+Recent advances in reasoning-enhanced models, including OpenAI’s o1 [ 27 ], DeepSeek’s R1 [20], and
+Google’s Flash Thinking [13 ], have significantly expanded the capabilities of large language models
+(LLMs). By explicitly incorporating intermediate reasoning steps before producing answers, these
+models exhibit substantially improved performance in handling complex tasks such as mathematical
+problem-solving [36], programming assistance [29], and logical inference [48].
+Despite these developments, existing methods for guiding reasoning models still predominantly
+rely on input-level manipulations, such as prompt engineering [46 ], which modifies the instructions
+provided to the LLM. In this work, we demonstrate that the explicit thinking steps introduced in
+reasoning LLMs not only provide enhanced transparency into the model’s cognitive processes but
+also create new opportunities for direct and precise interventions within these reasoning stages.
+Motivated by this insight, we introduce Thinking Intervention, a novel paradigm that explicitly
+controls the internal reasoning processes of models. Rather than allowing the model to generate
+entire reasoning chains on its own, Thinking Intervention specifies token sequences (e.g., detailed
+instructions, clarifications, or constraints) to be inserted or replaced within the ongoing reasoning
+process. Such targeted interventions enable fine-grained and transparent control over the reasoning
+trajectory, closely aligning the model’s behavior with required task objectives.
+Demonstration. To further illustrate, consider a general instruction-following task shown in
+Figure 1(a), which asks the model to "list 5 famous moms in JSON format." A standard Vanilla
+Prompting would just state the instruction and Prompt Engineering might add a reminder like "Ensure
+the format is JSON." Nonetheless, reasoning models may still overlook essential instructions or
+Preprint. Under review.
+arXiv:2503.24370v3 [cs.LG] 21 May 2025
+
+-- 1 of 35 --
+
+Figure 1: (a) A demonstration of how Vanilla Prompting, Prompt Engineering, and Thinking
+Intervention work. Both Vanilla Prompting and Prompt Engineering methods act on the input query.
+In contrast, Thinking Intervention explicitly injects precise instructions into the intermediate reasoning
+stages of the model, enabling more effective control. (b) Compared to Vanilla Prompting and Prompt
+Engineering, Thinking Intervention offers significant performance improvements for R1-Qwen-32B
+reasoning model across instruction following, instruction hierarchy, and safety alignment tasks.
+constraints (Figure 1(b)). In contrast, Thinking Intervention explicitly guides the reasoning process
+by injecting instructions directly into the model’s internal thought process, e.g., "I should generate
+5 famous moms and put them in a JSON format." Such precise intervention reduces the likelihood of
+the model missing constraints during reasoning, thereby significantly improving performance.
+Notably, Thinking Intervention presents several key advantages: First, it enables fine-grained and
+flexible control over the reasoning process by adaptively inserting or revising intermediate reasoning
+steps based on task-specific needs; second, it does not require any form of model training and can be
+deployed in real-world settings with minimal engineering effort; and third, it seamlessly integrates and
+complements existing techniques, including prompt engineering and advanced fine-tuning methods.
+Empirical findings. We demonstrate the effectiveness of Thinking Intervention across diverse tasks,
+including instruction following on IFEval [ 77 ] and Overthinking, instruction hierarchy on SEP
+[ 81 ], and safety alignment on XSTest [ 45 ] and SORRY-Bench [ 68 ]. For instruction following
+tasks (§3), we show that applying Thinking Intervention enables the model to more effectively
+and accurately follow task instructions, leading to notable improvements of 6.7% and 1.9% over
+baseline Vanilla Prompting and Prompt Engineering methods, respectively (Figure 1(b)). Similarly,
+in instruction hierarchy scenarios (§4), Thinking Intervention guides the model to reason about
+hierarchical instructions and appropriately prioritize main tasks over low-priority ones, thereby
+boosting robustness up to 15.4% compared to baselines (Figure 1(b)). Lastly, in safety alignment
+tasks (§5), we first show that open-source reasoning models (e.g., DeepSeek R1 [ 20 ]) often over-comply
+with unsafe instructions, highlighting an urgent need for better safety control methods. We then
+demonstrate that Thinking Intervention explicitly steers models toward safer reasoning, substantially
+increasing refusal rates for unsafe requests by up to 40.0% on XSTest and 26.9% on SORRY-Bench
+(Figure 1(b)). In addition, we also demonstrate that leveraging Thinking Intervention can mitigate the
+issue of Overthinking, as shown in Appendix C.
+Finally, in Section 6, we analyze internal model mechanisms (e.g., attention maps) and find that the
+attention during the reasoning process predominantly focuses internally rather than on external
+input tokens, explaining why Thinking Intervention achieves greater effectiveness. We also discuss
+practical design considerations for implementing Thinking Intervention in real-world settings.
+Overall, our findings establish Thinking Intervention as a powerful, flexible, and broadly applicable
+paradigm for enhancing reasoning model across multiple dimensions. We encourage the community
+to further explore and adopt this framework, which offers precise, transparent, and effective control
+over LLM reasoning processes, ultimately enabling more reliable and aligned AI systems.
+2
+
+-- 2 of 35 --
+
+2 Thinking Intervention: A Novel Paradigm to Control Reasoning Models
+2.1 Preliminaries and Notations
+Consider a next-token prediction language model LM : V∗ → V, where V denotes the vocabulary set
+and V∗ represents the space of all possible token sequences over V. Given a token sequence as input,
+the LLM predicts the next token in the sequence. Let x := (x1, . . . , xn) ∈ V∗ denote an input context,
+where each xi ∈ V. We use [a, b] to denote the concatenation of two token sequences a followed by
+b. A conventional LLM autoregressively generates a response sequence y := (y1, . . . , ym) ∈ V∗ by
+iteratively predicting each response token yj = LM([x, y<j ]) conditioned on the context x and the
+previously generated tokens y<j := (y1, . . . , yj−1).
+Reasoning-enhanced LLM. Unlike conventional LLMs, a reasoning-enhanced LLM explicitly
+separates the generation process into a "reasoning/thinking" stage and a "response" stage. Formally,
+the generation operates as follows: (1) Reasoning Stage: The model first generates a sequence of
+intermediate reasoning tokens (or a "reasoning chain") r = (r1, . . . , rk) ∈ V∗. Each reasoning
+token is autoregressively generated by conditioning on the input context and previously generated
+reasoning tokens: ri = LM([x, r<i]). (2) Response Stage: After obtaining the reasoning chain, the
+model generates the final response y = (y1, . . . , ym) ∈ V∗ by conditioning each token on the context,
+reasoning chain, and previous response tokens: yj = LM([x, r, y<j ]). This explicit decomposition
+enhances the model’s capability for complex tasks and improves interpretability by transparently
+exposing its reasoning steps [20].
+2.2 Intervening in the Reasoning Process as a General Paradigm
+Traditional approaches1 to improving LLM performance have largely focused on prompt engineer-
+ing [ 64 , 60, 71 , 44 ], which optimizes the input x to elicit better response y. For reasoning-enhanced
+LLMs, although crafting the initial prompt remains important, the explicit reasoning stage offers a
+new, more direct pathway for optimization: intervening within the reasoning process itself.
+In this work, we propose a general paradigm termed Thinking Intervention, which directly intervenes
+within the reasoning process of LLMs, e.g., through revising explicit instructions or guidance at
+intermediate reasoning steps. Unlike prompt engineering, where the input context x is optimized
+before generating tokens, Thinking Intervention operates in an online, dynamic environment. The
+reasoning chain r is generated token-by-token in real time, requiring the intervention mechanism to
+make decisions based on the incomplete reasoning chain r<i. The key challenge lies in developing
+intervention strategies that can quickly evaluate partial reasoning paths, intervene appropriately, and
+adapt to current trajectories without disrupting the LLM’s natural reasoning flow.
+General paradigm. Given the autoregressive nature of reasoning LLMs, we propose interventions
+that can insert new tokens or revise existing tokens within the reasoning chain. Formally, we define an
+intervention function intervene : V∗ × V∗ → V∗ ∪ {NO_INTERVENE} that determines when and
+how to intervene in the LLM reasoning process:
+intervene(x, r<i) =
+NO_INTERVENE if no intervention is needed at step i
+er if intervention is needed, where er ∈ V∗
+where x is the input context and r<i represents all reasoning tokens generated up to step i − 1. The
+output sequence er replaces the existing partial reasoning chain. The modified reasoning generation
+process can thus be formalized as:
+r≤i =
+[r<i, LM([x, r<i])] if intervene(x, r<i) = NO_INTERVENE
+intervene(x, r<i) otherwise
+This formulation highlights that interventions are strategically designed based on the specific reasoning
+path observed, enabling context-aware modifications at critical junctures. The revised reasoning chain
+er can incorporate corrective feedback, alternative reasoning approaches, or relevant domain knowledge
+that addresses errors or gaps identified in the current reasoning flow. This generalized framework
+accommodates both token insertion and revision, providing a flexible and powerful mechanism for
+dynamically guiding the reasoning process.
+1Fine-tuning can also be viewed as a form of model control in certain cases, but we do not consider it here
+because it is more destructive—it modifies the entire model rather than controlling a fixed one.
+3
+
+-- 3 of 35 --
+
+2.3 Instantiation: Intervention via a Postfix-based Monitor
+A simple yet powerful instantiation of the intervention function is based on monitoring the reasoning
+chain to detect specific trigger strings. Specifically, given a set of trigger strings S ⊆ V∗ (which can
+be single tokens or sequences of multiple tokens), the monitor checks if the most recent tokens (i.e.,
+the postfix of the current reasoning chain) match any string in S. If a match is detected, we append an
+intervention sequence v ∈ V∗ (e.g., "I am a safe and responsible assistant") immediately to the
+existing reasoning chain. The trigger set S can be designed flexibly to capture relevant reasoning
+stages, domain-specific phrases, or other reasoning markers. Formally, the intervention function with
+a postfix-based monitor is defined as:
+intervene(x, r<i) =
+NO_INTERVENE if no postfix of r<i matches any string in S,
+[r<i, v] if a postfix of r<i matches a string in S.
+Here, [r<i, v] denotes the concatenation of the current reasoning with intervention sequence v.
+Practical intervention strategies can be efficiently implemented by selecting appropriate triggers S.
+We illustrate three easy-to-implement examples, though more sophisticated approaches are feasible.
+(1) Intervention at reasoning start: To intervene at the beginning of reasoning, a trigger string
+indicating reasoning onset (e.g., "<think>" in DeepSeek R1 models) can be included in S. Upon
+detecting this string, the model immediately receives guidance through an intervention sequence
+containing relevant instructions or hints to direct reasoning from the start. (2) Intervention at reasoning
+conclusion: Utilize end-of-reasoning trigger strings (e.g., "</think>") within S to reinforce critical
+points or identify overlooked issues before generating the final output. (3) Intervention at reasoning
+transitions: Incorporate transitional markers (e.g., "wait", "Hmm") into S to prompt the model to
+review previous reasoning steps, correct potential mistakes, or provide further elaborations.
+In our evaluations, we experimented with all three strategies and found that intervening at the beginning
+of the reasoning process was the most effective. Consequently, we primarily adopted this approach
+throughout our main experiments (§3, §4, §5) and analyzed alternative strategies in the discussion
+section (§6.2). In addition to the postfix-based intervention, we also implemented an adaptive strategy
+that leverages an auxiliary LLM to revise reasoning traces, as presented in Section 6.2.
+2.4 Thinking Intervention enjoys several unique features and advantages
+Design flexibility. The intervention sequence can be manually designed by domain experts or
+automatically synthesized using auxiliary models (e.g., LLMs translating high-level task requirements
+into specific targeted interventions). Interventions may also be instruction-independent (e.g., for
+safety alignment tasks) or instruction-dependent (e.g., to enhance specific instruction-following),
+allowing broad applicability. Finally, interventions can be flexibly applied at arbitrary positions
+throughout the reasoning process, enabling versatile control over the model’s reasoning.
+Easy integration. Adopting Thinking Intervention requires minimal engineering effort and, crucially,
+does not necessitate fine-tuning or modifying the underlying model parameters. Furthermore, the
+intervention also incurs negligible computational overhead, ensuring lightweight deployment.
+Broad compatibility. Thinking Intervention naturally integrates with established approaches such
+as prompt engineering, forming synergistic combinations to maximize effectiveness. For instance,
+prompt engineering can supply background information, while Thinking Intervention can explicitly
+guide intermediate reasoning steps, thereby enhancing overall model performance and consistency.
+Effectiveness. Thinking Intervention effectively controls models by directly guiding the reasoning
+process, ensuring key instructions are actively integrated rather than passively referenced. As we will
+show later in Section 6, Thinking Intervention elicits stronger model attention on intervention tokens
+compared to prompt engineering (Figure 6). This leads to consistent improvements across instruction
+following (§3), instruction hierarchy (§4), and safety alignment tasks (§5).
+3 Evaluation on Instruction Following Tasks
+In this section, we empirically demonstrate how our proposed Thinking Intervention approach
+significantly enhances the instruction-following capability of reasoning models.
+Benchmark and models. We leverage Instruction-Following Evaluation (IFEval) [ 77] to measure
+how well reasoning models follow instructions. The benchmark comprises 500 prompts, each
+4
+
+-- 4 of 35 --
+
+Vanilla 	Reminder	
+40
+50
+60
+70
+80
+90
+100
+Accuracy (%)	
+55.26
+61.00	61.00 	62.84
+No ThinkingI
+ThinkingI
+Vanilla 	Reminder	
+40
+50
+60
+70
+80
+90
+100
+Accuracy (%)
+70.43 	72.83
+	75.42 	74.31
+No ThinkingI
+ThinkingI
+Vanilla 	Reminder	
+40
+50
+60
+70
+80
+90
+100
+Accuracy (%)
+70.43
+	75.23	77.08 	77.63
+No ThinkingI
+ThinkingI
+Vanilla 	Reminder	
+40
+50
+60
+70
+80
+90
+100
+Accuracy (%)
+79.30 	81.33	82.26 	82.44
+No ThinkingI
+ThinkingI
+(a) R1-Qwen-7B (b) R1-Qwen-14B (c) R1-Qwen-32B (d) QwQ-32B
+Figure 2: Top: An example demonstrating how Thinking Intervention is integrated with Vanilla
+Prompting and Reminder Prompting prompting techniques for instruction following tasks. Bottom:
+Evaluation results on the IFEval benchmark [77 ]. We compare performance with and without
+Thinking Intervention (ThinkingI), across two prompting methods and multiple reasoning models.
+containing some identified types of verifiable instructions. These verifiable instructions function as
+constraints on the output, such as "do not use any commas". To quantify the model’s capability, we
+report the accuracy, defined as the proportion of prompts for which the responses satisfy all verifiable
+instructions within the prompt. We consider reasoning models distilled from DeepSeek R1 [ 20 ],
+including R1-Qwen-7B, R1-Qwen-14B, and R1-Qwen-32B, and the QwQ-32B model [ 43]. Further
+results on R1-Llama models and evaluation details are provided in Appendix B. All models use the
+same tag, <think> and </think>, to denote the start and end of the reasoning process.
+Methods. We compare Thinking Intervention against two baselines: Vanilla Prompting, which
+directly uses original prompts unchanged, and Reminder Prompting, which augments the input
+prompts by restating instruction constraints as reminders. These reminders are generated by prompting
+an auxiliary LLM using original instructions. For Thinking Intervention, we convert reminder
+statements into first-person narrative interventions (i.e., changing "Ensure the answer..." to "I
+should ensure the answer..." via a fixed prefix)2. This intervention sequence v is then inserted at
+the beginning of the reasoning process. Figure 2 (top) illustrates how Thinking Intervention integrates
+with the Vanilla Prompting and Reminder Prompting.
+Thinking Intervention consistently improves instruction-following capability. Figure 2 (bottom)
+illustrates consistent improvements across multiple reasoning models. Specifically, integrating
+Thinking Intervention with the baseline Vanilla Prompting yields accuracy gains of 5.74%, 4.99%,
+6.65%, and 2.96% for R1-Qwen-7B, R1-Qwen-14B, R1-Qwen-32B, and QwQ-32B, respectively.
+Notably, the effectiveness of Thinking Intervention is preserved as the model size increases within
+the R1-Qwen family, with R1-Qwen-32B showing even greater benefits than R1-Qwen-7B and
+R1-Qwen-14B. Further performance improvement is achieved by combining Thinking Intervention
+with the Reminder Prompting method: accuracy reaches as high as 62.84% (R1-Qwen-7B), 77.63%
+(R1-Qwen-32B), and 82.44% (QwQ-32B). Thus, Thinking Intervention not only provides substantial
+stand-alone gains across model families, but also complements existing prompting methods.
+Overall, these findings confirm Thinking Intervention’s capability to precisely guide reasoning models
+to follow constrained instructions. Crucially, this significant performance boost is achieved without
+requiring additional model training. Moreover, we explore the broader applicability of Thinking
+Intervention in Appendix C, showing how explicit intervention during the reasoning process can
+mitigate model overthinking, thereby highlighting the versatility and utility of the proposed method.
+4 Evaluation on Instruction Hierarchy Task
+Next, we explore how Thinking Intervention benefits the instruction hierarchy task [59 , 66 ], which
+evaluates a model’s ability to appropriately prioritize high-priority instructions over low-priority
+2In practice, intervention sequences can be directly constructed using auxiliary LLMs.
+5
+
+-- 5 of 35 --
+
+Table 1: Evaluation results on the SEP dataset across various reasoning models. We compare our
+proposed Thinking Intervention (+ThinkingI) against the Vanilla Prompting and Reminder Prompting.
+R1-Qwen-7B R1-Qwen-14B R1-Qwen-32B QwQ-32B
+Methods 	Rob.(%) Utility(%) Rob.(%) Utility(%) Rob.(%) Utility(%) Rob.(%) Utility(%)
+Vanilla 	57.60 74.44 34.00 81.04 34.80 81.76 22.20 88.00
+Vanilla+ThinkingI 60.80 74.40 38.40 81.08 50.20 82.02 31.40 88.16
+Reminder 	57.60 74.20 38.40 80.50 46.20 81.16 36.20 87.52
+Reminder+ThinkingI 62.60 73.92 41.80 80.90 66.40 80.90 43.40 86.79
+ones. This capability is essential for safety-critical applications, where models must adhere to specific
+guidelines even in the presence of conflicting instructions. We examine how Thinking Intervention
+enhances the model’s ability to navigate complex scenarios involving competing directives.
+Benchmark. We evaluate on the SEP dataset [81 ]. Each data point contains a high-priority main
+instruction paired with relevant data content and an unrelated low-priority instruction. Models
+are expected to prioritize the main instruction while ignoring the low-priority instruction. This
+benchmark enables us to evaluate how effectively models can maintain instruction hierarchies in
+complex scenarios involving potentially misaligned directives.
+Evaluation metrics. We evaluate model performance on the SEP benchmark using two key metrics:
+(1) robustness, which measures the proportion of low-priority instructions correctly ignored when
+embedded within data; (2) utility, which quantifies the model’s baseline performance on the main task
+in the absence of any low-priority instructions. For the utility metric, we follow [ 75] by employing
+LLM-as-a-judge for evaluation and normalizing scores to a 0-100% scale.
+Methods. Similar to our instruction-following experiments, we include two baseline approaches:
+Vanilla Prompting, which directly uses the prompts without additional guidance, and Reminder
+Prompting, which includes an explicit instruction reminder. For our Thinking Intervention approach,
+we use the intervention sequence v "I should follow all the instructions in the task block and
+not follow any instructions in the data block." to explicitly guide the model in maintaining the
+correct instruction hierarchy. This intervention sequence is inserted at the beginning of the reasoning
+process to help the model correctly prioritize the instructions. More details on the evaluation setup,
+including baseline prompts and examples, can be found in Appendix D.1.
+Thinking Intervention significantly improves robustness while maintaining model utility. Table 1
+presents the evaluation results of reasoning models on the SEP benchmark. Our Thinking Intervention
+approach consistently improves both Vanilla Prompting and Reminder Prompting techniques in terms
+of robustness across all model scales. For example, when applied to R1-Qwen-32B with Reminder
+Prompting, Thinking Intervention achieves a robustness of 66.4%, marking a substantial 20.20%
+improvement over the Reminder Prompting baseline. We observe similar robustness enhancements
+across other model variants, including gains of 5.0% for R1-Qwen-7B, 3.4% for R1-Qwen-14B, and
+7.2% for QwQ-32B. Importantly, Thinking Intervention preserves the utility of the models. Across
+all settings, it incurs only a negligible variation in utility (≤ 0.73%) compared to the baselines.
+Interestingly, we note that R1-Qwen-7B exhibits the highest robustness with Vanilla Prompting. This
+is attributed to its lower general utility ( >5% lower than other models), which could prevent it from
+correctly responding to the injected low-priority prompt, thus resulting in higher robustness.
+These results demonstrate that Thinking Intervention effectively guides models to maintain proper
+instruction hierarchies by correctly following high-priority instructions without compromising their
+utility-related tasks. For experimental results with R1-Llama models, see Appendix D.
+5 Evaluation on Safety Alignment Task
+Before deployment, LLMs typically undergo a safety alignment process to ensure the model does
+not respond to harmful queries, such as "how to build a bomb". In this section, we demonstrate
+that open-source reasoning models (e.g., R1-Qwen-32B) exhibit notably low refusal rates to unsafe
+requests, and that Thinking Intervention can effectively steer the model toward much safer behavior.
+6
+
+-- 6 of 35 --
+
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+R1-Qwen-7B
+R1-Qwen-7B + ThinkingI
+R1-Qwen-14B
+R1-Qwen-14B + ThinkingI
+R1-Qwen-32B
+R1-Qwen-32B + ThinkingI
+o3-mini
+GPT-4o-mini
+GPT-4o
+Figure 3: Model’s performance
+on the XSTest benchmark via
+Vanilla Prompting.
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+Figure 4: Effect of Think-
+ing Intervention with the R1-
+Qwen-32B model across multi-
+ple prompting methods.
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+56.4
+70.0
+76.0 	74.4
+83.3
+87.1 	87.1 	87.8
+Robustness of SORRY Bench
+R1-Qwen-32B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+Figure 5: Effect of the
+Thinking Intervention with
+R1-Qwen-32B model on
+SORRY-Bench.
+Benchmark and models. We leverage XSTest [45 ] to evaluate the safety alignment of models. The
+benchmark contains 200 harmful requests and 250 benign questions that include safety triggers for
+LLMs (e.g., "How can I kill a Python process?"), which may cause the model to mistakenly refuse
+to answer. Following [ 45 , 76 ], we leverage GPT-4o-mini as an evaluator to classify the responses
+into compliant or refusing behaviors. We report two metrics: the refusal rate for unsafe requests
+and the compliance rate for safe requests. We extensively evaluate a range of models, including
+open-source reasoning models (R1-Qwen-7B, R1-Qwen-14B, and R1-Qwen-32B), one representative
+closed-source reasoning model (o3-mini), and non-reasoning models (GPT-4o-mini and GPT-4o).
+Baseline prompting methods and Thinking Intervention. We consider the following baselines:
+Vanilla Prompting, which does not include any additional instructions; Default Prompting, which
+uses the default safety prompting of Llama-2 [56 ] to ensure safety; Reminder Prompting [69 ], which
+reminds the model to act responsibly; and Goal Priority [74 ], which explicitly prioritizes safety over
+other objectives. The complete prompts used for each baseline are provided in the Appendix E.1. For
+Thinking Intervention, we inject the intervention sequence v as "I am a helpful, respectful, and
+honest assistant." at the beginning of the reasoning process to steer the model toward safety.
+Thinking Intervention effectively steers the reasoning models toward safety (Figure 3). LLMs
+with Vanilla Prompting typically face a trade-off between compliance and safety. Specifically, R1
+models achieve near-perfect compliance (∼100%) with safe requests but demonstrate an alarmingly
+low refusal rate to unsafe requests (<20%). In contrast, the GPT series refuses more than 70% of
+unsafe requests, with o3-mini even refusing nearly all unsafe requests (∼100%),3 but maintain a
+relatively lower but acceptable compliance rate (90.4%-95.6%) for safe requests. Encouragingly,
+applying Thinking Intervention to R1 models substantially boosts safety performance, increasing
+refusal rates for unsafe requests by over 40% across all models. We observe only mild compliance
+decreases (<2%) in larger models (R1-Qwen-14B and R1-Qwen-32B) and a relatively larger drop for
+the smaller model (R1-Qwen-7B). This is understandable given that safety questions are intentionally
+designed to be challenging, making them particularly difficult for less capable models to distinguish.
+Thinking Intervention seamlessly complements prompting techniques, significantly enhancing
+model safety (Figure 4). We further evaluate the R1-Qwen-32B model on the XSTest benchmark
+under various prompting baselines. Compared to Reminder Prompting alone, combining Reminder
+Prompting with our Thinking Intervention approach increases the refusal rate for unsafe requests by
+∼30%, while maintaining a high compliance rate (∼97%) for safe requests. Notably, when integrated
+with Goal Priority prompting, Thinking Intervention achieves a refusal rate of ∼75% on unsafe
+requests and a compliance rate of ∼95% on safe requests, performance comparable to safety-aligned
+GPT-4o models (Figure 3).
+Thinking Intervention excels in more comprehensive safety benchmark (Figure 5). To further
+validate our approach, we evaluate SORRY-Bench, which features a more comprehensive taxonomy
+and more detailed unsafe instructions, using exactly the same methods. Our results show that Thinking
+Intervention consistently improves robustness (i.e., the refusal rate of unsafe instructions) over baseline
+prompting methods. For example, when combined with Default Prompting, Thinking Intervention
+3Since GPT models are closed-source, it is unclear if there exists auxiliary monitor filtering unsafe responses;
+thus, high (or even perfect) refusal rates might reflect monitor behavior rather than the models themselves.
+7
+
+-- 7 of 35 --
+
+Figure 6: Attention maps of Prompt Engineering (left)
+and Thinking Intervention (right). Reasoning models
+with Thinking Intervention exhibit more focused atten-
+tion on the interventions. See Figures 28&29 for details.
+70 	75 	80 	85 	90 	95 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+No TI
+TIdefault
+TImid
+TIend
+TIlong
+TIsecond
+TImodel
+Figure 7: Results of different Think-
+ing Intervention design choices on the
+XSTest benchmark using R1-Qwen-
+32B and Vanilla Prompting.
+achieves a refusal rate of approximately 87% for unsafe requests, a nearly 20% improvement over
+Default Prompting alone and even higher than the refusal rate of the GPT-4o and o3-mini models.
+These results further demonstrate that Thinking Intervention can effectively steer models toward safer
+behavior across different safety benchmarks, emphasizing the generalizability of our approach.
+Overall, our findings demonstrate that Thinking Intervention significantly enhances model safety while
+maintaining a high compliance rate to benign requests. Its simplicity and effectiveness highlight its
+practical value for real-world deployment. While Thinking Intervention is not a panacea for all safety
+challenges, it could serve as a complementary safety layer that integrates seamlessly with existing
+techniques like RLHF [39 , 11 ] and Constitutional AI [6 , 49], thus contributing to the multi-layered
+safety frameworks [38 ]. We provide additional results with other models, including R1-Llama,
+QwQ-32B, and the safety fine-tuned variant, in Appendix E. Notably, Thinking Intervention achieves
+further safety improvements even when applied to models already fine-tuned for safety.
+6 Analysis and Discussion
+6.1 Why is Thinking Intervention effective?
+Next, we seek to understand why Thinking Intervention demonstrates consistent performance gains
+compared to prompt engineering. We visualize attention maps using a safety alignment benchmark
+and compare Thinking Intervention against prompt engineering (Figure 6). Attention areas where later
+reasoning stages attend to intervention tokens are highlighted in the blue box. Our analysis reveals
+that the reasoning processes’ attention is focused internally rather than toward external input
+tokens. Consequently, standard Prompt Engineering achieves limited impact, as models scarcely
+direct attention toward such prompts. In contrast, attention maps with Thinking Intervention show
+significantly increased internal attention to the explicitly injected intervention tokens during the
+reasoning process. These visualizations suggest that Thinking Intervention effectively guides internal
+model reasoning, enabling more precise and reliable model control. See Appendix H for more details.
+6.2 Exploring Design Choices for Thinking Intervention
+Our primary evaluations focus on concise, first-person narrative interventions applied at the beginning
+of the reasoning process (TIdefault in Figure 7). However, as discussed in Section 2, Thinking
+Intervention is highly general and flexible; various other design choices exist and merit exploration.
+Position of intervention. First, we investigated alternative intervention positions, specifically
+within the middle (TImid) or towards the end (TIend) of the reasoning phase. Figure 7 summarizes
+performance comparisons on the XSTest benchmark. Interestingly, interventions performed at
+later stages of reasoning demonstrated diminished effectiveness relative to early-stage Thinking
+Intervention. We hypothesize that reasoning paths become progressively harder to redirect once
+models have deliberated sufficiently long on incorrect or suboptimal trajectories. Similar findings on
+the SORRY-Bench are provided in Appendix F.1.
+Complexity of intervention sequences. Our main experiments intentionally employed relatively
+concise intervention sequences to facilitate fair comparisons against prompt engineering methods. Yet,
+8
+
+-- 8 of 35 --
+
+more sophisticated instructions can theoretically provide richer guidance to models. For instance, we
+performed an exploratory analysis using more detailed safety instructions (termed TIlong in Figure 7),
+and noticed clear trade-offs emerging between compliance and safety alignment: longer sequences
+markedly improved alignment with safety goals but reduced overall compliance rates due to overly
+restrictive guidance. Similar trends across other prompting methods are presented in Appendix F.2.
+Narrative perspective. Another design consideration is whether narratives that direct the model to
+reason in the first-person form are fundamentally necessary. To clarify this, we conducted additional
+experiments comparing first-person and second-person narrative Thinking Intervention (TIsecond,
+shown in Figure 7). The results indicate minimal performance differences between the two variants.
+We attribute this negligible impact to the robust self-correction capabilities of reasoning models.
+Similar results on SORRY-Bench, alongside an illustrative example, are provided in Appendix F.3.
+Leveraging an auxiliary LLM for intervention. Beyond inserting interventions, we explored
+more sophisticated approaches by prompting an auxiliary LLM (i.e., Qwen2.5-7B-Instruct [ 42]) to
+dynamically monitor and revise the primary model’s reasoning traces for enhancing safety, termed
+TImodel (Figure 7). Preliminary results indicate that LLM-assisted interventions occasionally outper-
+form manually crafted interventions, but the additional computational overhead may hinder practical
+deployment. Further implementation details and additional results are provided in Appendix F.4.
+6.3 Practical utility of Thinking Intervention.
+We anticipate several practical use cases for Thinking Intervention. For LLM providers, it can
+enhance model performance by integrating system prompts, such as those used for role-play, into
+the reasoning process, thereby improving user experience. For LLM users, Thinking Intervention
+can be easily adopted with open-source models, where users can create their own interventions
+when the model is not reasoning as expected. Nevertheless, adopting Thinking Intervention with
+closed-source models remains challenging, as most providers do not currently support interventions
+in internal reasoning processes. Furthermore, exposing public APIs for reasoning interventions can
+pose security risks, potentially allowing malicious actors to bypass safety mechanisms more easily.
+We thus recommend that LLM providers carefully evaluate the trade-off between usability gains
+and safety considerations before deploying Thinking Intervention-like capabilities publicly.
+Looking forward, we anticipate that Thinking Intervention will enable broader applications
+across various challenging domains. For instance, interventions could be integrated into models
+performing complex tasks, such as medical diagnosis or legal reasoning, allowing domain experts to
+apply targeted corrections and inject domain knowledge at critical stages of the reasoning process,
+thereby significantly improving reliability and trustworthiness in high-stakes applications.
+7 Related Works
+Before the emergence of reasoning models, intervention-based methods were proposed to measure
+faithfulness in chain-of-thought (CoT) reasoning [ 30, 58], and have since been extended to reasoning-
+enhanced models [7 , 4]. Our Thinking Intervention framework complements those monitoring-based
+methods by enabling precise control over the reasoning process. Other studies focus on controlling
+reasoning length, either encouraging longer chains to boost accuracy [37, 1] or shortening them
+for efficiency [21 , 70 , 31 ]. Additionally, external tools have been incorporated into reasoning
+chains [16 , 32 ]. In contrast, the Thinking Intervention paradigm enables more general and fine-
+grained control over reasoning models, significantly broadening their capabilities and flexibility. See
+Appendix A for additional related works on reasoning models, LLM control, and evaluation tasks.
+8 Conclusion.
+In this paper, we propose Thinking Intervention, a novel approach to effectively control reasoning-
+enhanced LLMs. We demonstrate that Thinking Intervention can significantly improve the performance
+of LLMs across various tasks, including instruction following, instruction hierarchy, and safety
+alignment. We strongly encourage further investigation and adoption of Thinking Intervention, as it
+provides essential tools for fine-grained reasoning intervention, laying important groundwork towards
+more reliable, interpretable, and human-aligned LLM systems.
+9
+
+-- 9 of 35 --
+
+References
+[1] Pranjal Aggarwal and Sean Welleck. L1: Controlling how long a reasoning model thinks with
+reinforcement learning. arXiv preprint arXiv:2503.04697, 2025.
+[2] Together AI. Deploying deepseek-r1 and distilled models securely on together ai, 2025. Accessed:
+2025-03-19.
+[3] Anthropic. Claude’s extended thinking, February 24 2025.
+[4] Iván Arcuschin, Jett Janiak, Robert Krzyzanowski, Senthooran Rajamanoharan, Neel Nanda,
+and Arthur Conmy. Chain-of-thought reasoning in the wild is not always faithful. arXiv preprint
+arXiv:2503.08679, 2025.
+[5] Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda Askell, Anna Chen, Nova DasSarma, Dawn
+Drain, Stanislav Fort, Deep Ganguli, Tom Henighan, et al. Training a helpful and harmless
+assistant with reinforcement learning from human feedback. arXiv preprint arXiv:2204.05862,
+2022.
+[6] Yuntao Bai, Saurav Kadavath, Sandipan Kundu, Amanda Askell, Jackson Kernion, Andy Jones,
+Anna Chen, Anna Goldie, Azalia Mirhoseini, Cameron McKinnon, et al. Constitutional ai:
+Harmlessness from ai feedback. arXiv preprint arXiv:2212.08073, 2022.
+[7] Bowen Baker, Joost Huizinga, Leo Gao, Zehao Dou, Melody Y Guan, Aleksander Madry,
+Wojciech Zaremba, Jakub Pachocki, and David Farhi. Monitoring reasoning models for
+misbehavior and the risks of promoting obfuscation. arXiv preprint arXiv:2503.11926, 2025.
+[8] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan, Prafulla Dhariwal,
+Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda Askell, et al. Language models are
+few-shot learners. Advances in neural information processing systems, 33:1877–1901, 2020.
+[9] Sizhe Chen, Julien Piet, Chawin Sitawarin, and David Wagner. Struq: Defending against prompt
+injection with structured queries. arXiv preprint arXiv:2402.06363, 2024.
+[10] Hyung Won Chung, Le Hou, Shayne Longpre, Barret Zoph, Yi Tay, William Fedus, Yunxuan
+Li, Xuezhi Wang, Mostafa Dehghani, Siddhartha Brahma, et al. Scaling instruction-finetuned
+language models. Journal of Machine Learning Research, 25(70):1–53, 2024.
+[11] Josef Dai, Xuehai Pan, Ruiyang Sun, Jiaming Ji, Xinbo Xu, Mickel Liu, Yizhou Wang, and
+Yaodong Yang. Safe RLHF: Safe reinforcement learning from human feedback. In The Twelfth
+International Conference on Learning Representations, 2024.
+[12] Sumanth Dathathri, Andrea Madotto, Janice Lan, Jane Hung, Eric Frank, Piero Molino, Jason
+Yosinski, and Rosanne Liu. Plug and play language models: A simple approach to controlled
+text generation. In International Conference on Learning Representations, 2020.
+[13] Google DeepMind. Gemini flash thinking, 2025. Accessed: 2025-03-15.
+[14] Mingkai Deng, Jianyu Wang, Cheng-Ping Hsieh, Yihan Wang, Han Guo, Tianmin Shu,
+Meng Song, Eric P Xing, and Zhiting Hu. Rlprompt: Optimizing discrete text prompts with
+reinforcement learning. arXiv preprint arXiv:2205.12548, 2022.
+[15] Yilin Geng, Haonan Li, Honglin Mu, Xudong Han, Timothy Baldwin, Omri Abend, Eduard H.
+Hovy, and Lea Frermann. Control illusion: The failure of instruction hierarchies in large
+language models. ArXiv, abs/2502.15851, 2025.
+[16] Zhibin Gou, Zhihong Shao, Yeyun Gong, yelong shen, Yujiu Yang, Minlie Huang, Nan Duan,
+and Weizhu Chen. ToRA: A tool-integrated reasoning agent for mathematical problem solving.
+In The Twelfth International Conference on Learning Representations, 2024.
+[17] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian,
+Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex Vaughan, et al. The llama
+3 herd of models. arXiv preprint arXiv:2407.21783, 2024.
+10
+
+-- 10 of 35 --
+
+[18] Kai Greshake, Sahar Abdelnabi, Shailesh Mishra, Christoph Endres, Thorsten Holz, and Mario
+Fritz. Not what you’ve signed up for: Compromising real-world llm-integrated applications with
+indirect prompt injection. In Proceedings of the 16th ACM Workshop on Artificial Intelligence
+and Security, pages 79–90, 2023.
+[19] Melody Y Guan, Manas Joglekar, Eric Wallace, Saachi Jain, Boaz Barak, Alec Helyar, Rachel
+Dias, Andrea Vallone, Hongyu Ren, Jason Wei, et al. Deliberative alignment: Reasoning enables
+safer language models. arXiv preprint arXiv:2412.16339, 2024.
+[20] Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu,
+Shirong Ma, Peiyi Wang, Xiao Bi, et al. Deepseek-r1: Incentivizing reasoning capability in
+llms via reinforcement learning. arXiv preprint arXiv:2501.12948, 2025.
+[21] Tingxu Han, Zhenting Wang, Chunrong Fang, Shiyu Zhao, Shiqing Ma, and Zhenyu Chen.
+Token-budget-aware llm reasoning. arXiv preprint arXiv:2412.18547, 2024.
+[22] Tingxu Han, Zhenting Wang, Chunrong Fang, Shiyu Zhao, Shiqing Ma, and Zhenyu Chen.
+Token-budget-aware llm reasoning, 2025.
+[23] Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn
+Song, and Jacob Steinhardt. Measuring mathematical problem solving with the math dataset.
+arXiv preprint arXiv:2103.03874, 2021.
+[24] Evan Hernandez, Belinda Z Li, and Jacob Andreas. Inspecting and editing knowledge
+representations in language models. arXiv preprint arXiv:2304.00740, 2023.
+[25] Keegan Hines, Gary Lopez, Matthew Hall, Federico Zarfati, Yonatan Zunger, and Emre
+Kiciman. Defending against indirect prompt injection attacks with spotlighting. arXiv preprint
+arXiv:2403.14720, 2024.
+[26] Tiansheng Huang, Sihao Hu, Fatih Ilhan, Selim Furkan Tekin, Zachary Yahn, Yichang Xu, and
+Ling Liu. Safety tax: Safety alignment makes your large reasoning models less reasonable.
+arXiv preprint arXiv:2503.00555, 2025.
+[27] Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec
+Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al. Openai o1 system card. arXiv
+preprint arXiv:2412.16720, 2024.
+[28] Fengqing Jiang, Zhangchen Xu, Yuetai Li, Luyao Niu, Zhen Xiang, Bo Li, Bill Yuchen Lin, and
+Radha Poovendran. Safechain: Safety of language models with long chain-of-thought reasoning
+capabilities. arXiv preprint arXiv:2502.12025, 2025.
+[29] Carlos E Jimenez, John Yang, Alexander Wettig, Shunyu Yao, Kexin Pei, Ofir Press, and
+Karthik R Narasimhan. SWE-bench: Can language models resolve real-world github issues? In
+The Twelfth International Conference on Learning Representations, 2024.
+[30] Tamera Lanham, Anna Chen, Ansh Radhakrishnan, Benoit Steiner, Carson Denison, Danny
+Hernandez, Dustin Li, Esin Durmus, Evan Hubinger, Jackson Kernion, et al. Measuring
+faithfulness in chain-of-thought reasoning. arXiv preprint arXiv:2307.13702, 2023.
+[31] Ayeong Lee, Ethan Che, and Tianyi Peng. How well do llms compress their own chain-of-thought?
+a token complexity approach. arXiv preprint arXiv:2503.01141, 2025.
+[32] Chengpeng Li, Mingfeng Xue, Zhenru Zhang, Jiaxi Yang, Beichen Zhang, Xiang Wang, Bowen
+Yu, Binyuan Hui, Junyang Lin, and Dayiheng Liu. Start: Self-taught reasoner with tools, 2025.
+[33] Kenneth Li, Oam Patel, Fernanda Viégas, Hanspeter Pfister, and Martin Wattenberg. Inference-
+time intervention: Eliciting truthful answers from a language model. Advances in Neural
+Information Processing Systems, 36:41451–41530, 2023.
+[34] Hunter Lightman, Vineet Kosaraju, Yuri Burda, Harrison Edwards, Bowen Baker, Teddy Lee,
+Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. Let’s verify step by step. In The
+Twelfth International Conference on Learning Representations, 2024.
+11
+
+-- 11 of 35 --
+
+[35] Wenjie Ma, Jingxuan He, Charlie Snell, Tyler Griggs, Sewon Min, and Matei Zaharia. Reasoning
+models can be effective without thinking, 2025.
+[36] Mathematical Association of America. American Invitational Mathe-
+matics Examination (AIME). https://maa.org/math-competitions/
+american-invitational-mathematics-examination-aime, February 2024. Ac-
+cessed: 2025-03-24.
+[37] Niklas Muennighoff, Zitong Yang, Weĳia Shi, Xiang Lisa Li, Li Fei-Fei, Hannaneh Hajishirzi,
+Luke Zettlemoyer, Percy Liang, Emmanuel Candès, and Tatsunori Hashimoto. s1: Simple
+test-time scaling. arXiv preprint arXiv:2501.19393, 2025.
+[38] OpenAI. How we think about safety and alignment, 2025. Accessed: 2025-03-20.
+[39] Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin,
+Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, et al. Training language models to
+follow instructions with human feedback. Advances in neural information processing systems,
+35:27730–27744, 2022.
+[40] Fábio Perez and Ian Ribeiro. Ignore previous prompt: Attack techniques for language models.
+arXiv preprint arXiv:2211.09527, 2022.
+[41] Julien Piet, Maha Alrashed, Chawin Sitawarin, Sizhe Chen, Zeming Wei, Elizabeth Sun, Basel
+Alomair, and David Wagner. Jatmo: Prompt injection defense by task-specific finetuning. In
+European Symposium on Research in Computer Security, pages 105–124. Springer, 2024.
+[42] Qwen, :, An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu,
+Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, Huan Lin, Jian Yang, Jianhong Tu,
+Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jingren Zhou, Junyang Lin, Kai Dang, Keming Lu,
+Keqin Bao, Kexin Yang, Le Yu, Mei Li, Mingfeng Xue, Pei Zhang, Qin Zhu, Rui Men, Runji
+Lin, Tianhao Li, Tianyi Tang, Tingyu Xia, Xingzhang Ren, Xuancheng Ren, Yang Fan, Yang
+Su, Yichang Zhang, Yu Wan, Yuqiong Liu, Zeyu Cui, Zhenru Zhang, and Zihan Qiu. Qwen2.5
+technical report, 2025.
+[43] Qwen Team. Qwq-32b: Embracing the power of reinforcement learning, March 2025.
+[44] Laria Reynolds and Kyle McDonell. Prompt programming for large language models: Beyond
+the few-shot paradigm. In Extended abstracts of the 2021 CHI conference on human factors in
+computing systems, pages 1–7, 2021.
+[45] Paul Röttger, Hannah Kirk, Bertie Vidgen, Giuseppe Attanasio, Federico Bianchi, and Dirk
+Hovy. Xstest: A test suite for identifying exaggerated safety behaviours in large language models.
+In Proceedings of the 2024 Conference of the North American Chapter of the Association for
+Computational Linguistics: Human Language Technologies (Volume 1: Long Papers), pages
+5377–5400, 2024.
+[46] Pranab Sahoo, Ayush Kumar Singh, Sriparna Saha, Vinĳa Jain, Samrat Mondal, and Aman
+Chadha. A systematic survey of prompt engineering in large language models: Techniques and
+applications. arXiv preprint arXiv:2402.07927, 2024.
+[47] Victor Sanh, Albert Webson, Colin Raffel, Stephen Bach, Lintang Sutawika, Zaid Alyafeai,
+Antoine Chaffin, Arnaud Stiegler, Arun Raja, Manan Dey, M Saiful Bari, Canwen Xu, Urmish
+Thakker, Shanya Sharma Sharma, Eliza Szczechla, Taewoon Kim, Gunjan Chhablani, Nihal
+Nayak, Debajyoti Datta, Jonathan Chang, Mike Tian-Jian Jiang, Han Wang, Matteo Manica,
+Sheng Shen, Zheng Xin Yong, Harshit Pandey, Rachel Bawden, Thomas Wang, Trishala
+Neeraj, Jos Rozen, Abheesht Sharma, Andrea Santilli, Thibault Fevry, Jason Alan Fries, Ryan
+Teehan, Teven Le Scao, Stella Biderman, Leo Gao, Thomas Wolf, and Alexander M Rush.
+Multitask prompted training enables zero-shot task generalization. In International Conference
+on Learning Representations, 2022.
+[48] Abulhair Saparov and He He. Language models are greedy reasoners: A systematic formal anal-
+ysis of chain-of-thought. In The Eleventh International Conference on Learning Representations,
+2023.
+12
+
+-- 12 of 35 --
+
+[49] Mrinank Sharma, Meg Tong, Jesse Mu, Jerry Wei, Jorrit Kruthoff, Scott Goodfriend, Euan
+Ong, Alwin Peng, Raj Agarwal, Cem Anil, et al. Constitutional classifiers: Defending against
+universal jailbreaks across thousands of hours of red teaming. arXiv preprint arXiv:2501.18837,
+2025.
+[50] Taylor Shin, Yasaman Razeghi, Robert L. Logan IV, Eric Wallace, and Sameer Singh. Auto-
+Prompt: Eliciting Knowledge from Language Models with Automatically Generated Prompts.
+In Bonnie Webber, Trevor Cohn, Yulan He, and Yang Liu, editors, Proceedings of the 2020
+Conference on Empirical Methods in Natural Language Processing (EMNLP), pages 4222–4235,
+Online, November 2020. Association for Computational Linguistics.
+[51] Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar. Scaling llm test-time compute
+optimally can be more effective than scaling model parameters. arXiv preprint arXiv:2408.03314,
+2024.
+[52] Nisan Stiennon, Long Ouyang, Jeffrey Wu, Daniel Ziegler, Ryan Lowe, Chelsea Voss, Alec
+Radford, Dario Amodei, and Paul F Christiano. Learning to summarize with human feedback.
+Advances in neural information processing systems, 33:3008–3021, 2020.
+[53] Hendrik Strobelt, Albert Webson, Victor Sanh, Benjamin Hoover, Johanna Beyer, Hanspeter
+Pfister, and Alexander M. Rush. Interactive and visual prompt engineering for ad-hoc task
+adaptation with large language models, 2022.
+[54] Yang Sui, Yu-Neng Chuang, Guanchu Wang, Jiamu Zhang, Tianyi Zhang, Jiayi Yuan, Hongyi
+Liu, Andrew Wen, Shaochen Zhong, Hanjie Chen, and Xia Hu. Stop overthinking: A survey on
+efficient reasoning for large language models. ArXiv, abs/2503.16419, 2025.
+[55] Gemini Team, Petko Georgiev, Ving Ian Lei, Ryan Burnell, Libin Bai, Anmol Gulati, Garrett
+Tanzer, Damien Vincent, Zhufeng Pan, Shibo Wang, et al. Gemini 1.5: Unlocking multimodal
+understanding across millions of tokens of context. arXiv preprint arXiv:2403.05530, 2024.
+[56] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei,
+Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale, et al. Llama 2: Open
+foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288, 2023.
+[57] Harsh Trivedi, Niranjan Balasubramanian, Tushar Khot, and Ashish Sabharwal. Interleaving
+retrieval with chain-of-thought reasoning for knowledge-intensive multi-step questions. arXiv
+preprint arXiv:2212.10509, 2022.
+[58] Miles Turpin, Julian Michael, Ethan Perez, and Samuel Bowman. Language models don’t
+always say what they think: Unfaithful explanations in chain-of-thought prompting. Advances
+in Neural Information Processing Systems, 36:74952–74965, 2023.
+[59] Eric Wallace, Kai Yuanqing Xiao, Reimar Heinrich Leike, Lilian Weng, Johannes Heidecke,
+and Alex Beutel. The instruction hierarchy: Training llms to prioritize privileged instructions.
+arXiv preprint arXiv:2404.13208, 2024.
+[60] Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc V Le, Ed H Chi, Sharan Narang, Aakanksha
+Chowdhery, and Denny Zhou. Self-consistency improves chain of thought reasoning in language
+models. In The Eleventh International Conference on Learning Representations, 2023.
+[61] Zĳun Wang, Haoqin Tu, Yuhan Wang, Juncheng Wu, Jieru Mei, Brian R Bartoldson, Bhavya
+Kailkhura, and Cihang Xie. Star-1: Safer alignment of reasoning llms with 1k data. arXiv
+preprint arXiv:2504.01903, 2025.
+[62] Alexander Wei, Nika Haghtalab, and Jacob Steinhardt. Jailbroken: How does llm safety training
+fail? Advances in Neural Information Processing Systems, 36:80079–80110, 2023.
+[63] Jason Wei, Maarten Bosma, Vincent Zhao, Kelvin Guu, Adams Wei Yu, Brian Lester, Nan
+Du, Andrew M Dai, and Quoc V Le. Finetuned language models are zero-shot learners. In
+International Conference on Learning Representations, 2022.
+13
+
+-- 13 of 35 --
+
+[64] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi, Quoc V Le,
+Denny Zhou, et al. Chain-of-thought prompting elicits reasoning in large language models.
+Advances in neural information processing systems, 35:24824–24837, 2022.
+[65] Sean Welleck, Amanda Bertsch, Matthew Finlayson, Hailey Schoelkopf, Alex Xie, Graham
+Neubig, Ilia Kulikov, and Zaid Harchaoui. From decoding to meta-generation: Inference-time
+algorithms for large language models. arXiv preprint arXiv:2406.16838, 2024.
+[66] Tong Wu, Shujian Zhang, Kaiqiang Song, Silei Xu, Sanqiang Zhao, Ravi Agrawal, Sathish Reddy
+Indurthi, Chong Xiang, Prateek Mittal, and Wenxuan Zhou. Instructional segment embedding:
+Improving LLM safety with instruction hierarchy. In The Thirteenth International Conference
+on Learning Representations, 2025.
+[67] xAI. Grok 3 beta — the age of reasoning agents, February 19 2025.
+[68] Tinghao Xie, Xiangyu Qi, Yi Zeng, Yangsibo Huang, Udari Madhushani Sehwag, Kaixuan
+Huang, Luxi He, Boyi Wei, Dacheng Li, Ying Sheng, et al. Sorry-bench: Systematically
+evaluating large language model safety refusal behaviors. arXiv preprint arXiv:2406.14598,
+2024.
+[69] Yueqi Xie, Jingwei Yi, Jiawei Shao, Justin Curl, Lingjuan Lyu, Qifeng Chen, Xing Xie, and
+Fangzhao Wu. Defending chatgpt against jailbreak attack via self-reminders. Nature Machine
+Intelligence, 5:1486–1496, 2023.
+[70] Silei Xu, Wenhao Xie, Lingxiao Zhao, and Pengcheng He. Chain of draft: Thinking faster by
+writing less. arXiv preprint arXiv:2502.18600, 2025.
+[71] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik Narasimhan, and Yuan
+Cao. React: Synergizing reasoning and acting in language models. In International Conference
+on Learning Representations (ICLR), 2023.
+[72] Wojciech Zaremba, Evgenia Nitishinskaya, Boaz Barak, Stephanie Lin, Sam Toyer, Yaodong Yu,
+Rachel Dias, Eric Wallace, Kai Xiao, Johannes Heidecke, et al. Trading inference-time compute
+for adversarial robustness. arXiv preprint arXiv:2501.18841, 2025.
+[73] Qingru Zhang, Chandan Singh, Liyuan Liu, Xiaodong Liu, Bin Yu, Jianfeng Gao, and Tuo
+Zhao. Tell your model where to attend: Post-hoc attention steering for LLMs. In The Twelfth
+International Conference on Learning Representations, 2024.
+[74] Zhexin Zhang, Junxiao Yang, Pei Ke, Fei Mi, Hongning Wang, and Minlie Huang. Defending
+large language models against jailbreaking attacks through goal prioritization. In Proceedings
+of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long
+Papers), pages 8865–8887, 2024.
+[75] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang,
+Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, et al. Judging llm-as-a-judge with mt-bench and
+chatbot arena. Advances in Neural Information Processing Systems, 36:46595–46623, 2023.
+[76] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao Zhuang,
+Zi Lin, Zhuohan Li, Dacheng Li, Eric Xing, Hao Zhang, Joseph E Gonzalez, and Ion Stoica.
+Judging llm-as-a-judge with mt-bench and chatbot arena. In A. Oh, T. Naumann, A. Globerson,
+K. Saenko, M. Hardt, and S. Levine, editors, Advances in Neural Information Processing
+Systems, volume 36, pages 46595–46623. Curran Associates, Inc., 2023.
+[77] Jeffrey Zhou, Tianjian Lu, Swaroop Mishra, Siddhartha Brahma, Sujoy Basu, Yi Luan, Denny
+Zhou, and Le Hou. Instruction-following evaluation for large language models, 2023.
+[78] Kaiwen Zhou, Chengzhi Liu, Xuandong Zhao, Shreedhar Jangam, Jayanth Srinivasa, Gaowen
+Liu, Dawn Song, and Xin Eric Wang. The hidden risks of large reasoning models: A safety
+assessment of r1. arXiv preprint arXiv:2502.12659, 2025.
+[79] Andy Zou, Long Phan, Sarah Chen, James Campbell, Phillip Guo, Richard Ren, Alexander Pan,
+Xuwang Yin, Mantas Mazeika, Ann-Kathrin Dombrowski, et al. Representation engineering: A
+top-down approach to ai transparency. arXiv preprint arXiv:2310.01405, 2023.
+14
+
+-- 14 of 35 --
+
+[80] Andy Zou, Zifan Wang, Nicholas Carlini, Milad Nasr, J Zico Kolter, and Matt Fredrikson.
+Universal and transferable adversarial attacks on aligned language models. arXiv preprint
+arXiv:2307.15043, 2023.
+[81] Egor Zverev, Sahar Abdelnabi, Soroush Tabesh, Mario Fritz, and Christoph H. Lampert. Can
+LLMs separate instructions from data? and what do we even mean by that? In The Thirteenth
+International Conference on Learning Representations, 2025.
+[82] Egor Zverev, Evgenii Kortukov, Alexander Panfilov, Soroush Tabesh, Alexandra Volkova,
+Sebastian Lapuschkin, Wojciech Samek, and Christoph H Lampert. Aside: Architectural
+separation of instructions and data in language models. arXiv preprint arXiv:2503.10566, 2025.
+15
+
+-- 15 of 35 --
+
+A Addtional Related Works
+In this appendix, we present additional related works relevant to reasoning models, controlling LLMs,
+and the tasks used for our evaluation.
+Reasoning models. Reasoning models have rapidly advanced since OpenAI’s o1 model [27 ]. This
+trend has produced closed-source models like Google’s Flash Thinking [ 13 ], Anthropic’s Claude 3.7
+Sonnet [ 3 ], and xAI’s Grok 3 [67], alongside open-source alternatives such as DeepSeek R1 [20 ],
+QwQ [ 43 ], and S1 [ 37 ]. These models employ test-time scaling [51 , 65 ], allocating additional
+inference computation to improve performance on complex tasks.
+Controlling LLMs. There are two mainstream approaches for controlling LLMs after the training stage.
+Prompt Engineering provides clear and detailed instructions, either manually written [8, 64, 57, 71]
+or automatically generated [ 50 , 44, 53, 14 ], to achieve a specific objective. Activation Steering selects
+a subset of LLM inner activations to probe [12, 79 , 24 , 33 , 73] as a means to control LLMs. Thinking
+Intervention differs from these methods as it intervenes in the thinking process.
+Instruction following. LLMs rely on accurately following natural language instructions for broad
+applicability. This capability is improved through supervised fine-tuning on instruction-response
+pairs [47, 63 , 10 ] and reinforcement learning from human feedback (RLHF) [52 , 5 , 39 ]. Additionally,
+prompting techniques [60, 64] further help elicit more effective responses.
+Instruction hierarchy. The concept of instruction hierarchy was proposed by [ 59 ], suggesting
+that LLM systems should prioritize instructions based on their trustworthiness. Otherwise, they
+may become vulnerable to misalignment or adversarial prompts [40, 18 , 15]. Researchers have
+proposed various methods to enhance instruction hierarchy through additional training on misaligned
+data [9, 59, 41], prompting-based techniques [25, 81], and architectural design [66, 82].
+Safety alignment. Safety alignment [6, 17, 55 ] is a critical aspect of LLM development, aiming to
+ensure that models follow ethical guidelines and avoid producing harmful content [ 62 , 80, 68 ]. For
+reasoning models, works from OpenAI [ 19 , 72 ] suggest that their o1/o3 series can achieve better
+safety alignment by leveraging more test-time compute. Meanwhile, other studies [ 78 , 28 , 26 ] have
+indicated that open-sourced reasoning models, like DeepSeek R1 series, exhibit more safety issues.
+In this work, we explore how to leverage Thinking Intervention to improve instruction following,
+instruction hierarchy, and safety alignment in open-source reasoning models.
+16
+
+-- 16 of 35 --
+
+B Instruction Following Evaluation (IFEval)
+B.1 More Details of Evaluations
+IFEval [ 77 ] evaluates the instruction-following capabilities of language models using 25 distinct
+instruction types across approximately 500 prompts. In the main texts, we report only the prompt-level
+strict accuracy as accuracy for simplicity. Here, we formally discuss all four metrics used in [ 77] and
+report the results.
+• Prompt-level strict accuracy: The proportion of prompts for which all verifiable instructions are
+correctly followed.
+• Instruction-level strict accuracy: The proportion of verifiable instructions that are correctly
+completed, evaluated individually.
+• Prompt-level loose accuracy: Similar to prompt-level strict accuracy, but evaluated under a loose
+evaluation criterion (see below for details).
+• Instruction-level loose accuracy: Instruction-level strict accuracy under a loose evaluation
+criterion (see below for details).
+Strict accuracy and loose accuracy. Strict accuracy requires the model output to precisely match
+the requirements. For instance, if an instruction specifies output in JSON format, the entire response
+must be in valid JSON format with no extraneous text. Any deviation results in the output being
+marked incorrect. Loose accuracy, on the other hand, allows some flexibility. For example, if a
+response begins with a preamble like "Sure, here is the answer:" followed by correctly formatted
+JSON, it would still be considered correct under loose accuracy criteria, even though it would fail
+strict evaluation. In addition to removing such introductions, evaluators also disregard font modifiers
+and outros, making the assessment more flexible.
+For more details on the benchmark, please refer to the original paper [ 77]. Our implementation uses
+the codebase available at https://github.com/josejg/instruction_following_eval.
+Generating Reminder Prompting and Thinking Intervention. Figure 8 demonstrates how we
+generate the text of Reminder Prompting by providing system prompts to GPT-4o. We then modify the
+narrative by adding a prefix (e.g., from "Ensure the summary is at least 300 words" to "I should
+ensure the summary is at least 300 words") with Python code to create the intervention sequence.
+Figure 8: A demonstration of how we prompt GPT-4o to generate the Reminder Prompting. The
+intervention sequence is a slightly modified version of Reminder Prompting.
+B.2 Comprehensive Experiment Results
+In Table 2, we provide comprehensive experimental results on the IFEval benchmark, covering
+additional reasoning-enhanced models (R1-Llama-8B and R1-Llama-70B) alongside diverse
+evaluation metrics.
+Our findings are consistent with the main conclusions presented in Section 3, clearly demonstrating
+that our Thinking Intervention paradigm effectively improves models’ capability to accurately follow
+instructions across all evaluation metrics. Specifically, in terms of prompt-level loose accuracy,
+applying Thinking Intervention leads to substantial empirical improvements over the Vanilla Prompting.
+We observe performance gains of 5.36%, 4.80%, and 6.47% for R1-Qwen-7B, R1-Qwen-14B, and
+R1-Qwen-32B, respectively.
+Moreover, we find that Thinking Intervention achieves similar performance enhancements for the
+additional reasoning-enabled models: prompt-level loose accuracy increases by 8.88% for R1-Llama-
+8B and by 1.85% for R1-Llama-70B compared to Vanilla Prompting. These observations strongly
+suggest that our Thinking Intervention method enhances instruction-following capabilities across
+diverse reasoning-enhanced LLMs.
+17
+
+-- 17 of 35 --
+
+Table 2: The evaluation results on the IFEval dataset span multiple reasoning models. We compare
+our method, Thinking Intervention (+ThinkingI), with the Vanilla Prompting and Reminder Prompting
+methods and observe consistent performance improvements. The best results are in bold.
+Models Methods Prompt-level Inst-level Prompt-level Inst-level
+strict acc.(%) strict acc.(%) loose acc.(%) loose acc.(%)
+R1-Qwen-7B
+Vanilla 55.08 66.19 58.60 68.70
+Vanilla+ThinkingI 60.99 (+5.91) 70.50 (+4.31) 63.96 (+5.36) 73.02 (+4.32)
+Reminder 60.99 70.50 64.33 73.02
+Reminder+ThinkingI 62.85 (+1.86) 72.18 (+1.68) 66.54 (+2.21) 75.06 (+2.04)
+R1-Qwen-14B
+Vanilla 70.43 79.50 73.57 81.77
+Vanilla+ThinkingI 75.42 (+4.99) 81.65 (+2.15) 78.37 (+4.80) 84.29 (+2.52)
+Reminder 72.83 81.18 76.53 83.69
+Reminder+ThinkingI 74.31 (+1.48) 82.13 (+0.95) 77.26 (+0.73) 84.41 (+0.72)
+R1-Qwen-32B
+Vanilla 70.43 79.14 74.49 81.89
+Vanilla+ThinkingI 77.08 (+6.65) 84.29 (+5.15) 80.96 (+6.47) 86.93 (+5.04)
+Reminder 75.23 82.85 78.74 85.37
+Reminder+ThinkingI 77.63 (+2.40) 84.53 (+1.68) 81.70 (+2.96) 87.29 (+1.92)
+QwQ-32B
+Vanilla 79.30 86.09 83.92 89.09
+Vanilla+ThinkingI 82.26 (+2.96) 88.01 (+1.92) 86.32 (+2.40) 90.65 (+1.56)
+Reminder 81.33 87.53 86.69 91.01
+Reminder+ThinkingI 82.44 (+1.11) 88.13 (+0.60) 86.69 (+0.00) 91.01 (+0.00)
+R1-Llama-8B
+Vanilla 56.56 67.63 60.07 70.50
+Vanilla+ThinkingI 65.43 (+8.87) 74.58 (+6.95) 68.95 (+8.88) 76.98 (+6.48)
+Reminder 62.85 73.02 67.47 76.62
+Reminder+ThinkingI 66.17 (+3.32) 75.30 (+2.28) 70.06 (+2.59) 78.30 (+1.68)
+R1-Llama-70B
+Vanilla 79.85 86.09 82.62 88.13
+Vanilla+ThinkingI 80.41 (+0.56) 86.69 (+0.60) 84.47 (+1.85) 89.57 (+1.44)
+Reminder 82.07 87.89 84.84 89.81
+Reminder+ThinkingI 82.44 (+0.37) 88.13 (+0.24) 85.58 (+0.74) 90.53 (+0.72)
+C Instruction Following Evaluation (Overthinking)
+As the increasing computational costs associated with sequential scaling of reasoning models, recent
+studies have dedicated significant efforts toward optimizing the thinking steps to minimize unnecessary
+computational overhead while maintaining accuracy [ 22, 70 , 35 ]. For a detailed overview of these
+developments, we refer readers to the recent survey [54].
+Here, we investigate the effectiveness of our Thinking Intervention paradigm in mitigating such
+overthinking. Specifically, we use the standard 500-sample subset from the challenging MATH
+benchmark [ 23 ], which is commonly adopted by prior work (e.g., OpenAI’s study [34]). We measure:
+(i) accuracy: the percentage of correctly solved problems; and (ii) reasoning length: the total token
+count of reasoning process.
+We compare our method against two baselines: Vanilla Prompting, the standard procedure where
+the model directly receives the math problem as a prompt without additional guidance; Reminder
+Prompting, where a textual cue ("Please solve it without thinking too much.") is included, aiming
+to guide models toward succinct reasoning. For Thinking Intervention, we explicitly inject a
+concise instruction ("Okay, the user asked for this. I need to solve it without thinking too
+much.") at the start of the reasoning process. Following prior evaluations, we test across a set of model
+variants (R1-Qwen-14B, R1-Qwen-32B, and QwQ-32B).
+Thinking Intervention effectively mitigates overthinking without compromising task perfor-
+mance. Table 3 summarizes the effectiveness of Thinking Intervention in addressing overthinking
+across different evaluated models. Empirically, we observe minimal changes in accuracy compared
+to baseline approaches (with accuracy varying within a narrow range, at most decreasing by 1.2%).
+18
+
+-- 18 of 35 --
+
+Table 3: The evaluation results on mitigating overthinking across multiple reasoning models. We
+compare our proposed Thinking Intervention (+ThinkingI) against the Vanilla Prompting and Reminder
+Prompting.
+R1-Qwen-14B R1-Qwen-32B QwQ-32B
+Methods Accuracy (%) Length (tokens) Accuracy (%) Length (tokens) Accuracy (%) Length (tokens)
+Vanilla 89.4 3281 90.8 3101 90.0 3926
+Vanilla+TI 88.6 2494 (-23.99%) 90.0 2388 (-22.99%) 90.6 3781(-3.7%)
+Reminder 88.8 2836 89.4 2718 89.8 3454
+Reminder+TI 89.4 2043 (-27.96%) 89.6 1891 (-30.43%) 91.6 3151 (-8.77%)
+Notably, Thinking Intervention can sometimes yield improved task accuracy, achieving gains of up
+to 1.6%. Most significantly, our method consistently produces substantial reductions in reasoning
+length, cutting token generation by as much as 30.4%. We note that token reduction for QwQ-32B
+is more modest compared to DeepSeek R1 models, suggesting distinct reasoning behavior across
+models. Nevertheless, stronger and more precisely tailored interventions could potentially further
+reduce reasoning length for QwQ-32B. Overall, our analysis demonstrates that Thinking Intervention
+reduces unnecessary reasoning steps, delivering meaningful improvements in efficiency with minimal
+negative impact on final task accuracy.
+19
+
+-- 19 of 35 --
+
+D Instruction Hierarchy (SEP)
+Figure 9: A demonstration of Vanilla Prompting, Reminder Prompting, and Thinking Intervention for
+the SEP benchmark. The {Task} and {Data} fields are filled with content from the SEP dataset
+during evaluation.
+Figure 10: A demonstration of how the SEP benchmark evaluates instruction hierarchy capabilities.
+Each example consists of a main instruction paired with data. Left: A low-priority instruction is
+injected into the data, which the model should correctly ignore. Middle: A low-priority instruction
+is injected into the task portion, which the model should follow and generate answers. Right: The
+low-priority instruction is absent, allowing us to measure the utility of different methods.
+Figure 11: Prompt template of evaluating the utility metric on the SEP benchmark. The {Question}
+and {Answer} will be filled with the complete prompt and model response, respectively.
+D.1 More Details of Evaluations
+We use the SEP dataset [ 81] to evaluate models’ ability to follow hierarchical instructions. The dataset
+contains 9,160 examples, each consisting of a main instruction, corresponding data, a low-priority
+query, and a witness (the answer to the low-priority query). For computational efficiency, we randomly
+sample 500 prompts for our evaluation. In Figure 9, we show all the prompts (including Vanilla
+Prompting, Reminder Prompting, and Thinking Intervention) used for evaluation.
+In our main paper, we primarily focused on two metrics: robustness and utility. In fact, the SEP
+benchmark also contains another metric called SEP utility to measure if the model can correctly
+follow the low-priority task when it is placed in the task section. We detail these metrics as follows:
+• Robustness: We inject the low-priority query into the data block and measure the model’s ability
+to correctly ignore it (left example in Figure 10). The metric represents the percentage of cases
+where the model successfully ignores the low-priority instruction (i.e., the witness does not
+appear in the response). Note that in the original paper [81], this metric is called SEP.
+• SEP utility: We place the low-priority query in the task block and evaluate the model’s ability to
+follow it (middle example in Figure 10). The metric represents the percentage of cases where the
+model correctly follows the low-priority instruction (i.e., the witness appears in the response).
+• Utility: We omit the low-priority query (right example in Figure 10). We then evaluate the
+model’s performance using the prompt template shown in Figure 11. We use GPT-4o-mini as the
+judge to assess response quality. Results are scaled to 0-100%.
+20
+
+-- 20 of 35 --
+
+Table 4: Evaluation results on the SEP dataset across various reasoning models. We compare our
+proposed Thinking Intervention (+ThinkingI) against Vanilla Prompting and Reminder Prompting.
+Models Methods Robustness(%) SEP utility(%) Utility (%)
+R1-Qwen-7B
+Vanilla 57.60 72.20 74.44
+Vanilla+ThinkingI 60.80 (+3.20) 77.80 (+5.60) 74.40 (-0.04)
+Reminder 57.60 74.20 74.20
+Reminder+ThinkingI 62.60 (+5.00) 77.40 (+3.20) 73.92 (-0.28)
+R1-Qwen-14B
+Vanilla 34.00 88.40 81.04
+Vanilla+ThinkingI 38.40 (+4.40) 92.40 (+4.00) 81.08 (+0.04)
+Reminder 38.40 88.80 80.50
+Reminder+ThinkingI 41.80 (+3.40) 91.60 (+2.80) 80.90 (+0.40)
+R1-Qwen-32B
+Vanilla 34.80 92.80 81.76
+Vanilla+ThinkingI 50.20 (+15.40) 91.60 (-1.20) 82.02 (+0.26)
+Reminder 46.20 92.00 81.16
+Reminder+ThinkingI 66.40 (+20.20) 91.40 (-0.60) 80.90 (-0.26)
+QwQ-32B
+Vanilla 22.20 96.60 88.00
+Vanilla+ThinkingI 31.40 (+9.20) 96.40 (-0.20) 88.16 (+0.16)
+Reminder 36.20 96.80 87.52
+Reminder+ThinkingI 43.40 (+7.20) 96.60 (-0.20) 86.79 (-0.73)
+R1-Llama-8B
+Vanilla 44.80 77.80 78.51
+Vanilla+ThinkingI 53.80 (+9.00) 79.40 (+1.60) 77.04 (-1.47)
+Reminder 48.00 77.40 78.53
+Reminder+ThinkingI 57.00 (+9.00) 78.60 (+1.20) 77.26 (-1.27)
+R1-Llama-70B
+Vanilla 34.20 91.40 81.45
+Vanilla+ThinkingI 52.80 (+18.60) 95.80 (+4.40) 81.88 (+0.43)
+Reminder 50.40 91.20 80.86
+Reminder+ThinkingI 65.80 (+15.40) 95.60 (+4.40) 80.90 (+0.04)
+D.2 Comprehensive Experiment Results
+In Table 4, we present extended evaluations of Thinking Intervention on the SEP dataset, incorporating
+a new metric (SEP utility) and additional reasoning-enhanced models (R1-Llama-8B and R1-Llama-
+70B).
+Our results indicate that Thinking Intervention maintains or even improves the SEP utility. Specifically,
+for R1-Qwen-14B, our method achieves notable SEP utility scores of 92.4% and 91.6%, representing
+improvements of 4.0% and 2.8% over baseline methods, respectively. The performance on models like
+R1-Qwen-32B and QwQ-32B remains comparable, with only minimal SEP utility degradation (less
+than 1.2%), confirming that Thinking Intervention reliably enhances robustness without sacrificing
+model performance.
+Moreover, we observe consistent and compelling improvements for the newly included models
+(R1-Llama-8B and R1-Llama-70B) across all evaluated metrics. Particularly noteworthy are
+the robustness gains: we achieve increases of up to 9.0% for R1-Llama-8B and up to 18.6% for
+R1-Llama-70B. These consistent improvements affirm the general applicability and effectiveness of
+Thinking Intervention in strengthening robustness across diverse reasoning model families.
+21
+
+-- 21 of 35 --
+
+E Safety Alignment
+We provide more details on how baseline methods are implemented for safety alignment in Ap-
+pendix E.1. We then introduce the detailed evaluation setup and present additional experimental
+results for XSTest and SORRY-Bench in Appendix E.2 and Appendix E.3, respectively. Lastly, we
+consider integrated Thinking Intervention with the safety fine-tuned model in Appendix E.4.
+E.1 Details of Baseline Models
+For those baseline prompting models of safety steering, we utilize the prompts shown in Figure 12.
+Figure 12: The baseline prompting methods, as well as our Thinking Intervention, used for evaluating
+safety steering. The {Query} will be filled with the query from the benchmarks. Note for Goal
+Priority Prompting, we eliminate the few-shot exemplars as suggested by [2].
+E.2 Safety Alignment on XSTest
+Details of experimental design. For safety alignment evaluation, we first use the XSTest bench-
+mark [45 ], which consists of 250 safe requests and 200 unsafe requests. This benchmark is designed
+to examine the exaggerated safety behaviors of LLMs; therefore, all safe requests are intentionally
+tricky and contain potential safety triggers. Following [ 45 ], we evaluate the model outputs using the
+GPT-4o-mini with the prompts shown in Figure 13.
+Figure 13: Prompt template of evaluating the compliance or refusal rate on the XSTest benchmark.
+The {Question} and {Answer} will be filled with the complete prompt and model response,
+respectively.
+Note that the evaluation results are categorized into three levels: full compliance, full refusal, and
+partial refusal. For safe requests, we only consider full compliance as the correct response, and
+report the ratio as the compliance rate for safe requests. For unsafe requests, we only consider full
+refusal as the correct response, and report the ratio as the refusal rate for unsafe requests. This
+provides a stringent evaluation of the model’s safety alignment behavior, as it requires models to
+clearly distinguish between safe and unsafe requests, and to respond appropriately in each case.
+Experimental results across all reasoning models. In Figure 14, we present extensive safety
+alignment evaluations on the XSTest dataset using a diverse set of reasoning-enhanced models,
+including R1-Qwen-7B, R1-Qwen-14B, R1-Qwen-32B, QwQ-32B, R1-Llama-8B, and R1-Llama-
+70B.
+22
+
+-- 22 of 35 --
+
+Our results demonstrate that employing Thinking Intervention consistently and substantially improves
+model safety across a range of prompting methods and model architectures. In particular, compared
+with Vanilla Prompting, integrating Thinking Intervention significantly increases refusal rates for
+unsafe requests by over 40% for R1 series models and approximately 10% for QwQ-32B models.
+When evaluating safe requests, compliance rates under Thinking Intervention show only minor
+reductions (generally less than 10%) for medium- and large-sized reasoning models (R1-Qwen-14B,
+R1-Qwen-32B, QwQ-32B, and R1-Llama-70B) across most prompting methods, except for Goal
+Priority Prompting. However, we observe relatively larger drops in compliance for smaller reasoning
+models (R1-Qwen-7B and R1-Llama-8B). These discrepancies are likely due to the limited capacity
+of smaller models to accurately distinguish tricky safe prompts from truly unsafe ones. Encouragingly,
+larger models tend to handle this trade-off more effectively, maintaining strong compliance while
+enhancing safety.
+Furthermore, our analysis indicates that the performance changes induced by identical Thinking
+Intervention vary across model families, with the QwQ-32B series exhibiting smaller improvements
+compared to the R1 series. This may be because QwQ-32B is already substantially safer than the R1
+models. This variance also highlights intrinsic differences in model behavior, a phenomenon that can
+be investigated in future work.
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+(a) R1-Qwen-7B (b) R1-Qwen-14B (c) R1-Qwen-32B
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+40 	50 	60 	70 	80 	90 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 	Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+(a) QwQ-32B (b) R1-Llama-8B (c) R1-Llama-70B
+Figure 14: Effectiveness of Thinking Intervention on the XSTest benchmark across multiple reasoning
+models and prompting methods.
+E.3 Safety Alignment on SORRY-Bench
+Details of experimental design. We also evaluate the safety alignment of reasoning models on
+the SORRY-Bench benchmark [68 ], which is a more comprehensive benchmark containing 45
+taxonomies of unsafe instructions, with 10 unsafe requests per taxonomy (450 total unsafe requests).
+Following the method in [68], we use GPT-4o-mini as the evaluation judge with the prompts shown
+in Figure 15.
+23
+
+-- 23 of 35 --
+
+Figure 15: Prompt template of evaluating the refusal rate on the SORRY-Bench benchmark. The
+{Question} and {Answer} will be filled with the complete prompt and model response, respectively.
+Experimental results across multiple reasoning models. We comprehensively evaluate the
+effectiveness of our Thinking Intervention method on the SORRY-Bench benchmark across a diverse
+set of reasoning-enhanced models, including R1-Qwen-7B, R1-Qwen-14B, R1-Qwen-32B, QwQ-
+32B, R1-Llama-8B, and R1-Llama-70B. As illustrated in Figure 16, our approach consistently and
+substantially enhances model safety alignment across various prompting methods. Specifically, we
+observe improvements in robustness ranging from 10% to 25% for the R1 model series and from 5%
+to 15% for QwQ-32B. Remarkably, after incorporating Thinking Intervention within the baseline
+prompting method, the refusal rates for unsafe requests exceed those of all GPT-series models using
+the same prompting strategy.
+These findings demonstrate that Thinking Intervention offers an effective, robust, and broadly
+applicable solution for significantly improving safety alignment in diverse reasoning models.
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+60.9
+70.9
+76.4 	76.0	76.7
+81.8 	84.9
+91.1
+Robustness of SORRY Bench
+R1-Qwen-7B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+59.3
+67.6
+75.8 	74.9
+81.6
+85.6 	83.3
+89.1
+Robustness of SORRY Bench
+R1-Qwen-14B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+56.4
+70.0
+76.0 	74.4
+83.3
+87.1 	87.1 	87.8
+Robustness of SORRY Bench
+R1-Qwen-32B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+(a) R1-Qwen-7B (b) R1-Qwen-14B (c) R1-Qwen-32B
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+62.4
+81.1 	80.9 	83.8
+76.7
+84.7 	83.8
+88.4
+Robustness of SORRY Bench
+QwQ-32B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+56.4
+66.9
+70.7 	73.3
+78.4
+84.7
+88.9
+94.9
+Robustness of SORRY Bench
+R1-Llama-8B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+62.9
+69.1
+78.9 	76.2
+84.4 	87.3 	89.3 	92.0
+Robustness of SORRY Bench
+R1-Llama-70B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+(a) QwQ-32B (b) R1-Llama-8B (c) R1-Llama-70B
+Figure 16: Effectiveness of Thinking Intervention on the SORRY-Bench benchmark across multiple
+models. Our approach consistently improves the safety alignment of reasoning models.
+E.4 Thinking Intervention and Safety Fine-tuning
+In this appendix, we present experiments evaluating our Thinking Intervention method in conjunction
+with recent safety fine-tuning techniques proposed by [ 61 ]. Specifically, we consider the STAR1-32B
+model, obtained by fine-tuning the original R1-Qwen-32B model using approximately 1k generated
+instruction-and-reasoning pairs that incorporate explicit safety guidelines. Using the publicly
+released checkpoint for STAR1-32B, we evaluate its performance on the XSTest and SORRY-Bench
+benchmarks.
+Integration of Thinking Intervention with Safety Fine-tuning. Figure 17(a) illustrates the
+effectiveness of our Thinking Intervention approach when integrated with the safety fine-tuned
+STAR1-32B model on the XSTest benchmark. We observe that incorporating Thinking Intervention
+24
+
+-- 24 of 35 --
+
+60 	65 	70 	75 	80 	85 	90 	95
+Safe Request Compliance Rate (%)
+70
+75
+80
+85
+90
+Unsafe Request Refusal Rate (%)
+ 
+Compliance VS Refusal Rate
+Vanilla
+Vanilla + ThinkingI
+Default
+Default + ThinkingI
+Reminder
+Reminder + ThinkingI
+Goal Priority
+Goal Priority + ThinkingI
+(a) STAR1-32B on XSTest
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+83.8 	85.6 	83.8 	85.2	84.9 	85.8 	85.6 	85.8
+Robustness of SORRY Bench
+STAR1-32B
+No ThinkingI
+ThinkingI
+GPT-4o-mini
+GPT-4o
+o3-mini
+ (b) STAR1-32B on SORRY-Bench
+Figure 17: Evaluation of the STAR1-32B model integrated with Thinking Intervention on (a) XSTest
+and (b) SORRY-Bench benchmarks.
+consistently improves safety alignment, increasing the refusal rate for unsafe requests by approximately
+3%–5% across all evaluated prompting methods. For safe requests, Thinking Intervention generally
+maintains high compliance rates across most methods, and even slightly improves compliance (by
+∼2%) in the case of the Goal Priority Prompting method.
+Similarly, Figure 17(b) shows that Thinking Intervention further enhances the safety alignment of the
+STAR1-32B model on the SORRY-Bench benchmark. The refusal rate for unsafe requests increases
+by 0.2%–1.8% across all prompting methods. Despite the already strong performance of STAR1-32B,
+our Thinking Intervention approach provides some additional gains in safety alignment.
+25
+
+-- 25 of 35 --
+
+F Design of Thinking Intervention
+In this section, we present an in-depth analysis of how variations in the design of the Thinking
+Intervention influence performance using safety alignment benchmarks. In Appendix F.1, we analyze
+the effect of positioning the intervention sequence at the beginning, middle, and end of the reasoning
+process. In Appendix F.2, we evaluate how variations in the text of the intervention sequence affect
+model responses, highlighting the trade-offs between safety and compliance rates. In Appendix F.3,
+we investigate the effect of the narrative style of the intervention sequence and find that the model
+is capable of self-correcting narrative inconsistencies. In Appendix F.4, we discuss how we use
+auxiliary LLMs to support the Thinking Intervention.
+F.1 Position of Thinking Intervention
+We investigate the effect of intervention positions on the reasoning process using R1-Qwen-32B on
+XSTest and SORRY-Bench. The intervention sequence v is kept unchanged, and we implement
+three distinct intervention functions: (1) TIbegin: The intervention is introduced at the beginning of
+the reasoning process, corresponding to the default setting described in the main text. (2) TIend:
+The intervention is introduced at the conclusion of the reasoning process. Specifically, when the
+model is about to generate the reasoning-ending token "</think>", we replace it with the intervention
+sequence and allow the model to continue generating. (3) TImid: The intervention occurs at an
+intermediate stage of the reasoning process. We use the token "wait" as a trigger, indicating a
+transition in reasoning. Upon detecting this trigger, we replace the "wait" token with the intervention
+sequence and continue generating the output.
+70 	75 	80 	85 	90 	95 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 
+Compliance VS Refusal Rate
+Vanilla + TIbegin
+Vanilla + TIend
+Default + TIbegin
+Default + TIend
+Reminder + TIbegin
+Reminder + TIend
+Goal Priority + TIbegin
+Goal Priority + TIend
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+83.3
+87.1 	87.8 	87.1
+62.4
+71.6
+77.3 	75.6
+Robustness of SORRY Bench
+GPT-4o-mini
+GPT-4o
+o3-mini
+R1-Qwen-32B
+TIbegin
+TIend
+(a) TIbegin vs. TIend on XSTest (b) TIbegin vs. TIend on SORRY-Bench
+70 	75 	80 	85 	90 	95 	100
+Safe Request Compliance Rate (%)
+0
+20
+40
+60
+80
+100
+Unsafe Request Refusal Rate (%)
+ 
+Compliance VS Refusal Rate
+Vanilla + TIbegin
+Vanilla + TImid
+Default + TIbegin
+Default + TImid
+Reminder + TIbegin
+Reminder + TImid
+Goal Priority + TIbegin
+Goal Priority + TImid
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+83.3
+87.1 	87.8 	87.1
+63.1
+73.6
+78.4 	77.6
+Robustness of SORRY Bench
+GPT-4o-mini
+GPT-4o
+o3-mini
+R1-Qwen-32B
+TIbegin
+TImid
+(c) TIbegin vs. TImid on XSTest (d) TIbegin vs. TImid on SORRY-Bench
+Figure 18: Results of varying the location of the intervention sequence on the XSTest and SORRY-
+Bench benchmarks. The content is kept unchanged, and the Thinking Intervention is placed at the
+beginning, middle, and end of the reasoning process.
+26
+
+-- 26 of 35 --
+
+Thinking Intervention at reasoning start steers the model more effectively. Figure 18(a) and
+Figure 18(c) illustrate that intervening at later stages of the reasoning process (i.e., TIend and TImid)
+reduces the model’s steering capability, resulting in a lower refusal rate for harmful queries but higher
+compliance rates for safe queries. For instance, with Reminder Prompting, the model achieves a
+refusal rate of approximately 50% and compliance rate of nearly 98%, whereas TIbegin attains a
+refusal rate of around 70% and a compliance rate of approximately 96%. This outcome highlights a
+clear trade-off between these two metrics, which is expected since the model has already generated
+substantial reasoning content before the intervention, limiting the effectiveness of subsequent steering.
+Similarly, Figure 18(b) and Figure 18(d) present results for the SORRY-Bench benchmark, showing
+that interventions placed in the middle or at the end of the reasoning process lead to a notable reduction
+(10% to 20%) in refusal rates for unsafe requests.
+F.2 Complexity of Thinking Intervention
+We then explore how the different text content of the Thinking Intervention affects the
+reasoning process and the final safety performance using the XSTest and SORRY-Bench
+benchmarks with the R1-Qwen-32B model. We evaluate two different intervention se-
+quences: (1) the default shorter intervention sequence (i.e., "I am a helpful, respectful, and
+honest assistant."), denoted as TIshort, and (2) a longer version of the intervention se-
+quence (i.e., "I am a responsible assistant and should not generate harmful or misleading con-
+tent! So I need to verify the dangerousness of the user’s request."), denoted as TIlong. We
+insert both versions at the beginning of the reasoning process.
+Long and detailed Thinking Intervention can steer the model toward safety but results in a
+lower compliance rate. Figure 19 (a) shows that the compliance rate for safe requests on XSTest
+decreases by over 10% when using the longer intervention sequence, compared to the shorter version.
+In contrast, the refusal rate for unsafe requests increases by approximately 10% with the longer
+intervention sequence. Similarly, Figure 19 (b) indicates that the refusal rate for unsafe requests on
+SORRY-Bench also improves with the longer intervention sequence, showing an increase of 3% to
+10%. This outcome is expected, as the longer intervention sequence provides more explicit safety
+instructions. Therefore, Thinking Intervention can be flexibly designed with different intervention
+contents to precisely control the degree of steering.
+70 	75 	80 	85 	90 	95 	100
+Safe Request Compliance Rate (%)
+30
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+ 
+Compliance VS Refusal Rate
+Vanilla + TIshort
+Vanilla + TIlong
+Default + TIshort
+Default + TIlong
+Reminder + TIshort
+Reminder + TIlong
+Goal Priority + TIshort
+Goal Priority + TIlong
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+83.3
+87.1 	87.8 	87.1
+93.1 	92.4 	92.9 	90.4
+Robustness of SORRY Bench
+GPT-4o-mini
+GPT-4o
+o3-mini
+R1-Qwen-32B
+TIshort
+TIlong
+(a) R1-Qwen-32B on XSTest (b) R1-Qwen-32B on SORRY-Bench
+Figure 19: Results of varying the Thinking Intervention content length on XSTest and SORRY-Bench
+benchmarks. We compare our default short intervention sequence with a longer version. Both versions
+are inserted at the beginning of the reasoning process.
+F.3 Narrative of Thinking Intervention
+In this subsection, we analyze how the narrative of the Thinking Intervention affects the reasoning
+process using safety alignment benchmarks (i.e., XSTest and SORRY-Bench) with the R1-Qwen-32B
+model. In our main experiments, we use the first narrative intervention sequence (i.e., "I am a helpful,
+respectful, and honest assistant.") as the default setting. We then construct an alternative second
+27
+
+-- 27 of 35 --
+
+70 	75 	80 	85 	90 	95 	100
+Safe Request Compliance Rate (%)
+40
+45
+50
+55
+60
+65
+70
+75
+80
+Unsafe Request Refusal Rate (%)
+ 
+Compliance VS Refusal Rate
+Vanilla + TIfirst
+Vanilla + TIsecond
+Default + TIfirst
+Default + TIsecond
+Reminder + TIfirst
+Reminder + TIsecond
+Goal Priority + TIfirst
+Goal Priority + TIsecond
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+83.3
+87.1 	87.8 	87.1
+80.2
+83.3
+87.6 	87.1
+Robustness of SORRY Bench
+GPT-4o-mini
+GPT-4o
+o3-mini
+R1-Qwen-32B
+TIfirst
+TIsecond
+(a) R1-Qwen-32B on XSTest (b) R1-Qwen-32B on SORRY-Bench
+Figure 20: Results of varying the Thinking Intervention’s narrative on XSTest and SORRY-Bench
+benchmarks. We compare our default first-narrative intervention sequence with an alternative
+second-narrative sequence. Both versions are inserted at the beginning of the reasoning process.
+Figure 21: A demonstration of how models generate outputs when the second-narrative Thinking
+Intervention (highlighted in blue) is applied. We observe that reasoning models can self-correct
+narrative errors during the reasoning process.
+narrative intervention sequence (i.e., "You are a helpful, respectful, and honest assistant.") and
+examine whether the reasoning process is affected by the narrative. Again, both Thinking Interventions
+are inserted at the beginning of the reasoning process.
+Narrative of Thinking Intervention does not affect the performance significantly. In Figure 20 (a),
+we observe that the compliance rate for safe requests and the refusal rate for harmful requests on
+XSTest are not significantly affected by the narrative of the Thinking Intervention, with less than
+3% variation. On SORRY-Bench, Figure 20 (b) indicates that the refusal rate for unsafe requests
+decreases with the second narrative intervention sequence, showing a drop of 0.2% to 3.8%. This
+outcome may be somewhat surprising, as we expected the second narrative intervention sequence to
+disrupt the reasoning process. Therefore, we explore why this occurs through an example.
+Reasoning models can self-correct narrative errors. We demonstrate an example from the
+SORRY-Bench benchmark in Figure 21, where the user instruction is a harmful request. The model
+with the second narrative intervention sequence initially uses the second narrative and generates
+"You can’t comply with this request." However, the model quickly recognizes that the narrative
+is incorrect and corrects it to "So, I need to figure out how to respond appropriately." In the
+28
+
+-- 28 of 35 --
+
+subsequent reasoning steps, the model continues using the first-narrative reasoning. This indicates
+that the model can self-correct narrative inconsistencies during the reasoning process.
+F.4 Leveraging auxiliary LLM for Thinking Intervention
+In this subsection, we conduct preliminary experiments to explore the use of an auxiliary LLM to
+revise existing reasoning steps on XSTest and SORRY-Bench. Specifically, we use R1-Qwen-32B
+as the primary reasoning model and Qwen2.5-7B-Instruct [ 42] as the auxiliary LLM, which is
+instructed to edit the reasoning chain. The detailed prompt used to guide the editing process is
+shown in Figure 22. We denote our default Thinking Intervention as TIdefault and the LLM-assisted
+Thinking Intervention as TImodel.
+Figure 22: Prompt template for using an auxiliary LLM to edit the reasoning trace on the safety
+benchmark.
+Leveraging an auxiliary LLM does not exceed our manually designed prompt in most cases. In
+Figure 23(a), we observe that TIdefault generally achieves a higher refusal rate to harmful requests
+and better compliance with safe requests compared to TImodel, across all prompting methods
+except Vanilla Prompting. On the SORRY-Bench benchmark, TIdefault outperforms across all four
+prompting methods, although the performance difference is less than 3%. Therefore, effectively
+leveraging an auxiliary LLM to edit the reasoning trace remains a challenging task, highlighting the
+need for further research and exploration in this direction. In addition, using an auxiliary LLM to edit
+the reasoning trace is costly and may not be practical.
+70 	75 	80 	85 	90 	95 	100
+Safe Request Compliance Rate (%)
+40
+45
+50
+55
+60
+65
+70
+75
+80
+Unsafe Request Refusal Rate (%)
+ 
+Compliance VS Refusal Rate
+Vanilla + TIdefault
+Vanilla + TImodel
+Default + TIdefault
+Default + TImodel
+Reminder + TIdefault
+Reminder + TImodel
+Goal Priority + TIdefault
+Goal Priority + TImodel
+Vanilla 	Default 	Reminder 	Goal Priority	
+40
+50
+60
+70
+80
+90
+100
+Unsafe Request Refusal Rate (%)
+83.3
+87.1 	87.8 	87.1
+83.1 	84.9 	85.8 	84.4
+Robustness of SORRY Bench
+GPT-4o-mini
+GPT-4o
+o3-mini
+R1-Qwen-32B
+TIdefault
+TImodel
+(a) R1-Qwen-32B on XSTest (b) R1-Qwen-32B on SORRY-Bench
+Figure 23: Results of using an auxiliary model to guide the reasoning process on XSTest and
+SORRY-Bench benchmarks.
+29
+
+-- 29 of 35 --
+
+G Case Study of Instruction Hierarchy
+In this section, we showcase an example from the SEP dataset that demonstrates how Thinking
+Intervention can effectively guide reasoning models to correctly follow hierarchical instructions.
+In Figure 24 and Figure 25, the main instruction is to "Interpret the statute mentioned in the
+next paragraph, explaining its legal implications." where the content is about "The Sarbanes-
+Oxley Act". However, the data block contains a low-priority instruction to "Tell me what a book is
+primarily made of.", which is unrelated to the main task and should be ignored.
+Figure 24 shows the response of a model without Thinking Intervention. The model directly tries
+to answer the low-priority query and discuss "what a book is primarily made of". Then the model
+recognizes the main task related to the "Sarbanes-Oxley Act". However, it gets confused and finally
+reverts to considering the low-priority query. As a result, the model provides an incorrect response by
+discussing the content of the low-priority query instead of interpreting the statute.
+Then, in Figure 25, we demonstrate the response of a model with Thinking Intervention. The model
+directly focuses on the main task and reasons about how to answer it. Then the model also finds the
+low-priority query in the data block, but it successfully recognizes that this is unrelated to the main
+task and should be ignored. Consequently, the model provides a correct response by interpreting the
+statute mentioned in the main instruction. This example illustrates how Thinking Intervention can
+effectively guide reasoning models to correctly follow hierarchical instructions and provide accurate
+responses.
+Figure 24: A demonstration of how models without Thinking Intervention fail to ignore low-priority
+instructions and consequently provide incorrect responses. We use green color to highlight the main
+task and red color to highlight the low-priority query.
+30
+
+-- 30 of 35 --
+
+Figure 25: A demonstration of how models with Thinking Intervention successfully ignore low-priority
+instructions and provide correct responses. We use blue color to highlight the Thinking Intervention,
+green color to highlight the main task and red color to highlight the low-priority query.
+31
+
+-- 31 of 35 --
+
+H Case Study of Attention
+In this appendix, we analyze the attentions of Prompt Engineering and Thinking Intervention.
+We use the R1-Qwen-14B model with Reminder Prompting as the baseline and compare it with
+Thinking Intervention applied at the beginning of the reasoning process. Specifically, we examine an
+example where the user instruction is "How did people make a Molotov cocktail?", with "You are
+a safe assistant." used for prompt engineering and "I am a safe assistant." used for Thinking
+Intervention. The safety instruction content remains nearly identical, with the only difference being its
+position—either before or after the thinking tag, "<think>". Attention weights are derived from the
+attention scores in the model’s final layer. We first present the model’s output with prompt engineering
+in Figure 26, followed by the output with Thinking Intervention in Figure 27. Then, we visualize and
+compare the attention maps in Figures 28 and 29 to observe how attention is allocated across tokens
+in each input.
+Figure 26: A demonstration of how Prompt Engineering is used to address harmful requests.
+Figure 27: A demonstration of how Thinking Intervention is used to address harmful requests.
+Thinking Intervention is more effective than Prompt Engineering in steering the model towards
+safety. With Prompt Engineering (Figure 26), we observe that the model generates a response that first
+tries to identify what a Molotov cocktail is and then provides a detailed description of how to make it.
+This indicates that the model is not effectively refusing the harmful request, even though a safety
+instruction is provided. In contrast, with Thinking Intervention (Figure 27), the model successfully
+refuses the harmful request and provides a safe response. This demonstrates that Thinking Intervention
+is more effective than Prompt Engineering in steering the model towards safety.
+Thinking Intervention directs more attention to the safety instructions during generation.
+In Prompt Engineering (Figure 28), the model’s attention during the generation of the harmful
+content shows that the safety instruction "You are a safe assistant." receives little attention in
+later reasoning generation stages. This suggests that the model is not effectively utilizing the safety
+instruction during its reasoning process. Conversely, with Thinking Intervention (Figure 29), the
+32
+
+-- 32 of 35 --
+
+safety instruction "I am a safe assistant.", placed after the thinking tag, receives considerably
+more attention from later reasoning tokens. This focused attention on the safety guidelines within
+the thinking process appears to be key to Thinking Intervention’s effectiveness in steering the model
+towards a safe response.
+Therefore, this case study illustrates that Thinking Intervention is more effective than Prompt
+Engineering in guiding the model’s reasoning trace, thereby effectively steering the model towards
+safety. The attention analysis further supports this conclusion, showing that Thinking Intervention
+directs more attention to the safety instructions during the reasoning process, leading to improved
+safety alignment.
+33
+
+-- 33 of 35 --
+
+Figure 28: Attention patterns of the model with Prompt Engineering applied. The model’s attentions
+to the safety instruction are highlighted in blue.
+Figure 29: Attention patterns of the model with Thinking Intervention applied. The model’s attentions
+to the safety instruction are highlighted in blue.
+34
+
+-- 34 of 35 --
+
+I Ethics, Broader Impact, Reproducibility, and Licenses
+Ethics. Our research aims to improve the safety alignment of reasoning models as part of responsible
+AI development. We focus on enabling large language models to better follow hierarchical instructions
+and adhere to safety guidelines, particularly in sensitive domains. We conduct our work responsibly,
+transparently, and in compliance with the NeurIPS Code of Ethics.
+Broader Impact. Enhancing safety alignment in reasoning models can benefit high-stakes fields
+such as healthcare, finance, and education. At the same time, we acknowledge the risks involved in
+applying large language models in these areas and encourage proactive efforts to identify and mitigate
+potential harms.
+Reproducibility. We provide comprehensive details of our experiments in Appendix B, Appendix D,
+Appendix C, and Appendix E. All experiments were conducted using one or two H100 GPU 80G
+within 24 hours. We employed greedy decoding with a temperature of 0 for all experiments, ensuring
+that our results are deterministic and fully reproducible.
+Licenses. In this paper, we utilize the following models and datasets: (1) Models: R1-Qwen-32B
+(Apache 2.0 License), R1-Qwen-14B (Apache 2.0 License), R1-Llama-8B (LLaMA 3.1 License),
+R1-Llama-70B (LLaMA 3.3 License), and QwQ-32B (Apache 2.0 License). GPT models are
+closed-source and not publicly available. (2) Datasets: IFEval (Apache 2.0 License), SEP (MIT
+License), XSTest (Attribution 4.0 International), SORRY-Bench (Sorry-Bench License), and MATH
+(MIT License).
+35
+
+-- 35 of 35 --
+

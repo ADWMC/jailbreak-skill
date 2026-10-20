@@ -1,0 +1,1209 @@
+From Directed Steiner Tree to Directed Polymatroid Steiner Tree
+in Planar Graphs
+Chandra Chekuri ∗ Rhea Jain† Shubhang Kulkarni‡ Da Wei Zheng§
+Weihao Zhu¶
+July 3, 2024
+Abstract
+In the Directed Steiner Tree (DST) problem the input is a directed edge-weighted graph
+G = (V, E), a root vertex r and a set S ⊆ V of k terminals. The goal is to find a min-
+cost subgraph that connects r to each of the terminals. DST admits an O(log2 k/ log log k)-
+approximation in quasi-polynomial time [28, 26], and an O(kϵ)-approximation for any fixed
+ϵ > 0 in polynomial-time [44, 7]. Resolving the existence of a polynomial-time poly-logarithmic
+approximation is a major open problem in approximation algorithms. In a recent work, Friggstad
+and Mousavi [24] obtained a simple and elegant polynomial-time O(log k)-approximation for
+DST in planar digraphs via Thorup’s shortest path separator theorem [40]. We build on their
+work and obtain several new results on DST and related problems.
+• We develop a tree embedding technique for rooted problems in planar digraphs via an inter-
+pretation of the recursion in [24]. Using this we obtain polynomial-time poly-logarithmic
+approximations for Group Steiner Tree [25], Covering Steiner Tree [33] and the Polymatroid
+Steiner Tree [5] problems in planar digraphs. All these problems are hard to approximate
+to within a factor of Ω(log2 n/ log log n) even in trees [32, 28].
+• We prove that the natural cut-based LP relaxation for DST has an integrality gap of
+O(log2 k) in planar digraphs. This is in contrast to general graphs where the integrality
+gap of this LP is known to be Ω(√k) [45] and Ω(nδ ) for some fixed δ > 0 [35].
+• We combine the preceding results with density based arguments to obtain poly-logarithmic
+approximations for the multi-rooted versions of the problems in planar digraphs. For DST
+our result improves the O(R + log k) approximation of [24] when R = ω(log2 k).
+∗Dept. of Computer Science, Univ. of Illinois, Urbana-Champaign, Urbana, IL 61801. chekuri@illinois.edu.
+Supported in part by NSF grants CCF-1907937 and CCF-2402667.
+†Dept. of Computer Science, Univ. of Illinois, Urbana-Champaign, Urbana, IL 61801. rheaj3@illinois.edu.
+Supported in part by NSF grants CCF-1907937 and CCF-2402667.
+‡Dept. of Computer Science, Univ. of Illinois, Urbana-Champaign, Urbana, IL 61801. smkulka2@illinois.edu.
+§Dept. of Computer Science, Univ. of Illinois, Urbana-Champaign, Urbana, IL 61801. dwzheng2@illinois.edu.
+¶Dept. of Computer Science, Univ. of Illinois, Urbana-Champaign, Urbana, IL 61801. weihaoz3@illinois.edu.
+1
+arXiv:2407.01904v1 [cs.DS] 2 Jul 2024
+
+-- 1 of 24 --
+
+1 Introduction
+We consider several rooted network design problems in directed graphs and develop new approxi-
+mation algorithms and integrality gap results for them in planar digraphs. It is well-known that
+many problems in directed graphs are harder to approximate than their corresponding undirected
+graph versions. A canonical example, and the motivating problem for this paper, is the Steiner Tree
+problem. The input is an undirected graph G = (V, E) with edge costs c : E → R≥0, a root r ∈ V ,
+and a set of terminals S ⊆ V \ {r}. The goal is to find a minimum cost subgraph of G in which
+each terminal is connected to the root. Steiner Tree is NP-Hard and APX-Hard to approximate.
+There is a long and rich history on approximation algorithms for this problem. The current best
+approximation ratio is ln 4 + ϵ [4, 27], and it is known that there is no approximation factor better
+than 96
+95 unless P = NP [13]. Steiner Tree admits a PTAS in planar graphs [3]. In this paper we
+consider the directed version of this problem. Given a directed graph G = (V, E) and a vertex r we
+use the term r-tree to denote a subgraph of G that is a directed out-tree rooted at r; note that all
+vertices in the r-tree are reachable from r in G.
+Directed Steiner Tree (DST): The input is a directed graph G = (V, E) with non-negative edge
+costs c(e), a root r ∈ V , and a set of terminals S ⊆ V \ {r}. The goal is to find a min-cost r-tree
+that contains each terminal. We let k := |S|.
+DST is a natural and fundamental network design problem. Its approximability has been a
+fascinating open problem. An easy observation shows that DST generalizes Set Cover and hence
+does not admit a better than (1 − ϵ) log k approximation [17]. Via a more sophisticated reduction,
+it is known to be hard to approximate to an Ω(log2 k/ log log k)-factor under plausible complexity
+assumptions [28], and to slightly weaker Ω(log2−ϵ k)-factor unless N P is contained in randomized
+quasi-poly time [32]. There is a quasi-polynomial time O(log2 k/ log log k)-approximation [28, 26, 7],
+and a polynomial time O(kϵ)-approximation for any ϵ > 0 [44]. These results suggest that DST
+may admit a polynomial-time poly-logarithmic approximation. However, this has not been resolved
+despite the first quasi-polynomial-time poly-logarithmic approximation being described in 1997 [7].
+One reason is that the natural LP relaxation has been shown to have a polynomial-factor integrality
+gap of Ω(√k) [45], and more recently Ω(nδ) for some fixed δ > 0 [35].
+In a recent work, Friggstad and Mousavi [24] considered DST in planar digraphs. They give
+a surprisingly simple and elegant algorithm which yields an O(log k) approximation in polynomial
+time. Their algorithm is based on a divide-and-conquer approach building on Thorup’s shortest
+path planar separator theorem [40]. Planar graphs are an important and useful class of graphs
+from a theoretical and practical point of view, and moreover several results on planar graphs have
+been extended with additional ideas to the larger class of minor-free families of graphs. Inspired
+by [24], we address approximation algorithms in planar digraphs for several rooted network design
+problems that are closely related to DST. We formally define the problems below and then discuss
+their relationship to DST. In all problems below, the input is a directed graph G = ((V, E), c),
+where c : E → R≥0 denote edge costs, and a root r; the goal is to find a min-cost subgraph to
+satisfy some connectivity property from the root.
+Directed Group Steiner Tree (DGST): The input consists of G = ((V, E), c), r, and k groups
+of terminals g1, . . . , gk ⊆ V \ {r}. The goal is to find a minimum cost r-tree that contains a terminal
+from each group gi.
+Directed Covering Steiner Tree (DCST): This is a generalization of DGST in which each of
+the groups g1, . . . , gq ⊆ V \ {r} has an integer requirement hi ≥ 1, i ∈ [q]. The goal is to find a
+minimum cost r-tree that contains at least hi distinct terminals from each gi.
+1
+
+-- 2 of 24 --
+
+Directed Polymatroid Steiner Tree (DPST): DPST generalizes the aforementioned problems.
+In addition to G and r, the input consists of an integer valued normalized monotone submodular
+function (polymatroid) f : 2V → Z≥0 (see Section 1.4 for a formal definition). The goal is to find a
+minimum cost r-tree T = (VT , ET ) such that f (VT ) = f (V ).
+It is not difficult to see that DST ⪯ DGST ⪯ DCST ⪯ DPST where we use X ⪯ Y to indicate
+that X is a special case of Y . In general directed graphs it is also easy to see that DST and
+DGST are equivalent, though this reduction does not hold in planar graphs1. Further, the known
+approximation ratios (and the main recursive greedy technique) for DST generalize to these problems
+[26, 5]. In contrast, the situation is quite different in undirected graphs. The undirected version of
+these problems, namely Group Steiner Tree (GST) [25], Covering Steiner Tree (CST) [33, 30] and
+Polymatroid Steiner Tree (PST) [5] have been well-studied, and poly-logarithmic approximation
+ratios are known. We defer a detailed discussion of the motivations and results on these problems,
+but we highlight one important connection. The known hardness of approximation for DST that
+we mentioned earlier is due to the fact that it holds for the special case of GST in trees! Thus, the
+group covering requirement makes the problem(s) substantially harder even in undirected graphs
+where Steiner tree has a simple constant factor approximation. We point out that the O(log k)
+approximation of [24] separates the approximability of DST and DGST in planar graphs since the
+latter is hard to a factor of Ω(log2 k/ log log k) in trees. The positive algorithmic result in [24]
+naturally motivates the following questions.
+• Are there polynomial-time poly-logarithmic approximation algorithms for DGST, DCST, and
+DPST in planar digraphs?
+• Is the integrality gap of the natural LP for DST and DGST and DCST in planar digraphs
+poly-logarithmic 2?
+1.1 Results
+We provide affirmative answers to the first question and for part of the second question. Before
+stating our main results we set up some notation. In the setting of DPST we let S = {v | f (v) > 0}
+denote the set of terminals and let N = |S|. We also let k = f (V ). Note that in the case of DST,
+N = k, while in the setting of DGST and DCST, S = S
+i gi and k is the sum of the requirements.
+We obtain poly-logarithmic approximation ratios for DGST, DCST and DPST in planar di-
+graphs. These are the first non-trivial polynomial-time approximations for these problems, and
+we note that the ratios essentially match the known approximation ratios for these problems in
+undirected planar graphs.
+Theorem 1.1. For any fixed ϵ > 0, there exists a polynomial time O
+ log1+ϵ n log k log N
+ϵ log log n
+
+-approximation
+algorithm for the Directed Polymatroid Steiner Tree on planar graphs. In the special cases of Di-
+rected Group Steiner Tree and Directed Covering Steiner Tree on planar graphs, the approximation
+ratios can be improved to O(log k log2 N ).
+Our second result is on the integrality gap of a natural cut/flow based LP for DST; see DST-LP
+for a formal description. In contrast to a polynomial-factor lower bound on the gap in general
+directed graphs, we show the following via a constructive argument.
+1Demaine et al. [14] define planar group Steiner tree in a restricted way where the groups correspond to the nodes
+of distinct faces of an embedded planar graph. There is a PTAS for this special case in undirected graphs [2], and in
+fact it is equivalent to DST in planar graphs. However we only restrict the graph to be planar, and not the groups.
+2It is not straightforward to formulate a relaxation for DPSP. The other problems have known LP relaxations.
+2
+
+-- 3 of 24 --
+
+Theorem 1.2. The integrality gap of (DST-LP) is upper bounded by O(log2 k) in planar digraphs.
+The bound we prove is weaker than the known O(log k) approximation (in fact the proof is
+inspired by the same technique), and is unlikely to be tight. However, no previous upper bound was
+known prior to our work; positive results have been obtained only for quasi-bipartite instances via
+the primal-dual method [22, 23]. LP based algorithms provide several easy and powerful extensions
+to other problems, and are of much interest. The integrality gap of DST is also of interest in
+understanding the power and limitations of routing vs coding in network information theory — we
+refer the reader to [1] and surveys on network coding [19, 18]. We believe that the integrality gap
+of the natural LP for DGST and DCST is poly-logarithmic in planar digraphs, however, there are
+some technical challenges in extending our approach and we leave it for future work.
+Multi-root versions: Friggstad and Mousavi [24] also considered the multi-root version of DST
+and one can extend each of the problems we consider to this more general setting. The input consists
+of multiple roots r1, . . . , rR. The goal is to find a minimum cost subgraph in which the relevant set of
+terminals is reachable from at least one of the roots. Note that multi-root versions arise naturally in
+some problems including information transmission (see the aformentioned work on network coding).
+In general digraphs it is trivial to reduce the multi-rooted version to the single root version by adding
+an auxiliary root vertex, but this reduction does not preserve planarity. Friggstad and Mousavi [24]
+described an O(R + log k)-approximation for the multi-rooted version of DST. Using density-based
+arguments (see Section 1.4) combined with the aforementioned results, we obtain polylogarithmic
+approximation ratios for multi-rooted versions of all the considered problems in planar digraphs.
+For DST, our bound is better than the one in [24] when R is ω(log2 k).
+Theorem 1.3. There is an O(log2 k)-approximation for the multi-rooted version of DST in planar
+graphs. For the multi-rooted versions of DGST, DCST there is a polynomial-time O(log k log2 N )-
+approximation, and for DPST a polynomial-time O
+ log1+ϵ n log k log N
+ϵ log log n
+
+-approximation.
+We note that in DGST, DCST, and DPST, the approximation factors for the multi-root versions
+actually match those of the single root setting.
+Remark 1. It is not difficult to see that the algorithm of Friggstad and Mousavi [24] and ours
+extends to several other rooted problems involving budget constraints on cost or terminals, and
+prize-collecting versions; this is briefly discussed in Section 5.
+Remark 2. [24] observed that their approach extends to the node-weighted case. The standard
+transformation from edge-weights to node-weights does not necessarily preserve planarity, and hence
+the extension holds due to the specific technique. Our results also hold for node weights. Even in
+undirected graphs there is no known polynomial-time poly-logarithmic approximation for node-
+weighted GST — this is because metric tree embeddings do not apply to reduce the problem to
+trees. Thus, our results are new even for node-weighted undirected planar graphs.
+1.2 Overview of Ideas
+The O(log k)-approximation for DST on planar graphs given by Friggstad and Mousavi [24] uses a
+recursive divide-and-conquer structure. We provide a brief overview. The algorithm uses Thorup’s
+shortest path separator theorem applied to directed graphs:
+Lemma 1.4 ([24, 40]). Let G be a planar directed graph with non-negative edge costs c(e), non-
+negative vertex weights w(v), and a root r ∈ V such that every vertex in V is reachable from r.
+There exists a polynomial time algorithm to find three shortest dipaths P1, P2, P3 starting at r such
+that every weakly connected component of G \ (P1 ∪ P2 ∪ P3) has at most half the vertex weight of G.
+3
+
+-- 4 of 24 --
+
+The high-level idea in [24] is simple. Suppose we can guess the optimum solution value for
+a given DST instance, say OPT. Then one can remove all vertices v farther than OPT from r
+(since they will not be in any optimum solution), and use the preceding theorem to find 3 paths
+of cost at most 3OPT such that removing the paths yields components, each of which contains at
+most half the original terminals. We can shrink the paths into r and recurse on the "independent"
+sub-instances induced by the terminals in each component. The recursion depth is O(log k) which
+bounds the total cost to O(log k) · OPT. The main issue is to implement the guess of OPT in each
+recursive call. The authors obtain a quasi-polynomial time algorithm by brute force guessing OPT
+to within a factor of 2. They obtain a polynomial-time algorithm by a refined argument where they
+folding the guessing into the recursion itself. We take an alternate perspective on this algorithm
+by explicitly constructing the underlying recursion tree of the algorithm. Theorem 1.5 shows that
+we can view this recursion tree as a “tree embedding” for directed planar graphs that is suitable
+for rooted problems. The power of the embedding is that it essentially reduces the planar graph
+problem to a problem on trees which we know how to solve. A caveat of our tree embedding is
+that it creates copies of terminals. Interestingly, for DGST and DPST this duplication does not
+cause any issues since the definitions of these problems are rich enough to accommodate copies.
+For DCST one needs a bit more care to obtain a better bound than reducing it to DPST, and we
+describe the details in the technical section. This parallels the situation in undirected graphs where
+probabilistic metric tree embeddings [16] are used to reduce the GST, CST, and PST problems to
+trees, and furthermore, is the only known method to solve those problems. The formal description
+of the tree embedding is given below.
+Theorem 1.5. Let G = (V, E) be a directed planar graph with edge costs c : E → R≥0, a root
+r ∈ V , and a set of terminals S ⊆ V . Let γ ≤ c(E), and let n := |V | and k := |S|. There exists
+an efficient algorithm that outputs a directed rooted out-tree T = (VT , ET ) with root rT , edge costs
+cT : ET → R≥0 and a mapping M : S → 2VT that maps each terminal in G to a set of terminals in
+VT , that satisfies the following properties:
+1. Size: |VT | = O(k3γ), and for each terminal t ∈ S, |M (t)| = O(kγ). Furthermore, all M (t)
+are disjoint from each other.
+2. Height: The height of T is at most O(log k).
+3. Projection from Graph: For any r-tree G′ ⊆ G with c(G′) ≤ γ there exists a rT -tree T ′ ⊆ T
+with cT (T ′) = O(log k)c(G′), in which for each terminal t ∈ S ∩ G′, M (t) ∩ T ′̸ = ∅.
+4. Projection to Graph: For any rT -tree T ′ ⊆ T , there exists a r-tree G′ ⊆ G with c(G′) ≤
+cT (T ′) and for each terminal t ∈ S, if M (t) ∩ T ′̸ = ∅ then t ∈ G′. Furthermore, we can
+compute G′ efficiently.
+Our proof of Theorem 1.2 on the LP integrality gap is inspired by the algorithm of [24]. Instead
+of guessing OPT we use the LP optimum value as the estimate. This is a natural idea, however,
+in order to prove an integrality gap we need to work with the original LP solution for the recursive
+sub-instances. We use a relatively simple trick for this wherein we overpay for the top level of the
+recursion to construct feasible LP solutions for the sub-instances from the original LP solution; the
+over payment helps us to argue that the cost of the LP solutions for the sub-instances is only slightly
+larger and this can be absorbed in the recursion since the problem size goes down.
+Finally, for the multi-rooted version we rely on a simple reduction to the single root problem
+via the notion of density, which is a standard idea in covering problems.
+4
+
+-- 5 of 24 --
+
+1.3 More on related work
+There is extensive literature on algorithms for network design in both undirected and directed
+networks with more literature on undirected network design. Standard books on combinatorial
+optimization [39, 20], and approximation algorithms [41, 42] cover many of the classical problems
+and results. We also point to the surveys [29, 34] on network design. In this section we describe
+some closely related work and ideas.
+Directed Steiner Tree: Zelikovsky [44] was the first to address the approximability of DST. He
+obtained an O(kϵ)-approximation for any fixed ϵ > 0 via two ideas. He defined a recursive greedy
+algorithm and analyzed its performance as a function of the depth of the recursion. He then showed
+that one can reduced the problem on a general directed graph to a problem on a depth/height d
+DAG (via the transitive closure of the original graph) at the loss of an approximation factor that
+depends on d. Charikar et al [7] refined the algorithm and analysis in [44] and combined it with the
+depth reduction, they showed that one can obtain an O(d2k1/d log k) approximation in O(nO(d))-
+time; this led to an O(log3 k)-approximation in quasi-polynomial time. Subsequentaly Grandoni
+et al [28] improved the approximation to O(log2 k/ log log k) in quasi-polynomial time via a more
+sophisticated LP-based approach. A different approach that also yields the same bound was given
+by Ghuge and Nagarajan [26] and this is based on a refinement of the recursive greedy algorithm
+for walks in graphs [11]. The advantage of [26] is that it yields an Ω(log log k/ log k)-approximation
+in quasi-polynomial time algorithm for the budgeted version of DST; the goal is to maximize the
+number of terminals in a r-rooted tree with a given budget of B on the cost of the tree.
+Zosin and Khuller [45] showed that the natural cut-based LP relaxation has an integrality gap of
+Ω(√k) for DST. However, their example only showed a gap of Ω(log n) as a function of the number of
+nodes n. There was some hope that the integrality gap is poly-logarithmic in n, however [35] recently
+showed that the gap is Ω(nδ) for some δ > 0 by modifiying the construction in [45]. Interestingly
+these lower bound examples are DAGs with O(1)-layers for which the recursive-greedy algorithm
+yields an O(log k)-approximation in polynomial-time! Rothvoss [38] showed that O(ℓ)-levels of the
+Lasserre SDP hierarchy when applied to the standard cut-based LP reduces the integrality gap to
+O(ℓ log k) on DAGs with ℓ layers. This was later refined to show that O(ℓ)-levels of the Sherali-
+Adams hierarchy suffices [21]. However, both these approaches also require quasi-polynomial time
+to obtain a poly-logarithmic approximation.
+Group Steiner Tree: The group Steiner tree problem (GST) in undirected graphs was introduced
+by Reich and Widemeyer [37] and it was initially motivated by an application in VLSI design.
+Garg, Konjevod and Ravi [25] obtained an O(d log k) approximation in depth d trees via an ele-
+gant randomized rounding algorithm of the fractional solution to a natural LP relaxation; one can
+reduce the depth to O(log N ) via the fractional solution and hence they obtained an O(log N log k)-
+approximation. They obtained an algorithm for general graphs via probabilistic tree embeddings
+[16]. Zosin and Khuller obtained an alternate deterministic O(d log k)-approximation on trees. The
+randomized algorithm of [25] can also be derandomized via standard methods [8]. The integrality
+gap of the natural LP for GST was shown to be Ω(log2 k/(log log k)2) by Halperin et al. [31].
+This gap motivated the inapproximability result of Halperin and Krauthgamer who showed that
+GST in trees is hard to approximate within a factor of Ω(log2−ϵ k). This was further improved to
+Ω(log2 k/ log log k) [28] under stronger complexity theoretic assumption. Note that one can consider
+node-weighted GST. In general directed graphs one can see that node-weighted and edge-weighted
+problems are typically reducible to each other, however this is not necessarily the case in undirected
+graphs. The known approaches to approximate GST in general graphs in polynomial time uses
+probabilistic tree embeddings (or, more recently, oblivious routing trees [36, 6, 12] which are inti-
+5
+
+-- 6 of 24 --
+
+mately connected to tree embeddings). However, node-weighted problems do not admit such tree
+embeddings and thus we do not have polynomial-time poly-logarithmic approximation for GST in
+node-weighted undirected graphs.
+There is a strong connection between GST, its directed counterpart DGST and DST. As we
+remarked, it is easy to see that in directed graphs, DST and DGST are equivalent. One can also
+reduce GST to DST by adding a dummy terminal ti for each group gi and connecting all the
+vertices in gi to ti via directed edges. Thus GST admits an O(log2 k/ log log k)-approximation in
+quasi-polynomial time though the best polynomial-time algorithm loses another log factor due to
+tree embeddings. On the other hand, via the height reduction approach and path expansion, one can
+reduce DST to GST in trees in quasi-polynomial-time at the loss of an O(log k) in the approximation
+ratio (details of this are essentially folklore but can be seen in [9]). This partially explains the reason
+why the hardness results for DST are essentially based on the hardness of GST in trees.
+Covering Steiner Tree and Polymatroid Steiner Tree: The Covering Steiner Tree problem
+was first considered by Konjevod, Ravi and Srinivasan [33] as a common generalization of GST and
+the k-MST problems. They obtained a poly-logarithmic approximation by generalizing the ideas
+from GST (see also [15]). Gupta and Srinivasan subsequently improved the ratio [30]. Calinescu
+and Zelikovsky [5] defined the general Polymatroid Steiner Tree problem (PSP) and its directed
+counterpart (DPSP). They were motivated by both theoretical considerations as well as applications
+in wireless networks. Submodularity provides substantial power to model a variety of problems. PSP
+is easily seen to generalize GST and CST. However, unlike GST and CST, even in trees there is
+no easy LP relaxation for PSP that one can formulate, solve and round. Thus, [5] used a different
+approach. Chekuri, Even and Kortsarz [10] had shown that the recursive greedy algorithm of [7]
+can be adapted to run in polynomial-time on trees after preprocessing it to reduce the degree
+and height. The recursive greedy approach naturally generalizes to PSP/DPSP just as the greedy
+algorithm for Set Cover generalizes to Submodular Set Cover [43]. Via this generalization, [5]
+obtained polynomial-time approximation algorithms for PSP in trees and hence in general graphs
+via tree emebeddings. For DPST they obtained quasi-polynomial-time approximation algorithms.
+1.4 Preliminaries
+Let G = (V, E) be a directed graph with edge costs c : E → R+. For E′ ⊆ E, we denote c(E′) =P
+e∈E′ c(e). We assume all edge costs c(e) ≥ 1 and are polynomially bounded in n. For problems
+considered in this paper, this is without loss of generality by guessing the cost of the optimal solution
+OPT, contracting edges with cost much smaller than OPT, and scaling appropriately.
+We define the minimum density DST problem.
+Definition 1. Given an instance of DST on a graph G = (V, E) with root r, the density of a partial
+solution F ⊆ E is c(F )/k(F ) where k(F ) is the number of terminals in S that have a path from
+r in G[F ]. The minimum-density DST problem is to compute a solution of minimum density in a
+given instance of DST.
+One can similarly define minimum density versions of DPST (which generalizes DGST and
+DCST); for a partial solution F ⊆ E, we let SF denote the set of terminals in S that have a path
+from r in G[F ]. The density of F is c(F )/f (SF ), where f is the given polymatroid.
+Graph notation. We use V (H) and E(H) to refer to the vertices and edges of a graph H when
+the vertex and edge sets have not been explicitly specified. For S ⊆ V , we use E[S] to denote the
+set of edges of E with both endpoints in S, G[S] to denote the subgraph (S, E[S]) induced by S in
+G, and δ+(S) = {(u, v) ∈ E : u ∈ S, v̸ ∈ S} to denote the out-cut of S. For u ∈ V we use 1u∈S to
+6
+
+-- 7 of 24 --
+
+denote the indicator of the vertex u being in S, i.e. 1u∈S = 1 if u ∈ S and is 0 otherwise. For a path
+P ⊆ G, we define the length as the number of edges on the path. For a given edge-cost function c,
+we denote dc(r, t) as the length of shortest r-t path in G with edge weights c; we drop the subscript
+c if it is clear from context. For r ∈ V an out-tree rooted at r is a subgraph T = (VT , ET ) ⊆ G such
+that there is a unique r-v path for every v ∈ VT . The height of the tree is the maximum length of a
+r-v path, for v ∈ VT . The size of the tree is the number of vertices in the tree |VT |. For a subgraph
+G′ ⊆ G, we use G/G′ to denote the graph obtained by contracting every edge of G′ and G − G′
+to denote the graph obtained by deleting every edge in G′. A weakly connected component of G is
+a connected component of the underlying undirected graph obtained from G by ignoring the edges
+orientations.
+Submodular functions. Let f : 2V → R be a set function over ground set V . The function f is
+monotone if f (X) ≤ f (Y ) for every X ⊆ Y ⊆ V , submodular if f (X)+f (Y ) ≥ f (X ∩Y )+f (X ∪Y )
+for every X, Y ⊆ V , and normalized if f (∅) = 0. An integer-valued, normalized, monotone and
+submodular function is called a polymatroid.
+2 Recursive Tree Embeddings for Directed Planar Graphs
+We show that we can view the recursion tree given by the algorithm of [24] as a tree embedding by
+proving Theorem 1.5. As described in Section 1, the algorithm of [24] starts with an upper bound
+γ for the cost of an optimal solution (we call this OPT). In order to fold the guessing of OPT
+into the recursion, the algorithm makes two recursive calls and takes the minimum. For the first
+recursive call, it applies Lemma 1.4 to obtain a planar separator, buys the separator, and recurses
+on the resulting weakly connected components. The second recursive call divides the “guess” γ by
+two. The polynomial runtime comes from the fact that at each step, we either halve the guess of
+OPT or halve the number of terminals.
+We define a subroutine PruneAndSeparate (Algorithm 1) to describe the first recursive call,
+which takes as input a graph (G = (V, E), c) with root r ∈ V , terminals S ⊆ V , and a guess γ for
+the cost of the optimal solution. PruneAndSeparate((G, c), r, S, γ) removes all vertices further
+than γ away from r, and uses Lemma 1.4 on the resulting graph with vertex weights set to 1 on the
+terminals and 0 elsewhere. This yields a planar separator P := P1 ∪ P2 ∪ P3 in which each resulting
+component of G \ P has at most half the terminals. The subroutine contracts P into r; each
+component of G \ P corresponds to a new subinstance induced by the terminals in that component
+along with r. PruneAndSeparate((G, c), r, S, γ) returns P along with the subinstances for each
+component.
+Algorithm 1 Prune and Separate Procedure
+PruneAndSeparate((G = (V, E), c), r, S, γ) :
+Delete all vertices v ∈ V with dc(r, v) > γ.
+Let P := P1 ∪ P2 ∪ P3 be given by applying Lemma 1.4 with weights w(v) = 1v∈S for v ∈ V .
+Let GP be obtained from G by contracting P into r.
+Let C′
+1, . . . , C′
+ℓ be components of G \ P , and let Ci ← GP [C′
+i ∪ {r}]
+return (P, C1, . . . , Cℓ)
+Given this subroutine, the tree embedding is simple. We define a recursive function TreeEmb,
+which takes as input a graph (G = (V, E), c) with root r ∈ V , terminals S ⊆ V , and a “guess”
+γ. The algorithm instantiates a root node rT and constructs two trees corresponding to the two
+recursive calls made by [24]:
+7
+
+-- 8 of 24 --
+
+Figure 1: The tree T given by TreeEmb, where t1, t2 are terminals in P .
+(1) Call PruneAndSeparate((G, c), r, S, γ) and construct the trees Ti = TreeEmb(Ci, r, Si, γ)
+recursively for each subinstance (Ci, r, Si). Add an auxiliary node v∗ and connect it to the
+root of each subtree with a zero-cost edge.
+(2) Recursively construct the tree Th = TreeEmb((G, c), r, S, γ/2).
+TreeEmb((G, c), r, S, γ) connects rT to the root of Th with a zero-cost edge. It also connects
+rT to v∗ with an edge of cost c(P ), where P is the planar separator constructed in (1). These edge
+costs from rT correspond to the costs of choosing each recursive path. See Figure 1 for a summary.
+As described in Theorem 1.5, we would like this tree embedding to maintain some representation
+of the terminals S. It is not immediately clear how one could accomplish this; the first recursive
+call decomposes G while the second takes in a copy of G, so the same terminals can appear in both
+corresponding subtrees. Therefore, we need to allow for multiple copies of the same terminal. The
+algorithm of [24] includes a terminal t in the solution either when t is in some planar separator or
+when t is the only remaining terminal in S, in which case it buys the shortest path r-t path. To
+represent this in the tree embedding, we create a copy of a terminal for every separator or base case
+it is in. We denote copies of t as tP where P is the separator or shortest path containing t, and let
+M (t) denote the set of all copies of t.
+The full algorithm is described in Algorithm 2. We use a subroutine
+UpdateTree((T , M ), (T ′, M ′), v), which updates the tree T to include T ′ via a zero-cost edge
+from v ∈ V (T ) to the root of T ′. This subroutine also updates the mapping M to include M ′.
+We claim that the tree and mapping (T , rT , M ) given by TreeEmb(G, r, S, γ) satisfies all prop-
+erties of Theorem 1.5. We outline the ideas here. Properties 1 and 2 follow easily from simple
+inductive arguments similar to those in [24]. We note that the construction given in Algorithm
+2 constructs a tree of height O(log(kγ)); this can be improved to O(log k) (see Remark 3). For
+Property 3, let G′ ⊆ G be an r-tree. Let i be such that γ/2i+1 ≤ c(G′) ≤ γ/2i. To construct
+T ′ ⊆ T , we include the path from rT to the root of the subtree given by TreeEmb(G, r, S, γ/2i).
+We then include the planar separator branch, which costs at most 3γ/2i ≤ 6c(G′) and recurse
+on sub-instances. The cost bounds and terminal copy requirements follow immediately from the
+feasibility and cost analysis of [24]. For Property 4, let T ′ ⊆ T be an rT -tree. Notice that there
+are only two types of non-zero cost edges in T ; those corresponding to planar separators or those
+corresponding to shortest paths in the base case. Let P(T ′) be the set of all such paths and separa-
+tors corresponding to non-zero cost edges of T ′. We let G′ = ∪P ∈P(T ′)P . It is clear that G′ can be
+computed efficiently by traversing T ′ and including all relevant paths. The cost and terminal copy
+8
+
+-- 9 of 24 --
+
+Algorithm 2 Tree Embedding Construction for Directed Planar Graphs
+TreeEmb ((G = (V, E) , c) , r, S, γ):
+if γ < 1 or S = ∅ then return null
+Initialize rT , T ← (VT = {rT } , ET = ∅) as tree embedding with empty cost function cT
+Initialize M (t) ← ∅ for all t ∈ S as the terminal copies
+if |S| = 1 then
+Let P be a shortest r-t path in G
+Add a new vertex tP to VT and to M (t)
+Add a new edge et = (rT , tP ) to ET , and define cT (et) = c(P ).
+return (T , rT , M )
+Recursively construct (Th, rh, Mh) ← TreeEmb((G, c), r, S, γ/2)
+UpdateTree((T , M ), (Th, Mh), rT )
+(P, C1, . . . , Cℓ) ← PruneAndSeparate((G, c), r, S, γ)
+Add a new vertex v∗ to VT , edge e∗ = (rT , v∗) to ET and define cT (e∗) = c(P ).
+for i ∈ [ℓ] do
+Recursively construct (Ti, ri, Mi) ← TreeEmb(Ci, r, S ∩ Ci, γ)
+UpdateTree((T , M ), (Ti, Mi), v∗)
+for t ∈ S ∩ P do
+Add a new vertex tP to VT and M (t)
+Add a new edge et = (v∗, tP ) to ET , and define cT (et) = 0.
+return (T , rT , M )
+UpdateTree((T , M ), (T ′, r′, M ′), v) :
+V (T ) ← V (T ) ∪ V (T ′)
+E(T ) ← E(T ) ∪ E(T ′), where cT (e) = cT ′ (e) for all e ∈ E(T ′)
+For every terminal t ∈ S, modify M (t) ← M (t) ∪ M ′(t)
+e ← (v, r′), cT (e) = 0; add e to E(T )
+return ((T = (V (T ), E(T )), cT ), M )
+9
+
+-- 10 of 24 --
+
+guarantees are simple; see Appendix A for detailed proofs.
+Remark 3. The height of the tree can be reduced to O(log k) by increasing the degree by a factor
+of O(log γ). Instead of only making two recursive calls, one can simultaneously make recursive calls
+TreeEmb(G, r, S, γ/2i) for i ∈ [log γ], along with the recursive call using the planar separator.
+Each recursive call then only considers the “planar separator” branch and proceeds inductively.
+3 Group, Covering, and Polymatroid Directed Steiner Tree
+In this section we give an overview of the proof of Theorem 1.1, providing polynomial time polyloga-
+rithmic approximation algorithms for DGST, DCST, and DPST. Although DPST generalizes DCST
+and DGST, we discuss each of the three problems separately in this section since we obtain better
+approximation ratios for DGST and DCST; moreover, our algorithmic techniques for DGST and
+DCST are different. For each of these problems, let G = (V, E) denote the input graph, c : E → R+
+denote the edge costs, r ∈ V denote the root, and S denote the set of terminals. The embedding
+theorem given by Theorem 1.5 allows us to effectively reduce to special cases of the problems in
+which the input graph is a tree, as described by the following high-level framework:
+(a) Use Theorem 1.5 on inputs (G, c), r, S, and γ = c(E) to obtain a directed out-tree T =
+(VT , ET ) rooted at rT with edge costs cT , and for each terminal t ∈ S a set of “copies”
+M (t) ⊆ VT . The new set of terminals ST is the collection of all copies ∪t∈S M (u).
+(b) Compute an approximate solution to a relevant problem on T ,
+(c) Project the solution on T to the graph G using Property 4 of Theorem 1.5.
+One challenge in directly applying the above framework is constructing the instance and problem
+to solve on T in step (b) above; this is because a terminal in G contains several copies in T . For
+DGST and DPST, the ability to deal with copies of terminals is quite naturally instilled into the
+problem definitions themselves. In DGST, we can simply expand the groups to include all copies of
+a terminal, and in DPST, we can appropriately redefine the underlying submodular function and
+rely on the diminishing marginal returns property. Thus for DGST and DPST, we can directly solve
+the equivalent problem on the tree, as explained below:
+Directed Group Steiner Tree: The input is a graph (G, c) with a root r and k groups g1, . . . , gk ⊆
+V . After applying step (a) of the framework, we consider the following instance of DGST. The
+input graph is the constructed tree (T , cT ) with root rT and terminal set ST . The new groups
+g′
+1, . . . g′
+k ⊆ VT are defined as g′
+i := ∪u∈gi M (u) for every i ∈ [k]. To obtain an approximate solution
+on this instance, we use the following result by Zosin and Khuller [45] (also see [25, 8]).
+Theorem 3.1 ([45]). There exists a polynomial time O (d log k)-approximation algorithm for Group
+Steiner Tree when the input graph is a tree with height d.
+Applying this result in conjunction with Property 2 of Theorem 1.5 regarding the height of the
+tree T gives us an O(log N log k)-approximation for the instance of DGST on (T , cT ).
+Directed Polymatroid Steiner Tree: The input consists of a graph (G, c) with root r and a
+polymatroid function f : 2V → Z≥0. After applying step (a) of the framework, we consider the
+following instance of DPST. The input graph is the constructed tree (T , cT ) with root rT . The
+new polymatroid function fT : 2VT → Z is defined as fT (Z) := f ({t ∈ S : M (t) ∩ Z̸ = ∅}) for every
+Z ⊆ VT . It is not hard to see that fT is a polymatroid, and that an evaluation oracle for f can
+10
+
+-- 11 of 24 --
+
+be used to construct an evaluation oracle for fT in polynomial time. To obtain an approximate
+solution for this instance, we directly apply the following result by Calinescu and Zelikovsky [5]:
+Theorem 3.2 ([5]). For every ϵ > 0, there exists a polynomial-time O
+ log1+ϵ n log k
+ϵ log log n
+
+-approximation
+algorithm for the Polymatroid Steiner Problem when the input graph is a tree, assuming a polynomial
+time oracle for the polymatroid function.
+In both DGST and DPST, we apply step (c) to project the given solutions back to a solution
+on the original input graphs. By Property 3, this “tree-embedding” framework loses an additional
+O(log N ) factor in the cost. It is simple to verify that the correctness and approximation guarantees
+follow from appropriately applying properties of Theorem 1.5.
+3.1 Directed Covering Steiner Tree
+We are given a graph (G, c) with root r, and q groups g1, . . . , gq ⊆ V , with requirements h1, . . . , hq
+respectively, where P
+i hi = k. The algorithm for DCST is more involved than simply instantiating
+the framework to solve a DCST instance on trees. Technical complications arise because after
+applying step (a) of the framework to obtain a tree embedding (T , cT ) and expanding groups to
+include all copies of a terminal (while keeping the same requirements, say), a solution for DCST on
+this instance could satisfy the requirement of the ith expanded group by picking multiple copies of
+a single terminal from gi. Consequently, it is unclear how to map such a solution on the tree back
+to a solution of our original DCST instance.
+To circumvent this issue, we use an LP-based approach on the tree (T , cT ) and expanded groups
+g′
+1, . . . , g′
+q. The natural flow-based LP relaxation on DCST sends a flow of hi from the root to each
+group. We aim to modify this LP to bound the amount of flow reaching each set of copies M (t).
+To that end, we define an LP with flow variables fv for every v ∈ VT denoting the amount of flow
+from rT to v and corresponding capacity variables xe denoting the amount of flow through e for
+every e ∈ ET . The LP constraints guarantee the following:
+1. for each i ∈ [q], f supports a flow of at least hi from the root r to group g′
+i,
+2. for each terminal t ∈ S, f supports a flow of at most 1 to the collection of its copies M (t),
+3. the capacities given by x support the flow f .
+It is not difficult to see that any integral feasible solution to this LP is an r-rooted tree which
+contains hi unique terminals from each group gi. While there are known algorithms for DCST on
+trees that are based on LP-rounding [30], it is not clear if these techniques work for this modified
+LP. We describe a procedure that iteratively rounds solutions to our LP above by leveraging a
+connection to the minimum density Directed Group Steiner Tree problem (MD-DGST) (defined in
+Section 1.4).
+Let OPTLP denote the cost of a (fractional) optimal solution (x∗, f ∗) to the LP. Using our LP
+constraints and the fact that copies of distinct terminals are disjoint, we observe that a group gi
+can be partitioned into hi/2 parts (gi = ⊎j∈[hi/2]g(j)
+i ) such that each part g(j)
+i receives at least one
+unit of flow from the root rT ; here we assume that hi/2 ∈ Z+ to simplify notation. We consider the
+MD-DGST instance defined on the tree (T , cT ), root rT , and groups g′
+i,j = ∪t∈g(j)
+i
+M (t) for every
+i ∈ [q] and j ∈ [hi/2]. We note that since (x∗, f ∗) is feasible for our LP, it is a feasible fractional
+solution for a natural LP relaxation for MD-DGST (see [45]). Moreover, this fractional solution
+has density at most 2OPTLP /k, since the cost is OPTLP and the number of groups that receive at
+11
+
+-- 12 of 24 --
+
+least one unit of flow is P
+i∈[q] hi/2 = k/2. To obtain a good feasible integral solution, we use the
+following result by Zosin and Khuller [45].
+Theorem 3.3 ([45]). There exists a polynomial time O(d)-approximation (w.r.t the LP) for the
+MD-DGST problem when the input graph is a directed out-tree with height d.
+Thus we can obtain a tree T1 of density at most O(d OPTLP /k). We remove all terminals t ∈ S
+such that M (t) ∩ T1̸ = ∅. We then repeat this process until we satisfy the requirement that every
+group i contains at least hi distinct t ∈ gi such that T ′ ∩ M (t)̸ = ∅. This terminates in polynomial
+time since each iteration removes at least one terminal. Using standard inductive arguments, one
+can bound the total cost of the edges by O(d log k)OPTLP . Using Property 2 of Theorem 1.5, we
+can bound the height of T by O(log N ). Thus we obtain a tree T ′ satisfying the desired conditions
+with cost O(log k log N )OPTLP . The rest of the proof is similar to that of DGST and so we omit
+the details for brevity.
+4 Integrality Gap of Cut-based LP Relaxation
+In this section, we prove Theorem 1.2 on the integrality gap of the LP relaxation for DST on planar
+graphs, defined as follows. Let C := {U ⊆ V : r ∈ U and U ∩ S̸ = S}.
+min X
+e∈E
+cexe
+s.t. X
+e∈δ+(U )
+xe ≥ 1 ∀ U ∈ C
+xe ≥ 0 ∀ e ∈ E
+(DST-LP)
+This is a relaxation of the integer program where, for every edge e ∈ E, we have a variable
+xe ∈ {0, 1} which indicates whether e is contained in the solution. For every subset U of vertices
+containing root r with U ∩ S̸ = S, a feasible solution must contain at least one edge in δ+(U ), since
+it must contain a path from the root r to every terminal in S \ U . The LP contains an exponential
+number of constraints but has an efficient separation oracle (an s-t min-cut computation). One can
+also formulate a compact extended formulation with additional flow variables (see [35]).
+We now prove that integrality gap of the LP is at most O(log2 k) via a constructive procedure.
+One can view the algorithm as running the recursive algorithm of [24] by using the LP value as
+the estimate for the optimum. Given an arbitrary feasible solution x of (DST-LP), Algorithm 3
+constructs a directed Steiner tree.
+The base case is when there are at most six terminals; the algorithm connects each terminal to the
+root directly via shortest paths. Otherwise, the algorithm first scales up the xe values for every e ∈ E
+by a factor of
+
+1 + 1
+log |S|
+
+. Then, it calls PruneAndSeparate((G, c), r, S, 2 log |S| · P
+e∈E cexe)
+and obtains several sub-instances; recall that the separator P is contracted into the root in each
+sub-instance. The algorithm recursively solves these sub-instances and returns the corresponding
+solution in the original graph G. We observe that we do not re-solve the LP in the recursion but
+instead use the induced fractional solution after scaling up x.
+We now analyze the correctness and cost of the tree returned by the algorithm with respect to
+the cost of the LP solution P
+e cexe. In the recursive case we first show that ¯x is a feasible LP
+solution after removing the distant vertices.
+Lemma 4.1. Let G = (V, E) be a directed planar graph with edge costs c : E → R≥0, a root
+r ∈ V , and a set of terminals S ⊆ V of size k. Let x be a feasible solution of (DST-LP). Let
+12
+
+-- 13 of 24 --
+
+Algorithm 3 RoundLP(G, r, S, x)
+if |S| ≤ 6 then
+return T obtained by connecting each terminal t to r via a shortest r-t path
+¯xe ←
+
+1 + 1
+log |S|
+
+· xe
+(P, C1, . . . , Cℓ) ← PruneAndSeparate(G, r, S, 2 log |S| · P
+e∈E ce · xe) (Algorithm 1)
+T ← P
+for i = 1, . . . , ℓ do
+¯x(i) ← the values of ¯x restricted to E(Ci).
+Compute RoundLP(Ci, r, S ∩ Ci, ¯x(i)) to obtain tree Ti = (Vi, Ei) with root ri.
+Augment T with Ti by replacing each edge from ri with an edge from the corresponding
+uncontracted node of P .
+return (T, r)
+V ′ := {v ∈ V : d(r, v) > 2 log k · P
+e∈E cexe} and E′ be set of edges that are incident to some vertex
+in V ′. Let ¯x be a fractional solution where ¯xe := 0 if e ∈ E′, and otherwise ¯xe :=
+
+1 + 1
+log k
+
+· xe.
+Then, ¯x is a feasible solution to (DST-LP) for the given instance.
+Proof. We note that ¯xe ≥ 0 since xe ≥ 0 for every e ∈ E. It suffices to show that for every U ∈ C,
+we have P
+e∈δ+(U ) ¯xe ≥ 1. Let t ∈ S be a terminal such that t̸ ∈ U . Since x is a feasible solution of
+(DST-LP), x supports a unit flow from root r to terminal t. Thus P
+e cexe ≥ dG(r, t). Since every
+path from root r to a terminal t passing through V ′ has length more than 2 log k · P
+e∈E cexe (by
+definition of V ′), by Markov’s inequality, the amount of flow supported by x from r to t passing
+through V ′ is smaller than 1
+2 log k . This tells us that after removing all vertices in V ′, x still supports
+a flow of at least 1 − 1
+2 log k from r to t. Hence, we have P
+e∈δ+(U ) ¯xe =
+
+1 + 1
+log k
+
+· P
+e∈δ+(U )\E′ xe ≥
+
+1 + 1
+log k
+
+·
+
+1 − 1
+2 log k
+
+≥ 1.
+The lemma below bounds the cost of the tree returned by Algorithm 3, which concludes the
+proof of Theorem 1.2.
+Lemma 4.2. Given a directed planar graph G = (V, E) with edge costs c : E → R≥0, a root
+r ∈ V , and a set of terminals S ⊆ V of size k. Let x be a feasible solution of (DST-LP).
+RoundLP(G, r, S, x), returns a feasible directed Steiner tree with cost O(log2 k) · P
+e∈E cexe.
+Proof. By induction on the number of terminals, we prove that the cost of the tree output by the
+algorithm is at most 6(log k + 1)2 · P
+e∈E cexe.
+First we consider the base case when k ≤ 6. We observe that if x is a feasible solution then for
+every terminal t the length of the shortest r-t path in G is at most the fractional LP cost. Thus the
+algorithm outputs a feasible solution whose cost is at most 6 P
+e∈E cexe.
+Consider the case where k > 6. Algorithm 3 finds three paths P1, P2, P3 and contracts their
+union into r to obtain graph GP . The contraction creates several independent sub-instances (C1, S ∩
+C1), . . . , (Cℓ, S ∩ Cℓ) where |S ∩ Ci| ≤ k/2 for every 1 ≤ i ≤ ℓ. By Lemma 4.1, contraction preserves
+the feasibility of the LP solution induced on the residual instance. Moreover, it is easy to see that
+any integer solution to the residual instance together with P is a feasible integer solution to the
+original instance. It remains to do the cost analysis. Let COST (G, S) be the cost of the tree output
+by Algorithm 3.
+13
+
+-- 14 of 24 --
+
+The length of each of the paths P1, P2, P3 is at most 2 log k · P
+e∈E cexe, and thus their total cost
+is at most 6 log k · P
+e∈E cexe. Since each edge e of the graph G − V ′ is in at most one sub-instance,
+we have 
+1 + 1
+log k
+
+· X
+e∈E
+cexe = X
+e∈E
+ce ¯xe ≥
+ℓ	X
+i=1
+X
+e∈E(Ci)
+ce ¯x(i)
+e . (1)
+By the induction hypothesis,
+ℓ	X
+i=1
+COST (C′
+i, S ∩ Ci) ≤
+ℓ	X
+i=1
+6(log |S ∩ Ci| + 1)2 · X
+e∈E(Ci)
+ce ¯x(i)
+e
+≤
+ℓ	X
+i=1
+6 log2 k · X
+e∈E(Ci)
+ce ¯x(i)
+e (since |C ∩ Ci| ≤ k/2)
+≤ 6 log2 k ·
+
+1 + 1
+log k
+
+· X
+e∈E
+cexe (by inequality (1))
+Thus, COST(G, S) ≤ 6 log k · P
+e∈E cexe + Pℓ
+i=1 COST(C′
+i, S ∩ Ci) ≤ 6(log k + 1)2 · P
+e∈E cexe,
+completing the induction proof.
+5 Multi-Rooted problems via Density Argument
+The main contribution of this section is the proof of Theorem 1.3 regarding the multi-rooted versions
+of DST, DGST, DCST, and DPST. As we remarked, we cannot directly reduce the multi-rooted
+problems to the single-root version while preserving planarity of the graph. We use a simple strategy
+via density-based arguments. In Section 5.1 we discuss the min-density DST problem and other
+related versions; we apply this to the multirooted setting in Section 5.2.
+5.1 Min-Density DST and Extensions
+In this section we describe a polynomial time approximation for MD-DST along with a few other
+simple variations of the DST problem involving constraints on number of terminals or prize-collecting
+versions. We define the problems as follows.
+Directed ℓ-Steiner Tree (ℓ-DST): The input consists of G = ((V, E), c), a root r ∈ V , a set of
+terminals S ⊆ V \ {r}, and an integer 1 ≤ ℓ ≤ |S|. The goal is to find the minimum cost r-tree T
+with |T ∪ S| = ℓ.
+Prize Collecting Directed Steiner Tree (PC-DST): The input consists of G = ((V, E), c), a
+root r ∈ V , a non-negative integer weights p. The goal is to find the minimum cost r-tree where
+the cost of a set of edges of the r-tree T is computed as c(T ) = P
+e∈T c(e) + P
+v̸ ∈T p(v).
+We remark that a polynomial time algorithm for MD-DST follows directly if we have such
+an algorithm for ℓ-DST, since we can consider the optimal solutions to ℓ-DST for all values of ℓ
+between 1 and |S| and output the solution with the minimum density ratio. This is also true of
+approximation algorithms, if we have an α-approximation to ℓ-DST, this gives an α-approximation
+to MD-DST. Thus we will restrict our attention in this section to ℓ-DST and PC-DST. As mentioned
+in Remark 1, we can solve these problems by directly modifying the algorithm of [24]. We will present
+an interpretation of this modification using the tree embedding we describe.
+14
+
+-- 15 of 24 --
+
+When the input graph G is a tree rooted at r, there are folklore dynamic programming that
+solves both ℓ-DST and PC-DST exactly. We give a brief overview of the dynamic programming
+solution here:
+We may assume G is a binary tree where non-leaf nodes have out degree at most two3. For both
+problems, we will recursively compute the minimum cost solution for subtrees of G. For ℓ-DST, we
+will actually recursively compute ℓ′-DST for all values ℓ′ < ℓ. Once we have recursively computed
+optimal solutions for the subtrees of the children of a node, it is straightforward to combine to get
+the optimal solution of a node.
+When the input graph G is a directed planar graph, we can use Theorem 1.5 to construct a tree
+T . However we cannot naively apply the dynamic programming algorithm as described above to T ,
+since some terminals are duplicated. With a bit of care, we can still easily handle these duplications.
+In the construction of T , terminals are only duplicated when we make a recursive call corresponding
+to halving the guest value of the optimum solution γ. Thus in nodes that make this recursive call,
+we add a constraint that we are restricted to taking an optimum solution in only one of the two
+subtrees. It is easy to see that the proof of Property 3 of Theorem 1.5 satisfies this constraint; thus
+this framework only loses an O(log k) approximation factor in the cost.
+Theorem 5.1. There is an O(log k)-approximation for MD-DST, ℓ-DST, and PC-DST in planar
+graphs that runs in polynomial time.
+5.2 Multi-rooted problems
+The following Lemma is an easy consequence of iteratively using the min-density algorithm and
+applying a standard inductive argument; we sketch the argument below.
+Lemma 5.2. Let G be a minor-closed family of graphs. Suppose there is an α(k, n)-approximation
+algorithm for the minimum-density DST (MD-DST) problem on instances from graphs in G con-
+taining n nodes and k terminals. Then there is an O(α(k, n) log k)-approximation for the multi-root
+version of DST on graphs from G with n nodes and k terminals.
+Proof of Lemma 5.2. (Sketch) Consider an instance of multi-rooted DST on a graph G ∈ G with
+roots r1, r2, . . . , rR. We will assume that every terminal is reachable from at least one of the roots,
+otherwise there is no feasible solution. The algorithm is as follows. Let F = ∅. Use the min-density
+algorithm from each of the roots ri to compute an approximate solution Fi. Let j be the root with
+the smallest density solution among F1, F2, . . . , FR. We add Fj to F and remove the terminals
+covered by Fj . We iterate this procedure until all terminals are removed. The algorithm terminates
+in polynomial-time since each iteration removes at least one terminal. We now argue about the
+approximation ratio of this algorithm. Let F ∗ be an optimum minimal solution to the multi-rooted
+problem. It is easy to see that F ∗ is a branching4 with roots r1, r2, . . . , rR. Let F ∗
+i be the tree rooted
+at ri and let ki be the number of terminals in F ∗
+i (note that ki can be 0). We have P
+i ki = k. Thus
+there is some i′ such that c(F ∗
+i′ )/ki′ ≤ c(F ∗)/k. Via the approximation guarantee of the min-density
+algorithm, c(Fj )/kj ≤ α(k, n)c(F ∗)/k. Via a simple and standard inductive argument in covering
+problems such as Set Cover, this implies that the cost of all the edges added in the algorithm is at
+most α(k, n)(1 + ln k)c(F ∗).
+3If a node in G has out-degree larger than 2, we can create an out arrow to a new node with edge cost 0 that
+handle all but one of its children. The resulting tree will still have size O(n).
+4A branching is a collection of edges in which each node has in-degree at most one.
+15
+
+-- 16 of 24 --
+
+Thus, in order to approximately solve the multi-root version, it suffices to solve the min-density
+version of the single root problem. Combining Theorem 5.1 and Lemma 5.2, we obtain the following
+result:
+Corollary 5.3. There is an O(log2 k)-approximation for multi-root DST in planar graphs.
+Remark 4. Via density-based argument one can also prove that the integrality gap of a natural
+cut-based LP relaxation for the multi-root version of DST is at most O(log3 k). This upper bound
+is unlikely to be tight; we leave the improvement in the bound to future work.
+The density-based argument extends in a natural fashion to multi-rooted versions of DGST,
+DCST, and DPST. In fact, we are able to attain the approximation ratios that we get in Section 3 for
+the single-rooted case. This is not surprising, as the algorithms for DGST, DCST, and DPST in trees
+can all be obtained through the corresponding min-density problems. The tree embedding argument
+from Section 2 shows that one can reduce the min-density problem in planar graphs to one on trees
+at the loss of an O(log N ) factor in the approximation ratio. Moreover, the height of the resulting
+tree can be assumed to O(log N ). For GST on trees with height d there is an O(d) approximation
+for the min-density problem [45]. Thus, there is an O(log2 N )-approximation for the min-density
+DGST in planar graphs. Combining the ingredients, we obtain an O(log k log2 N )-approximation
+for the multi-root version of DGST in planar graphs. We obtain the same approximation factor
+for DCST in planar graphs, using a similar argument to that of Section 3 to obtain an O(log2 N )-
+approximation to the min-density DCST problem in planar graphs. For DPST on trees, implicit in
+[5] is an algorithm that yields an O( log1+ϵ n
+ϵ log log n )-approximation for the min-density problem on trees.
+Combining it with the tree embedding and the iterative procedure, we obtain an O( log1+ϵ n log k log N
+ϵ log log n )-
+approximation for the multi-rooted version of DPST in planar graphs where k = f (V ). This proves
+Theorem 1.3.
+References
+[1] Amit Agarwal and Moses Charikar. On the advantage of network coding for improving network
+throughput. In 2004 IEEE Information Theory Workshop, San Antonio, TX, USA, 24-29
+October, 2004, pages 247–249. IEEE, 2004. doi:10.1109/ITW.2004.1405308. 1.1
+[2] MohammadHossein Bateni, Erik D. Demaine, MohammadTaghi Hajiaghayi, and Dániel Marx.
+A PTAS for planar group steiner tree via spanner bootstrapping and prize collecting. In Daniel
+Wichs and Yishay Mansour, editors, Proceedings of the 48th Annual ACM SIGACT Symposium
+on Theory of Computing, STOC 2016, Cambridge, MA, USA, June 18-21, 2016, pages 570–583.
+ACM, 2016. doi:10.1145/2897518.2897549. 1
+[3] Glencora Borradaile, Philip N. Klein, and Claire Mathieu. An O(n log n) approximation
+scheme for steiner tree in planar graphs. ACM Trans. Algorithms, 5(3):31:1–31:31, 2009. doi:
+10.1145/1541885.1541892. 1
+[4] Jaroslaw Byrka, Fabrizio Grandoni, Thomas Rothvoß, and Laura Sanità. Steiner tree ap-
+proximation via iterative randomized rounding. J. ACM, 60(1):6:1–6:33, 2013. doi:10.1145/
+2432622.2432628. 1
+[5] Gruia Călinescu and Alexander Zelikovsky. The polymatroid steiner problems. J. Comb.
+Optim., 9(3):281–294, 2005. doi:10.1007/S10878-005-1412-9. (document), 1, 1.3, 3, 3.2, 5.2
+16
+
+-- 17 of 24 --
+
+[6] Parinya Chalermsook, Fabrizio Grandoni, and Bundit Laekhanukit. On survivable set connec-
+tivity. In Piotr Indyk, editor, Proceedings of the Twenty-Sixth Annual ACM-SIAM Symposium
+on Discrete Algorithms, SODA 2015, San Diego, CA, USA, January 4-6, 2015, pages 25–36.
+SIAM, 2015. doi:10.1137/1.9781611973730.3. 1.3
+[7] Moses Charikar, Chandra Chekuri, To-Yat Cheung, Zuo Dai, Ashish Goel, Sudipto Guha, and
+Ming Li. Approximation algorithms for directed steiner problems. J. Algorithms, 33(1):73–91,
+1999. doi:10.1006/JAGM.1999.1042. (document), 1, 1.3
+[8] Moses Charikar, Chandra Chekuri, Ashish Goel, and Sudipto Guha. Rounding via trees:
+deterministic approximation algorithms for group steiner trees and k-median. In Proceedings of
+the thirtieth annual ACM symposium on Theory of computing, STOC ’98, page 114–123, New
+York, NY, USA, May 1998. Association for Computing Machinery. doi:10.1145/276698.
+276719. 1.3, 3
+[9] Chandra Chekuri, Guy Even, Anupam Gupta, and Danny Segev. Set connectivity problems
+in undirected graphs and the directed steiner network problem. ACM Trans. Algorithms,
+7(2):18:1–18:17, 2011. doi:10.1145/1921659.1921664. 1.3
+[10] Chandra Chekuri, Guy Even, and Guy Kortsarz. A greedy approximation algorithm for the
+group steiner problem. Discrete Applied Mathematics, 154(1):15–34, 2006. doi:https://doi.
+org/10.1016/j.dam.2005.07.010. 1.3
+[11] Chandra Chekuri and Martin Pál. A recursive greedy algorithm for walks in directed graphs.
+In 46th Annual IEEE Symposium on Foundations of Computer Science (FOCS 2005), 23-25
+October 2005, Pittsburgh, PA, USA, Proceedings, pages 245–253. IEEE Computer Society, 2005.
+doi:10.1109/SFCS.2005.9. 1.3
+[12] Q. Chen, B. Laekhanukit, C. Liao, and Y. Zhang. Survivable network design revisited: Group-
+connectivity. In 2022 IEEE 63rd Annual Symposium on Foundations of Computer Science
+(FOCS), pages 278–289, Los Alamitos, CA, USA, nov 2022. IEEE Computer Society. doi:
+10.1109/FOCS54457.2022.00033. 1.3
+[13] Miroslav Chlebík and Janka Chlebíková. The steiner tree problem on graphs: Inapproximability
+results. Theor. Comput. Sci., 406(3):207–214, 2008. doi:10.1016/J.TCS.2008.06.046. 1
+[14] Erik D. Demaine, Mohammad Taghi Hajiaghayi, and Philip N. Klein. Node-weighted steiner
+tree and group steiner tree in planar graphs. ACM Trans. Algorithms, 10(3):13:1–13:20, 2014.
+doi:10.1145/2601070. 1
+[15] Guy Even, Guy Kortsarz, and Wolfgang Slany. On network design problems: fixed cost flows
+and the covering steiner problem. ACM Trans. Algorithms, 1(1):74–101, 2005. doi:10.1145/
+1077464.1077470. 1.3
+[16] Jittat Fakcharoenphol, Satish Rao, and Kunal Talwar. A tight bound on approximat-
+ing arbitrary metrics by tree metrics. J. Comput. Syst. Sci., 69(3):485–497, 2004. doi:
+10.1016/J.JCSS.2004.04.011. 1.2, 1.3
+[17] Uriel Feige. A threshold of ln n for approximating set cover. J. ACM, 45(4):634–652, 1998.
+doi:10.1145/285055.285059. 1
+[18] Christina Fragouli and Emina Soljanin. Network coding applications. Found. Trends Netw.,
+2(2):135–269, 2007. doi:10.1561/1300000013. 1.1
+17
+
+-- 18 of 24 --
+
+[19] Christina Fragouli and Emina Soljanin. Network coding fundamentals. Found. Trends Netw.,
+2(1), 2007. doi:10.1561/1300000003. 1.1
+[20] András Frank. Connections in combinatorial optimization, volume 38. Oxford University Press
+Oxford, 2011. 1.3
+[21] Zachary Friggstad, Jochen Könemann, Young Kun-Ko, Anand Louis, Mohammad Shadravan,
+and Madhur Tulsiani. Linear programming hierarchies suffice for directed steiner tree. In
+Jon Lee and Jens Vygen, editors, Integer Programming and Combinatorial Optimization - 17th
+International Conference, IPCO 2014, Bonn, Germany, June 23-25, 2014. Proceedings, volume
+8494 of Lecture Notes in Computer Science, pages 285–296. Springer, 2014. doi:10.1007/
+978-3-319-07557-0\_24. 1.3
+[22] Zachary Friggstad, Jochen Könemann, and Mohammad Shadravan. A logarithmic integrality
+gap bound for directed steiner tree in quasi-bipartite graphs. In Rasmus Pagh, editor, 15th
+Scandinavian Symposium and Workshops on Algorithm Theory, SWAT 2016, June 22-24, 2016,
+Reykjavik, Iceland, volume 53 of LIPIcs, pages 3:1–3:11. Schloss Dagstuhl - Leibniz-Zentrum
+für Informatik, 2016. doi:10.4230/LIPICS.SWAT.2016.3. 1.1
+[23] Zachary Friggstad and Ramin Mousavi. A constant-factor approximation for quasi-bipartite
+directed steiner tree on minor-free graphs. Approximation, Randomization, and Combinatorial
+Optimization. Algorithms and Techniques, APPROX/RANDOM 2023, September 11-13, 2023,
+Atlanta, Georgia, USA, 275:13:1–13:18, 2023. doi:10.4230/LIPICS.APPROX/RANDOM.2023.13.
+1.1
+[24] Zachary Friggstad and Ramin Mousavi. An O(log k)-approximation for directed steiner tree
+in planar graphs. In Kousha Etessami, Uriel Feige, and Gabriele Puppis, editors, 50th In-
+ternational Colloquium on Automata, Languages, and Programming, ICALP 2023, July 10-14,
+2023, Paderborn, Germany, volume 261 of LIPIcs, pages 63:1–63:14. Schloss Dagstuhl - Leibniz-
+Zentrum für Informatik, 2023. doi:10.4230/LIPICS.ICALP.2023.63. (document), 1, 1.1, 1,
+2, 1.2, 1.4, 1.2, 1.2, 2, 2, 2, 2, 4, 5.1, A.1, A.2
+[25] Naveen Garg, Goran Konjevod, and R. Ravi. A polylogarithmic approximation algorithm for
+the group steiner tree problem. J. Algorithms, 37(1):66–84, 2000. doi:10.1006/JAGM.2000.
+1096. (document), 1, 1.3, 3
+[26] Rohan Ghuge and Viswanath Nagarajan. Quasi-polynomial algorithms for submodular tree
+orienteering and directed network design problems. Math. Oper. Res., 47(2):1612–1630, 2022.
+doi:10.1287/MOOR.2021.1181. (document), 1, 1.3
+[27] Michel X. Goemans, Neil Olver, Thomas Rothvoß, and Rico Zenklusen. Matroids and integrality
+gaps for hypergraphic steiner tree relaxations. In Howard J. Karloff and Toniann Pitassi,
+editors, Proceedings of the 44th Symposium on Theory of Computing Conference, STOC 2012,
+New York, NY, USA, May 19 - 22, 2012, pages 1161–1176. ACM, 2012. doi:10.1145/2213977.
+2214081. 1
+[28] Fabrizio Grandoni, Bundit Laekhanukit, and Shi Li. O(log2 k/ log log k)-approximation algo-
+rithm for directed steiner tree: A tight quasi-polynomial time algorithm. SIAM Journal on
+Computing, 52(2):298–322, 2022. doi:https://doi.org/10.1137/20M1312988. (document),
+1, 1.3
+18
+
+-- 19 of 24 --
+
+[29] A. Gupta and J. Könemann. Approximation algorithms for network design: A survey. Surveys
+in Operations Research and Management Science, 16(1):3–20, 2011. 1.3
+[30] Anupam Gupta and Aravind Srinivasan. An improved approximation ratio for the covering
+steiner problem. Theory Comput., 2(3):53–64, 2006. doi:10.4086/TOC.2006.V002A003. 1, 1.3,
+3.1
+[31] Eran Halperin, Guy Kortsarz, Robert Krauthgamer, Aravind Srinivasan, and Nan Wang. Inte-
+grality ratio for group steiner trees and directed steiner trees. SIAM J. Comput., 36(5):1494–
+1511, 2007. doi:10.1137/S0097539704445718. 1.3
+[32] Eran Halperin and Robert Krauthgamer. Polylogarithmic inapproximability. In Lawrence L.
+Larmore and Michel X. Goemans, editors, Proceedings of the 35th Annual ACM Symposium
+on Theory of Computing, June 9-11, 2003, San Diego, CA, USA, pages 585–594. ACM, 2003.
+doi:10.1145/780542.780628. (document), 1
+[33] Goran Konjevod, R. Ravi, and Aravind Srinivasan. Approximation algorithms for the covering
+steiner problem. Random Struct. Algorithms, 20(3):465–482, 2002. doi:10.1002/RSA.10038.
+(document), 1, 1.3
+[34] G. Kortsarz and Z. Nutov. Approximating minimum cost connectivity problems. In Dagstuhl
+Seminar Proceedings. Schloss Dagstuhl-Leibniz-Zentrum für Informatik, 2010. 1.3
+[35] Shi Li and Bundit Laekhanukit. Polynomial integrality gap of flow LP for directed steiner
+tree. In Joseph (Seffi) Naor and Niv Buchbinder, editors, Proceedings of the 2022 ACM-SIAM
+Symposium on Discrete Algorithms, SODA 2022, Virtual Conference / Alexandria, VA, USA,
+January 9 - 12, 2022, pages 3230–3236. SIAM, 2022. doi:10.1137/1.9781611977073.126.
+(document), 1, 1.3, 4
+[36] Harald Räcke. Optimal hierarchical decompositions for congestion minimization in networks.
+In Cynthia Dwork, editor, Proceedings of the 40th Annual ACM Symposium on Theory of
+Computing, Victoria, British Columbia, Canada, May 17-20, 2008, pages 255–264. ACM, 2008.
+doi:10.1145/1374376.1374415. 1.3
+[37] Gabriele Reich and Peter Widmayer. Beyond steiner’s problem: A VLSI oriented generalization.
+In Manfred Nagl, editor, Graph-Theoretic Concepts in Computer Science, 15th International
+Workshop, WG ’89, Castle Rolduc, The Netherlands, June 14-16, 1989, Proceedings, volume
+411 of Lecture Notes in Computer Science, pages 196–210. Springer, 1989. doi:10.1007/
+3-540-52292-1\_14. 1.3
+[38] Thomas Rothvoß. Directed steiner tree and the lasserre hierarchy. CoRR, abs/1111.5473, 2011.
+arXiv:1111.5473. 1.3
+[39] Alexander Schrijver et al. Combinatorial optimization: polyhedra and efficiency. Springer,
+2003. 1.3
+[40] Mikkel Thorup. Compact oracles for reachability and approximate distances in planar digraphs.
+J. ACM, 51(6):993–1024, nov 2004. doi:10.1145/1039488.1039493. (document), 1, 1.4
+[41] Vijay V Vazirani. Approximation algorithms, volume 1. Springer, 2001. 1.3
+[42] David P Williamson and David B Shmoys. The design of approximation algorithms. Cambridge
+university press, 2011. 1.3
+19
+
+-- 20 of 24 --
+
+[43] Laurence A. Wolsey. An analysis of the greedy algorithm for the submodular set covering
+problem. Comb., 2(4):385–393, 1982. doi:10.1007/BF02579435. 1.3
+[44] Alexander Zelikovsky. A series of approximation algorithms for the acyclic directed steiner tree
+problem. Algorithmica, 18(1):99–110, 1997. doi:10.1007/BF02523690. (document), 1, 1.3
+[45] Leonid Zosin and Samir Khuller. On directed steiner trees. In David Eppstein, editor,
+Proceedings of the Thirteenth Annual ACM-SIAM Symposium on Discrete Algorithms, Jan-
+uary 6-8, 2002, San Francisco, CA, USA, pages 59–63. ACM/SIAM, 2002. URL: http:
+//dl.acm.org/citation.cfm?id=545381.545388. (document), 1, 1.3, 3, 3.1, 3.1, 3.3, 5.2
+A Proof of Theorem 1.5 (Tree Embeddings for Directed Planar
+Graphs)
+Fix a directed planar graph G = (V, E) with edge costs c : E → R≥0, root r ∈ V and terminals
+S ⊆ V , and let γ ≤ c(E). Let ((T = (VT , ET ), cT ), rT , M ) = TreeEmb((G, c), r, S, γ). In this
+section, we will show that (T , rT , M ) satisfies the properties guaranteed by Theorem 1.5. Following
+the theorem statement, we let n := |V |, k := |S|.
+We denote by (H, φ) the root of the tree given by TreeEmb(H, r, S ∩ H, φ); we omit the
+terminals and root from this label as they are implicit given H. For any (H, φ) ∈ VT , we let
+TH,φ denote the subtree of T rooted at (H, φ), and let SH := S ∩ H be the set of terminals in
+the sub-instance H, and let kH := |SH |. We denote by (H, φ)∗ the auxiliary node v∗ created in
+TreeEmb(H, r, SH , φ).
+A.1 Size and Height Bound
+We prove Properties 1 and 2 via simple inductive arguments; these mostly follow from the analysis
+in [24] and are rewritten here for completeness.
+Lemma A.1. |M (t)| ≤ kγ for all t ∈ S.
+Proof. Fix a terminal t ∈ S. For (H, φ) ∈ VT , we define mt(H, φ) to be the number of copies of t in
+TH,φ; that is, mt(H, φ) = |M (t)∩TH,φ|. We will prove by induction on φ+kH that mt(H, φ) ≤ kH φ.
+If φ < 1 we return the empty tree, so we start by considering φ = 1, kH = 1. Then TH,φ has two
+vertices (H, φ) and tP where P is the shortest r-t path in H. Since tP ∈ M (t), mt(H, φ) = 1.
+Suppose kH ≥ 2. Let (P, C1, . . . , Cℓ) = PruneAndSeparate(H, r, SH , φ), and let ki denote
+|SH ∩ Ci| for i ∈ [ℓ]. We case on whether or not t ∈ P :
+Case 1: t ∈ P : Then, tP ∈ M (t) ∩ TH,φ, and t /∈ Ci for any i ∈ [ℓ], since Ci ∈ G \ P . Therefore,
+mt(H, φ) ≤ 1 + mt(H, φ/2).
+Case 2: t /∈ P : Since the Cis are disjoint, there is exactly one component Cj that contains t.
+Thus mt(H, φ) ≤ mt(C′
+j , φ) + mt(H, φ/2).
+Combining the above cases and applying induction,
+mt(H, φ, G) ≤ ft(H, φ/2) + max(1, mt(Cj , φ)) ≤ kH (φ/2) + max(1, kj φ)
+≤ kH (φ/2) + (kH /2)φ ≤ kH φ.
+The third inequality follows from the fact that ki ≤ kH /2 for all Ci and that kH φ/2 ≥ 1 when
+φ ≥ 1, kH ≥ 2. This completes the inductive proof; thus |M (t)| = mt(G, γ) ≤ kγ. Since t ∈ S was
+arbitrary, the claim holds for all terminals.
+20
+
+-- 21 of 24 --
+
+Lemma A.2. The number of vertices in VT is at most O(k3γ).
+Proof. For (H, φ) ∈ VT , we define f (H, φ) be the number of vertices in the subtree TH,φ not
+including copies of terminals; that is, f (H, φ) = |V (TH,φ) \ ∪t∈S M (t)|. We will prove by induction
+on φ + kH that f (H, φ) ≤ k3
+H φ. If φ < 1 we return the empty tree, so we start by considering
+φ = 1, kH = 1. Then TH,φ has two vertices (H, φ) and tP where P is the shortest r-t path in H.
+Since tP ∈ M (t), f (H, φ) = 1.
+Suppose kH ≥ 2. Let (P, C1, . . . , Cℓ) = PruneAndSeparate(H, r, SH , φ), and let ki denote
+|SH ∩ Ci| for i ∈ [ℓ]. Notice that TH,φ consists of TH,φ/2, TCi,φ for i ∈ [ℓ], some nodes in ∪t∈S M (t),
+and two additional nodes (H, φ) and (H, φ)∗. By induction,
+f (H, φ) = 2 + f (H, φ/2) + X
+i∈[ℓ]
+f (Ci, φ) ≤ 2 + k3
+H (φ/2) + X
+i∈[ℓ]
+k3
+i φ
+≤ 2 + k3
+H (φ/2) + (kH /2)2φ X
+i∈[ℓ]
+ki ≤ 2 + k3
+H φ/2 + k3
+H φ/4
+≤ k3
+H φ +
+
+2 − k3
+H φ
+4
+
+≤ k3
+H φ.
+The last inequality follows from the fact that kH ≥ 2, φ ≥ 1 implies 1
+4 k3
+H φ ≥ 2. This concludes the
+inductive proof.
+We obtain the bound on the number of vertices by in T by combining the above with Lemma
+A.1, since |VT | = |VT \∪t∈S M (t)|+|∪t∈S M (t)| = f (G, γ)+P
+t∈S |M (t)| ≤ k3γ +k2γ = O(k3γ).
+Lemma A.3. The height of T is at most O(log(kγ)).
+Proof. For (H, φ) ∈ VT , we define h(H, φ) be the height of the subtree TH,φ. We will prove by
+induction on φ + kH that h(H, φ) ≤ 2 log(kH φ) + 2. If φ < 1 we return the empty tree, and if
+φ = 1, kH = 1, then TH,φ has height 2.
+Let (P, C1, . . . , Cℓ) = PruneAndSeparate(H, r, SH , φ), and let ki denote |SH ∩ Ci| for i ∈ [ℓ].
+Notice that h(H, φ) = 2 + max(h(H, φ/2), maxi∈[ℓ] h(Ci, φ)); the 2 comes from the initial path
+(H, φ), (H, φ)∗. By induction,
+h(H, φ) = 2 + max(h(H, φ/2), max
+i∈[ℓ] h(Ci, φ))
+≤ 2 + max(2 log(kH (φ/2)) + 2, 2 log(kiφ) + 2)
+≤ 2 + max(2 log(kH (φ/2)) + 2, 2 log((kH /2)φ) + 2)
+= 4 + 2 log(kH φ/2) = 4 + 2(log(kH φ) − 1) = 2 log(kH φ) + 2.
+Thus the height of T is h(G, γ) ≤ 2 log(kγ) + 2.
+A.2 Projection from Graph to Tree
+We prove Property 3 by showing that we can effectively embed a subtree G′ ⊆ G to a subtree of
+T with the “same” terminal set. The idea is to follow the tree path from rT = (G, γ) to (G, φ),
+where φ is a close approximation to c(G′), and then buy the planar separator and recurse. The cost
+analysis in Lemma A.4 follows directly from the analysis in [24], rewritten here for completeness.
+Lemma A.4. For any r-tree G′ ⊆ G with c(G′) ≤ γ, there exists a rT -tree T ′ ⊆ T with cT (T ′) =
+O(log k)c(G′), in which for each terminal t ∈ S ∩ G′, M (t) ∩ T ′̸ = ∅.
+21
+
+-- 22 of 24 --
+
+Proof. We will prove the following by induction on kH : Let (H, φ0) ∈ VT and H′ ⊆ H be any
+r-tree with c(H′) ≤ φ0. Then, there exists a subtree T ′ ⊆ TH,φ0 rooted at (H, φ0) with cT (T ′) ≤
+6(log kH + 1)c(H′). Furthermore, for all terminals t ∈ S ∩ H′, M (t) ∩ T ′̸ = ∅.
+If kH = 1, TH,φ0 has two vertices (H, φ0) and tP connected by an edge of cost c(P ), where t is the
+unique terminal in SH and P is the shortest r-t path in H. If t ∈ H′, then cT (TH,φ0 ) = c(P ) ≤ c(H′),
+since H′ contains both r and t. Furthermore, t is the only terminal in S ∩H′, and tP ∈ M (t)∩TH,φ0 .
+Thus T ′ = TH,φ0 satisfies the properties stated in the lemma. If t /∈ H′ then H′ has no terminals,
+so the singleton tree {r} satisfies the stated properties.
+Assume kH ≥ 2. Let φ ≤ φ0 such that φ/2 ≤ c(H′) ≤ φ and (H, φ) ∈ VT . Let T ′ be the
+subtree of TH,φ0 consisting of the path from (H, φ0) to (H, φ) and the edge ((H, φ), (H, φ)∗). Let
+(P, C1, . . . , Cℓ) = PruneAndSeparate(H, r, SH , φ), and let ki denote |SH ∩ Ci| for i ∈ [ℓ]. Notice
+that for all i ∈ [ℓ], ki ≤ kH /2 and φ ≥ c(H′) ≥ c(H′ ∩ Ci). Therefore, for each i ∈ [ℓ], we can
+apply induction on (Ci, φ) and H′ ∩ Ci ⊆ Ci to obtain a subtree T ′
+i ⊆ TCi,φ rooted at (Ci, φ). We
+include each T ′
+i in T ′, along with the edges ((H, φ)∗, (Ci, φ)), i ∈ [ℓ]. We also include in T ′ all edges
+((H, φ)∗, tP ) for terminals t ∈ P .
+Cost: Note that c(P ) ≤ 3φ; this is because we remove all vertices with distance ≥ φ and
+P is the union of three shortest paths in the resulting graph. By choice of φ, this implies that
+c(P ) ≤ 6c(H′). Next, notice that cT (T ′) = c(P ) + P
+i∈[ℓ] cT (T ′
+i ), since the only non-zero cost edge
+in T ′ \ ∪i∈[ℓ]T ′
+i is ((H, φ), (H, φ)∗), which has cost c(P ). By induction,
+cT (T ′) = c(P ) + X
+i∈[ℓ]
+cT (T ′
+i ) ≤ 6c(H′) + X
+i∈[ℓ]
+6(log ki + 1)c(H′ ∩ Ci)
+≤ 6c(H′) + X
+i∈[ℓ]
+6(log kH )c(H′ ∩ Ci) ≤ 6c(H′) + 6 log kH c(H′).
+Here, the second inequality follows from the fact that Ci has at most half the number of terminals
+of H, so log ki ≤ log kH − 1, and the third inequality follows from the fact that all Cis are disjoint.
+Terminals: Let t ∈ S ∩ H′. Since H′ ⊆ H and H ⊆ ∪ℓ
+i=1Ci ∪ P , t must either be in H′ ∩ Ci for
+some i ∈ [ℓ] or in P . If t is in H′ ∩ Ci, then by induction, M (t) ∩ T ′
+i̸ = ∅, so M (t) ∩ T ′̸ = ∅. Else,
+t ∈ P , in which case tP ∈ M (t) ∩ T ′.
+This concludes the inductive argument and the proof of the lemma.
+A.3 Projection from Tree to Graph
+In this section we will prove Lemma A.5 which implies Property 4.
+Lemma A.5. For any rT -tree T ′ ⊆ T there exists a r-tree G′ ⊆ G with c(G′) ≤ cT (T ′). Further-
+more, for each terminal t ∈ S, if M (t) ∩ T ′̸ = ∅ then t ∈ G′.
+Fix some rT -tree T ′ ⊆ T . Notice that there are only two types of non-zero cost edges in T ; if
+cT (e) > 0, then either
+(1) e = ((H, φ), (H, φ)∗) and cT (e) = c(P ), where P is the separator given by
+PruneAndSeparate(H, r, SH , φ), or
+(2) e = ((H, φ), tP ) and cT (e) = c(P ), where t is the only terminal in SH and P is the shortest
+r-t path in H.
+Let P(T ′) be the set of all such paths and separators corresponding to non-zero cost edges of T ′. We
+let G′ = ∪P ∈P(T ′)P . It is clear that G′ can be computed efficiently by traversing T ′ and including
+all relevant paths.
+22
+
+-- 23 of 24 --
+
+Claim A.6. c(G′) ≤ cT (T ′).
+Proof. By definition of P(T ′), cT (T ′) = P
+P ∈P(T ′) c(P ). By construction of G′, c(G′) = c(∪P ∈P(T ′)P ) ≤P
+P ∈P(T ′) c(P ).
+Claim A.7. For each t ∈ S, if M (t) ∩ T ′̸ = ∅ then t ∈ G′.
+Proof. Fix t ∈ S such that M (t) ∩ T ′̸ = ∅. This means (by construction of M (t)) that there exists
+some tP ∈ T ′, where t ∈ P and P is either a planar separator or a shortest path. We will show that
+P ∈ P(T ′), which implies P ⊆ G′.
+First, suppose P is a separator given by PruneAndSeparate(H, r, SH , φ) for some (H, φ) ∈
+VT . Then the edge e∗ = ((H, φ), (H, φ)) must be in T ′, since T ′ is rooted at rT and e∗ is on the
+unique tree path from rT to tP . Since e∗ ∈ T ′, P ∈ P(T ′) so P ⊆ G′.
+Suppose instead that P is a shortest path r-t path computed in the base case of
+TreeEmb(H, rH , SH , φ) in which SH = {t}. Then the edge et = ((H, φ), tP ) must be in T ′ since it
+is on the unique tree path from rT to tP , so once again P ⊆ G′.
+Claim A.8. G′ ⊆ G is a directed out-tree rooted at r.
+Proof. It suffices to show that G′ is connected and that all v ∈ G′ are reachable from r (if G is cyclic,
+one can always remove edges in cycles while maintaining the same set of terminals and ensuring that
+the cost does not increase). For any (H, φ) ∈ VT , let RH ⊆ V be the subset of vertices contracted
+into the root such that H ⊆ G/(RH ∪ {r}). We prove by induction on the distance (i.e. number of
+edges) from the root rT that for all (H, φ) ∈ V (T ′), all v ∈ RH are reachable from r in G′.
+Fix (H, φ) ∈ V (T ′). If the distance from (H, φ) to the root is 0, then (H, φ) = (G, γ); RG = {r}
+which is clearly connected to r in G′. Suppose the parent of (H, φ) in T is (H, 2φ). Then since T ′
+is a rooted tree, (H, 2φ) ∈ V (T ′), so by induction, all of RH is reachable from r in G′.
+Otherwise, the parent of (H, φ) in T must be some (H′, φ)∗. Let P be the planar sepa-
+rator given by PruneAndSeparate(H′, r, SH′ , φ). This means that H ⊆ H′/P . Note that
+e∗ = ((H′, φ), (H′, φ)∗) ∈ T ′, since it is on the unique path in T from rT to (H, φ). Thus P ∈ P(T ′),
+so P ⊆ G′. Note that P is a directed outtree from the root of H′, so all vertices v ∈ P must be
+reachable from the root of H′. This root is the vertex resulting from contracting all nodes in RH′ ;
+thus all v ∈ P are reachable from RH′ in G′. By induction, RH′ is reachable from r in G′. Since
+RH = P ∪ RH′ , all vertices in RH must be reachable from r in G′, concluding the inductive proof.
+To show that all of G′ is reachable from r, consider any P ∈ P(T ′). By construction, P is either
+a shortest path or a planar separator computed in TreeEmb(H, r, SH , φ) for some (H, φ) ∈ T ′. In
+either case, P is a directed outtree from the root of H, so all of P is reachable from RH . By the
+above inductive proof, RH is reachable from r in G′, so P must be as well.
+23
+
+-- 24 of 24 --
+

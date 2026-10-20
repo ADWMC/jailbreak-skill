@@ -1,0 +1,5401 @@
+Journal of Machine Learning Research 27 (2026) 1-69 Submitted 6/25; Published 8/26
+Consistency of augmentation graph and network
+approximability in contrastive learning
+Chenghui Li cli539@wisc.edu
+Department of Statistics, University of Wisconsin-Madison
+Wisconsin, USA
+A. Martina Neuman neumana53@univie.ac.at
+Faculty of Mathematics, University of Vienna
+Vienna, Austria
+Editor: Brian Kulis
+Abstract
+Contrastive learning leverages data augmentation to develop feature representation with-
+out relying on large labeled datasets. However, despite its empirical success, the theoretical
+foundations of contrastive learning remain incomplete, with many essential guarantees left
+unaddressed, particularly the realizability assumption concerning neural approximability
+of an optimal spectral contrastive loss solution. In this work, we overcome these limitations
+by analyzing pointwise and spectral consistency of the augmentation graph Laplacian. We
+establish that, under specific conditions for data generation and graph connectivity, as
+the augmented dataset size increases, the augmentation graph Laplacian converges to a
+weighted Laplace-Beltrami operator on the natural data manifold. These consistency re-
+sults ensure that the graph Laplacian spectrum effectively captures the manifold geometry.
+Consequently, they give way to a robust framework for establishing neural approximability,
+directly resolving the realizability assumption in a current paradigm.
+Key words: contrastive learning, manifold learning, augmentation graph, spectral con-
+vergence, pointwise consistency, approximation theory
+1 Introduction
+A major challenge in machine learning is the high cost of collecting large, labeled image
+datasets, which are essential for the success of many algorithms. To address this, data aug-
+mentation techniques have been widely utilized, as noted in (Mumuni and Mumuni, 2022;
+Shorten et al., 2021). In computer vision, for example, these techniques include transfor-
+mations such as rotations, flips, and alterations in lighting or color. As a result, augmented
+data not only diversify the training set but also significantly improve the representational
+power of neural networks, enabling robust generalization from otherwise limited datasets.
+In self-supervised learning, augmentation plays a pivotal role by generating multiple
+views of the same image, thus providing the essential self-supervision signals that drive
+effective learning. Recent advances have significantly benefited from contrastive learning,
+a paradigm that harnesses data augmentation to drive feature representation development
+without the need for extensive labeled datasets. In computer vision, contrastive meth-
+ods aim to maximize the similarity between positive pairs, such as augmented versions
+©2026 Chenghui Li and A. Martina Neuman.
+License: CC-BY 4.0, see https://creativecommons.org/licenses/by/4.0/. Attribution requirements are provided
+at http://jmlr.org/papers/v27/25-1466.html.
+arXiv:2502.04312v3 [cs.LG] 11 Sep 2026
+
+-- 1 of 69 --
+
+C. Li and A.M. Neuman
+of the same image, while minimizing the similarity between negative pairs, such as ran-
+domly sampled images. In text-image representation learning, contrastive methods exploit
+semantically aligned text-image pairs, using an objective function to capture the underly-
+ing semantic relationships. While empirically successful, a robust theoretical foundation
+for contrastive learning remains incomplete. Existing theoretical frameworks, including the
+original work (Saunshi et al., 2019), and (Tosh et al., 2021a,b), often assume conditional
+independence between positive pairs given the class label. However, this assumption is
+frequently violated in practice, particularly when highly correlated positive pairs, such as
+image augmentations, are employed. As observed by (HaoChen et al., 2021), the two views
+of the same natural image exhibit strong correlations that cannot be fully mitigated through
+conditioning on the label. As a result, these frameworks tend to fall short of explaining the
+practical success of contrastive learning.
+(HaoChen et al., 2021) proposed a framework for (spectral) contrastive learning that
+does not rely on the conditional independence of positive pairs. They introduced the notion
+of an augmentation graph, in which edges between augmented data points are weighted
+according to the likelihood that those points originate from the same underlying natural
+data point (e.g., through Gaussian noise augmentation). For an illustration, see Figure 1
+below. The central insight of their framework is that the leading eigenvectors of this graph
+encode its latent geometric and semantic structure. Consequently, the goal is to learn neural
+representations that approximate a spectral embedding of the augmentation graph. To
+achieve this, (HaoChen et al., 2021) introduced a spectral contrastive loss whose population
+minimizers correspond to a spectral embedding of the augmentation graph (see, e.g. (3.20)).
+In this way, contrastive learning is reformulated as (1) performing spectral embedding on
+the population-level augmentation graph, and the resulting embedding task can then be
+expressed directly as (2) an optimization problem over neural network representations.
+Both are equivalent interpretations of the same learning objective.
+Despite its utility in various applications, the theoretical framework introduced by
+(HaoChen et al., 2021) relies on several assumptions that may be restrictive. First, it
+implicitly assumes (e.g., (HaoChen et al., 2021, Example 3.8)) that different classes or se-
+mantic categories are supported on disconnected geometric structures. For example, images
+of dogs are assumed to lie on one manifold, while images of cats lie on another. We refer to
+this as the separability assumption. Such an assumption underlies the derivation of down-
+stream generalization error bounds within their spectral contrastive framework. However,
+this perspective can be limiting in practice. For example, visually similar dog breeds such
+as Huskies and Alaskan Malamutes may lie on the same overarching dog manifold. In such
+situations, the distinction between these subclasses arises from finer geometric features,
+such as class boundaries, rather than from manifold-level separation.
+Second, the framework requires a recoverability assumption (HaoChen et al., 2021, As-
+sumption 3.6). Informally, this means that the spectral embedding of the augmentation
+graph reliably reveals the underlying clustering structure of the data, so that distinct clus-
+ters can be identified from the leading eigenvectors of the graph. Yet distinct clusters may
+naturally share a common manifold, which highlights the tension between the recoverability
+assumption and the (strict) separability assumption discussed above.
+Finally, the framework relies on a realizability assumption (HaoChen et al., 2021, As-
+sumption 3.7), which can be paraphrased as
+2
+
+-- 2 of 69 --
+
+Consistency of augmentation graph and network approximability
+Figure 1: Illustration of the augmentation graph constructed from augmented data points
+generated by applying Gaussian perturbations to natural data points, shown here
+using a conceptual dog-image manifold containing two dog breeds. The left
+cloud contains augmentation points corresponding to Huskies. The right cloud
+contains augmentation points corresponding to Beagles. Orange edges represent
+strongly connected positive pairs arising from nearby augmentations of similar
+dog breeds (between two Huskies or two Beagles). Green edges represent weakly
+connected negative pairs between augmentation points corresponding to different
+dog breeds (between a Husky and a Beagle). The figure is intended only as a
+conceptual illustration of the augmentation graph and its connectivity structure.
+“There exists a deep neural network capable of achieving a global minimum of the spectral
+contrastive loss on population data.”
+In other words, the solution to the resulting spectral embedding is assumed to be repre-
+sentable by the chosen neural network architecture. However, establishing such a result
+implicitly requires knowledge of the regularity of the target solution function. Since this
+regularity has not been rigorously established, it remains difficult to determine the network
+capacity necessary to realize the target embedding, thus limiting the scope and strength of
+the theoretical guarantees.
+To address these limitations, we propose a detailed study of pointwise and spectral
+consistency of the augmentation graph Laplacian. We show that the augmentation graph
+Laplacian can be leveraged to unveil the geometry of the underlying natural data manifold.
+Specifically, within a range of data generation and graph connectivity parameters (see e.g.
+3
+
+-- 3 of 69 --
+
+C. Li and A.M. Neuman
+(2.1), (2.4) below respectively), the graph Laplacian converges to a continuum (weighted)
+Laplace-Beltrami operator on the manifold—i.e. the natural generalization of the Euclidean
+Laplacian, see (3.8)—thereby revealing its underlying structure. We give a meaning to this
+“passage to the continuum” next. We assume that the original natural dataset consists
+of i.i.d. N samples drawn from an m-dimensional smooth, connected, compact manifold
+embedded in Rd. From these natural data points, an augmented dataset of size n ≥ N
+is generated. Each pair of augmented data points is connected by an edge whose weight
+is determined by their average shared similarity, up to a graph connectivity parameter ε.
+As n tends to infinity and ε approaches zero sufficiently slowly (compared to n), the aug-
+mentation graph Laplacian, when applied to a smooth test function within a sufficiently
+small neighborhood of the manifold, converges with high probability to the continuum op-
+erator acting on the test function evaluated over the projections of the augmented data.
+Then, we demonstrate spectral consistency by showing that the graph Laplacian eigenvec-
+tors converge to the corresponding weighted Laplace-Beltrami eigenfunctions, measured in
+an L2-type distance.
+The eigenfunctions of a weighted Laplace-Beltrami operator are known to be regular
+(see, e.g., (Gilbarg and Trudinger, 1977, Section 6.3)). Consequently, an immediate impli-
+cation of our consistency results is the effective relaxation of the recoverability assumption.
+This is because weak (strong) energetic connections between distinct (identical) augmented
+subgroups can be mapped to observable variations in the eigenfunctions. More significantly,
+our results also facilitate a relaxation of the realizability assumption. The regularity of the
+eigenfunctions ensures their approximation by a neural network with bounded complexity,
+and their proximity to the graph Laplacian eigenvectors further enables the same network
+to approximate these eigenvectors with high accuracy. This offers a concrete estimate of the
+neural network capacity necessary to replicate an optimal spectral contrastive loss solution
+and thus concludes the validity of the realizability assumption. Finally, our analysis char-
+acterizes a precise regime of data generation and graph connectivity parameters in which
+the spectral proximity necessary for neural approximability holds with high probability.
+By relating the graph Laplacian to the Laplace-Beltrami operator, this specification also
+pinpoints the conditions that enable the graph structure to faithfully capture the geometry
+of the underlying data manifold. Such detailed guarantees are absent in (HaoChen et al.,
+2021), as we illustrate empirically in Section 1.1.
+We now outline our novel theoretical contributions, which are twofold. The primary
+contribution lies in the field of manifold learning, while the secondary, an application of the
+first, pertains to approximation theory.
+Manifold learning. In one aspect, our work falls within the domain of manifold learn-
+ing, where the underlying geometry of the graphical dataset, and its subsequent impact
+on the performance of machine learning algorithms, are explored through the consistency
+analysis of the corresponding graph Laplacians in the non-asymptotic, large-sample regime.
+However, a central assumption in the classical setting is that graphical data are i.i.d. sam-
+ples drawn from a distribution μ supported on a low-dimensional manifold (see a wealth of
+works such as (Burago et al., 2014; Garc´ıa Trillos et al., 2020; Calder and Garc´ıa Trillos,
+2022; Dunson et al., 2021; Wormell and Reich, 2021; Garc´ıa Trillos et al., 2023; Calder
+et al., 2022)). In (Garc´ıa Trillos et al., 2025), the authors established minimax rates for
+4
+
+-- 4 of 69 --
+
+Consistency of augmentation graph and network approximability
+approximating eigenfunctions of the weighted Laplace-Beltrami operator under this data-
+generation model, and demonstrated that graph-Laplacian-based methods achieve nearly
+minimax-optimal convergence rates. In (Chaubet and Divol, 2025), under the additional
+assumption that the manifold is known, the authors considered a weaker metric for measur-
+ing the approximation of PDE eigenfunctions and obtained corresponding minimax rates.
+In contrast, augmented graphical data points may deviate from the natural data manifold
+(e.g. through a Gaussian perturbation), preventing the direct application of traditional
+manifold learning techniques to analyze the augmentation graph Laplacian. Moreover, the
+augmented data points may exhibit dependencies. Therefore, ensuring a ratio of augmented
+to natural data points (N ≤ n ≤ CN ) that guarantees sufficient independence for the de-
+sired concentration effects is crucial to the validity of our analysis. Additionally, existing
+research on graph Laplacian consistency has predominantly focused on specific graph con-
+structions, often relying on primary similarity measures (e.g., the ε-proximity graph). Our
+augmentation graph, however, is based on the theoretical principles in (HaoChen et al.,
+2021), which employs a concept akin to a secondary similarity measure (see, e.g., the no-
+tion of shared nearest neighbors graph in (Ayad and Kamel, 2003)). Namely, given a
+natural data point x, we assume that the augmented data points ¯x follow a distribution
+P(¯x|x). Two augmented data points are considered similar if both are likely, on average,
+to be generated from the same natural data point. Accordingly, the weight between two
+augmented data points is determined by Ex∼μ
+P(¯x|x)P(¯x′|x), which reflects a second-order
+(secondary) similarity derived from the first-order similarities P(¯x|x) and P(¯x′|x). Thus, in
+this regard, our work makes a significant theoretical contribution to manifold learning by
+introducing novel methods to address data augmentation graphs. These methods, to the
+best of our knowledge, have not been previously presented. Our consistency results achieve
+the most optimal convergence rates available in the current literature. Explicitly, if the
+graph connectivity parameter ε scales like1
+C
+ log n
+n
+ 1
+m+4
+≤ ε ≪ 1, (1.1)
+then with high probability, both the pointwise and spectral convergence rates scale linearly
+in the graph connectivity parameter ε. Moreover, if ε = C  log n
+n
+ 1
+m+4 , then we obtain the
+convergence rate of O(n− 1
+m+4 ), up to a log factor. Since N ≤ n ≤ CN , all these estimates
+can be expressed in terms of the natural dataset size N in place of the augmented dataset
+size n.
+Approximation theory. Another, more application-oriented contribution of our work
+is a network approximation result for the target classifier function. This connects to the
+emerging approximation theory of spectral neural networks (see (Li et al., 2026)), which
+seeks to apply manifold learning to graph analysis. Building on the framework in (HaoChen
+et al., 2021), contrastive learning can be interpreted as a parametric variant of the spectral
+embedding algorithm applied to augmented graphical datasets. Consequently, the eigenvec-
+tors of the augmentation graph Laplacian encapsulate the spectral embedding information
+of a spectral contrastive loss solution, which corresponds to the target classifier function.
+1. The constant C in (1.1) may be chosen to depend only on the geometry of the natural data manifold
+and the natural data sampling density; see Theorems 11, 12.
+5
+
+-- 5 of 69 --
+
+C. Li and A.M. Neuman
+(a) When choosing εp, εw, εn according to Ta-
+ble 1 with τ = 2, η = 1.
+(b) When choosing εp = εw = ε.
+Figure 2: (a) When choosing εp, εw, εn according to Table 1 with τ = 2, η = 1, the first
+non-trivial eigenvectors of the augmentation graph Laplacian detects the bottle-
+neck. (b) When choosing εp = εw = ε, the first non-trivial eigenvectors of the
+augmentation graph Laplacian cannot detect the bottleneck.
+This perspective enables us to deduce neural approximability of the classifier by leverag-
+ing the spectral convergence of the augmentation graph Laplacian to the Laplace-Beltrami
+operator on the natural data manifold and the regularity of the Laplace-Beltrami eigen-
+functions. Specifically, the regularity of the eigenfunctions allows them to be approximated
+by a neural network with bounded complexity, and their proximity to the corresponding
+graph Laplacian eigenvectors further guarantees that the neural network can similarly ap-
+proximate the latter with high fidelity. We demonstrate that, in the scale (1.1), with high
+probability (only due to the randomness of data) the required network architecture has a
+bounded complexity outlined in (4.7), with a depth of O(log(ε−1) + log d) and a width of
+O(ε−m + d). Thus, if ε = C  log n
+n
+ 1
+m+4 , then the network depth scales at most logarithmi-
+cally with the data size n (or N ), while the network width scales sublinearly. This result is
+different from standard approximation theory (e.g., (Chen et al., 2022)) and memorization
+frameworks (e.g., (Yun et al., 2019)), as it requires a network to replicate the eigenvec-
+tors while also generalizing to the true eigenfunctions of the (weighted) Laplace-Beltrami
+operator.
+1.1 Simulation
+In this simulation, the natural data xi are uniformly sampled from the dumbbell. We
+expect the first nontrivial eigenvectors of the augmentation graph Laplacian to reveal the
+bottleneck, enabling geometric recovery via k-means clustering when projected onto the
+dumbbell. This expectation follows from the fact that the first nontrivial eigenfunctions of
+the limit Laplace-Beltrami operator of a dumbbell capture its shape (see (3.8) and Remark 9
+6
+
+-- 6 of 69 --
+
+Consistency of augmentation graph and network approximability
+afterward). Specifically, we first generate 4000 samples i.i.d. uniformly from a 2-dimensional
+dumbbell. Our generation scheme for augmentation graph requires three parameters: a
+graph connectivity parameter ε = n− 1
+2+4 , and different choices of, an edge weight parameter
+εw and a data generation parameter εp. A detailed introduction of the latter parameters is
+given in Section 2; see also as summary in Table 1. We note that the connectivity parameter
+ε = n− 1
+2+4 corresponds to the optimal rate for the manifold learning problem discovered in
+(Calder and Garc´ıa Trillos, 2022)—which is ε = n− 1
+m+4 with m = 2—up to a logarithmic
+factor. When εp = εw = ε, the setting reduces to that in (HaoChen et al., 2021), causing
+the manifold’s geometry to become ambiguous; see Figure 2b. In contrast, selecting the
+parameters as suggested in Table 1, the manifold geometry is recovered; see Figure 2a.
+1.2 Outline
+Our paper is organized as follows. In Section 2, we provide an overview of data augmentation
+(Section 2.1) as well as essential preliminaries, conventions, and assumptions (Section 2.2)
+that will be consistently employed throughout the paper. Section 3 is dedicated to describing
+the framework for each of the main results. Section 3.1 focuses on establishing prerequisites
+for pointwise convergence, and Section 3.2 on the framework for spectral convergence. In
+Section 3.3, we provide the setup for spectral contrastive learning. The main results are
+formally stated in Section 4. Section 5 presents numerical experiments to validate the
+choice of parameters that work for contrastive learning. Section 6 is devoted to the proof of
+Theorem 11, with the main proof given in Section 6.3. Section 7 is devoted to the proof of
+Theorem 12, with the main proof given in Section 7.2. Finally, Section 8 presents the proof
+of Theorem 13, a consequence of Theorem 12. The Appendix contains all supplementary
+results, including relevant concentration results and helpful geometry, as well as detailed
+calculations to support the main text.
+2 Preliminary
+2.1 Augmented data and augmentation graph Laplacian
+Let M ⊂ Rd be an m-dimensional smooth, closed (compact), connected, orientable manifold
+without boundary. Let μ be a distribution on M, and let x1, . . . , xN ∼ μ be i.i.d. samples,
+referred to as natural data points. Let X := {x1, . . . , xN }. The specific ordering xi is
+immaterial; thus we refer to a sample as x ∈ X . From X , we generate an augmented
+dataset ¯	X , where each element ¯x ∈ ¯	X is an augmented datum. For each x ∈ M, let P(·|x)
+denote the conditional distribution that ¯x ∈ ¯	X follows. We specify that P(·|x) takes the
+form
+P(¯x|x) = πεp (¯x|x) := 1
+(εp
+√2π)d exp
+
+− ∥x − ¯x∥2
+2ε2
+p
+
+, (2.1)
+for some εp > 0 to be chosen later. Here, ∥ · ∥ denotes the usual Euclidean vector norm in
+Rd. Intuitively, P(¯x|x) gives the likelihood of ¯x being generated from x ∈ X . Note that,
+Z
+Rd
+P(y|x)dy =
+Z
+Rd
+πεp (y|x)dy = 1.
+7
+
+-- 7 of 69 --
+
+C. Li and A.M. Neuman
+Therefore, we can write, ¯	X := {¯x : ¯x is sampled from the density πεp (·|x) for some x ∈ X }.
+The law (2.1) indicates that the majority of the generated data is not far from M. Precisely,
+there exists 0 < r < ∞ such that the event
+dist(¯x, M) < r (2.2)
+holds with a high probability, where dist(¯x, M) := inf{∥¯x − z∥ : z ∈ M}. This essential
+fact is the content of Lemma 2 below.
+Let # ¯	X = n ≥ N . Note that ¯	X itself is not an independent set of random variables but
+only partially so. To ensure sufficient independence from the augmented data cloud for our
+analysis, we impose the following assumption, which is reasonably aligned with practical
+settings.
+Assumption 1 Let C0 ∈ N be predetermined. We assume either of the following holds:
+1. for each augmented data point ¯x, there exist at most C0 other points ¯x′ dependent on
+¯x;
+2. for any natural data point x, at most C0 augmented data points ¯x are generated from
+x.
+Note that point (2) above, which is easier to implement in practice, implies point (1).
+Under Assumption 1, N ≤ n ≤ C0N 2. We construct an augmentation graph G ¯X from ¯	X
+as follows. For ¯x̸ = ¯x′ ∈ ¯	X , let
+ω(¯x, ¯x′) := (εw
+√2π)2dEx∼μ
+h
+πεw (¯x|x)πεw (¯x′|x)
+i
+, (2.3)
+for some εw related to εp in (2.1), to be specified shortly. Let ε > 0. With ω(¯x, ¯x′) ∈ (0, 1)
+representing the connection strength between ¯x and ¯x′, we define the augmentation graph
+G ¯X to consist of a vertex set in ¯	X and the edge set
+{(¯x, ¯x′) ∈ ¯	X × ¯	X : 0 < ∥¯x − ¯x′∥ ≤ ε}.
+To the graph G ¯X , we associate an unnormalized graph Laplacian operator Laug as follows3.
+For f : ¯	X → R, we let
+Laugf (¯x) := 1
+nεm
+w εm+2
+X
+¯x′∈ ¯X :0<∥¯x′−¯x∥≤ε
+ω(¯x, ¯x′)(f (¯x) − f (¯x′)). (2.4)
+For the derivation of the associated graph-theoretic formulation of the graph Laplacian, see
+Section 3.3. It is evident from (2.4) that ε acts as a graph connectivity parameter. We now
+dictate the relationship among the parameters εp, εw and ε. Let τ > 0, η > 0. Set
+εw := ετ and εp := ετ +1η1/d.
+The choice of εp ≪ εw is made to ensure consistency for Laug, as we shall see. In addition,
+it directly supports the validity of the claim (2.2), whose proof occupies the remainder of
+this section.
+2. The condition n ≥ N reflects practical considerations, while n ≤ C0N ensures sufficient independence
+in the augmented data cloud.
+3. The subscript “aug” stands for “augmentation.”
+8
+
+-- 8 of 69 --
+
+Consistency of augmentation graph and network approximability
+Lemma 2 Let ε > 0 and 0 < r < ∞. Then with probability at least 1−2dn exp(−r2/(2dε2
+p)),
+dist(¯x, M) < r, for all ¯x ∈ ¯	X . In particular, letting εn := ετ +1, the event
+dist(¯x, M) < εn, ∀ ¯x ∈ ¯	X , (2.5)
+with probability at least 1 − 2dn exp(−η−2/d/(2d)).
+Proof [Proof of Lemma 2] Conditioning on x ∈ M, we let ¯x ∼ πεp (·|x). Then it follows
+from (2.1) that (¯x)l ∼ N ((x)l, ε2
+p) i.i.d, for every l = 1, . . . , d. By Hoeffding’s inequality
+(Hoeffding, 1994),
+P |(¯x)l − (x)l|2 ≥ t2 = P |(¯x)l − (x)l| ≥ t ≤ 2 exp
+
+− t2
+2ε2
+p
+
+, (2.6)
+for every t > 0. If r2 ≤ ∥¯x − x∥2 = Pd
+l=1 |(¯x)l − (x)l|2, then there must exist one l such that
+(2.6) holds with t = r/√d. Consequently,
+P ∥¯x − x∥2 ≥ r2 = P ∥¯x − x∥ ≥ r ≤ 2d exp
+
+− r2
+2dε2
+p
+
+.
+Given that ∥¯x − x∥ ≥ dist(¯x, M), and the continuity of the distance functions, we conclude
+P dist(¯x, M) ≥ r ≤ 2d exp
+
+− r2
+2dε2
+p
+
+.
+By performing a union bound over n points of ¯x ∈ ¯	X , we obtain uniformly for all such ¯x,
+dist(¯x, M) < r with probability at least 1 − 2dn exp(−r2/(2dε2
+p)). Then (2.5) automatically
+follows from the selection r = εn = ετ +1.
+Remark 3 The edge weight ω(¯x, ¯x′) = (εw
+√2π)2dEx∼μ
+πεw (¯x|x)πεw (¯x′|x), is an idealized
+population-level quantity modeling the average likelihood that the augmented data points ¯x, ¯x′
+arise from the same underlying natural data point. In practice, since the sampling distri-
+bution μ is unknown, the expectation may be approximated empirically using the observed
+i.i.d. natural data points X1, . . . , XN ∼ μ, namely through the Monte Carlo approximation
+1
+N
+N	X
+i=1
+πεw (¯x|Xi)πεw (¯x′|Xi).
+Because πεw is a Gaussian density with variance ε2
+w, the dominant contributions to such
+averages arise from natural data points lying simultaneously near both ¯x, ¯x′, within dis-
+tances on the order of εw. Thus, the construction may be viewed heuristically as measuring
+the degree of shared local natural data between the two augmented data points, in a man-
+ner reminiscent of shared nearest neighbor constructions, see e.g. (Neuman, 2023). From
+a statistical perspective, there are therefore two levels of approximation. First, standard
+concentration results for empirical averages of i.i.d. random variables (e.g. Hoeffding-type
+9
+
+-- 9 of 69 --
+
+C. Li and A.M. Neuman
+inequalities (Boucheron et al., 2013, Theorem 2.8), (Vershynin, 2018, Theorem 2.6.2)) jus-
+tify replacing the population expectation by its empirical Monte Carlo approximation when
+N is sufficiently large. Second, known quantitative Gaussian tail estimates yield sharp ex-
+ponential decay of contributions from sufficiently distant natural data points and may be
+used to control the additional approximation error from Gaussian localization. A detailed
+quantitative analysis of such estimation errors, however, lies beyond the scope of the present
+theoretical work.
+Remark 4 While in this paper we specifically focus on the Gaussian augmentation graph,
+the framework is intended to model local perturbative augmentations more broadly. In par-
+ticular, sufficiently small transformations, including translations x 7 → x + v with ∥v∥ ≪ 1
+and rotations x 7 → Rx with R ≈ I, may be viewed as local perturbations of the underlying
+data cloud of small magnitude in the ambient space. From the viewpoint of our analysis,
+isotropic Gaussian perturbations may therefore be interpreted as a mathematically tractable
+generic local perturbation model probing the local geometry of the manifold in all directions
+simultaneously. Thus, isotropic noise augmentation does not primarily enforce invariance
+to a particular global transformation, but rather promotes local geometric stability around
+the data manifold. In this sense, the role of isotropic augmentation is less about imposing a
+specific symmetry and more about enriching the data cloud without substantially distorting
+the intrinsic geometry relevant to downstream tasks.
+2.2 Basic assumptions and convention
+Basic notation. We write R≥0 and R+ to denote the sets of nonnegative and positive
+real numbers, respectively. We write 0 to denote either the scalar zero, the zero vector, or
+the zero function, with the distinction made clear from context. For a vector x, we write
+xi to refer to its ith component. We use ∥ · ∥ to represent either the Euclidean vector norm
+(with the dimension also inferred from context) or the Frobenius matrix norm, and | · | to
+represent the absolute value of a scalar. Additionally, we use ∥ · ∥ with a subscript to specify
+a functional norm, such as ∥ · ∥L∞(M). In the case of a vector or a matrix, we also use ∥ · ∥0
+to specify the nuclear norm, counting the number of nonzero entries, and ∥ · ∥∞ to specify
+the ℓ∞-norm. These last two notations are used exclusively in Section 3.3, the statement
+of Theorem 13, and its proof in Section 8.
+Basic manifold geometry assumptions. We endow M the Riemannian structure in-
+duced by the ambient space Rd and let dV be the volume form of M with respect to the
+induced metric tensor. We assume that all the sectional curvatures of the closed manifold
+M are bounded above in absolute value by some K < ∞, the manifold reach R < ∞,
+and further, the manifold injectivity radius is bounded below by some i0 > 0. We regard
+K, R, i0 to be intrinsic4 values of the manifold learning problem.
+We use Bm(0, r) and Bd(0, r) to denote an m-dimensional and d-dimensional centered
+Euclidean ball, respectively, and B(x, r) to denote a geodesic ball centered at x on M, all
+with radius r. We write d(x, y) to indicate the geodesic distance on M. Note that, from
+4. unrelated to the notions of “intrinsic” and “extrinsic” in differential geometry
+10
+
+-- 10 of 69 --
+
+Consistency of augmentation graph and network approximability
+(Garc´ıa Trillos et al., 2020, Proposition 2),
+∥x − y∥ ≤ d(x, y) ≤ ∥x − y∥ + 8
+R2 ∥x − y∥3, (2.7)
+whenever ∥x − y∥ ≤ R/2, with the first inequality holding universally.
+At x ∈ M, the affine tangent plane to M is a translated isomorphic copy of Rm. We
+distinguish between such physical plane ˜	TxM, which sits in Rd, and its isomorphic copy, the
+tangent space TxM, which can be embedded in Rm. Similarly, we distinguish between the
+affine normal plane ˜	NxM of M at x in Rd and its translated isomorphic copy, the normal
+space NxM ∼	= Rd−m. See Figure 3 below for an illustration.
+(a) A two-dimensional sphere in R3 and one of its tangent
+planes colored in pink
+(b) The Euclidean space R2 as the
+tangent space
+Figure 3: A two-dimensional sphere, one of its tangent planes, and an isomorphic copy of
+the latter as the Euclidean space R2
+We will further elaborate on these relationships in Appendix B, as they will then be
+necessary for our analysis.
+If 0 < r < min{K−1/2, i0}, and x ∈ M, then the exponential map
+Expx : TxM ⊃ Bm(0, r) → B(x, r) ⊂ M, (2.8)
+where TxM denotes the tangent plane of M at x, is a diffeomorphism. Likewise, its inverse,
+which is the logarithm map
+Logx : M ⊃ B(x, r) → Bm(0, r) ⊂ TxM, (2.9)
+is also a diffeomorphism.
+Let Jx(v) denote the Jacobian of Expx at v ∈ Bm(0, r) ⊂ TxM. Then it follows
+as a consequence of the Rauch comparison theorem that (do Carmo, 1992, Chapter 10,
+Theorem 2.3) (see also (Burago et al., 2014, Equation (2.5)))
+(1 + CmK∥v∥2)−1 ≤ Jx(v) ≤ 1 + CmK∥v∥2, (2.10)
+11
+
+-- 11 of 69 --
+
+C. Li and A.M. Neuman
+which implies
+|V(B(x, r)) − αmrm| ≤ CmKrm+2, (2.11)
+where V(S) := R
+S dV(x), for S ⊂ M, and αm is the volume of the m-dimensional unit ball.
+From manifold to tangent plane. The exponential and logarithm maps, (2.8) and (2.9)
+respectively, offer a framework for translating calculus from the manifold M to its tangent
+planes. We introduce a system of changing variables and modified notations aligned with
+this translation, which will be employed throughout.
+Let x ∈ M, and let y ∈ B(x, r) for some 0 < r < min{K−1/2, i0}. Let g : R≥0 → R, and
+let f : M → R be measurable. Then according to (2.8), there exists a unique v ∈ Bm(0, r)
+such that y = Expx(v), whence
+g(d(x, y)) = g(∥v∥).
+Further, we write ˜	f (v) := f ◦ Expx(v). (2.12)
+In this case, ˜	f : Bm(0, r) → R, and particularly, ˜	f (0) = f (x).
+Smooth functions on M. Note that (2.12) allows a function f on M to be expressed
+locally as a function ˜	f on Bm(0, r). We say that f ∈ Ci(M) if at every x ∈ M its local
+version satisfies ˜	f ∈ Ci(Bm(0, r)). We write ∥f ∥Ci(M) := Pi
+j=0 ∥D(j)f ∥L∞(M), where D(j)
+is the jth-differentiation operator. Then by expressing the covariant derivatives D(j)f in
+normal coordinates around x (Hebey, 1996, Chapter 2), and applying standard expansions
+for the Christoffel symbols and metric tensor in these coordinates, we can establish that
+c∥ ˜	f ∥Ci(Bm(0,r)) ≤ ∥f ∥Ci(B(x,r)) ≤ C∥ ˜	f ∥Ci(Bm(0,r)), (2.13)
+for some universal constants C ≥ c > 0.
+Basic density assumption. We have assumed at the beginning of Section 2.1 that the
+natural data xi ∼ μ i.i.d. for some distribution μ supported on M. We posit further
+that dμ = ρdV, where dV denotes the Riemannian volume form associated with M, and
+ρ : M → R+ is a density function such that ρ ∈ C2(M) and that for every x ∈ M,
+0 < ρmin ≤ ρ(x) ≤ ρmax < ∞. (2.14)
+Basic assumptions on ε. We assume the following regarding the graph connectivity
+parameter ε in (2.4):
+ε ≤ min
+n
+1, K−1/2, i0, R
+2
+o
+. (2.15)
+The requirement ε ≤ min{K−1/2, i0} is justified by the considerations (2.8), (2.9). Further,
+that ε ≤ R
+2 implies (2.7), along with
+P
+ [
+¯x∈ ¯X
+{dist(¯x, M) ≤ R}
+
+≥ P
+ [
+¯x∈ ¯X
+{dist(¯x, M) ≤ εn}
+
+≥ 1 − 2dn exp   − η−2/d/(2d),
+according to Lemma 2. Throughout, we maintain the option to rescale ε to Cε, for some
+universal constant C > 0, and assume that Cε continues to satisfy (2.15) in place of ε.
+12
+
+-- 12 of 69 --
+
+Consistency of augmentation graph and network approximability
+Analytic constants and their dependence. We adhere to the convention that analytic
+majorant constants, denoted by C or c, may vary between occurrences, with C ≥ 1 and
+0 < c ≤ 1, implicitly. All constants are permitted to depend on at most ρ and the manifold
+M. The former includes dependencies on ρmin, ρmax, ∥ρ∥C2(M), for instances, while the
+latter involves the intrinsic values K, R, i0, the dimension m, as well as the quantity
+D := sup
+x,x′∈M
+∥x − x′∥. (2.16)
+For clarity, the dependencies of constants are always stated in result statements. When
+necessary, the constants are further distinguished in these statements. Specific dependen-
+cies, such as on η or a function, will be declared by a subscript. For instance, for the latter,
+Cf > 0 denotes a constant depending on f , in addition to M, ρ at most, and the nature
+of such dependence will be announced. While most parametric dependencies can be made
+explicit, we do not pursue this.
+The notation O. Let a > 0. We write A = O(a) to mean |A| ≤ Ca or ∥A∥ ≤ Ca,
+depending on the nature of A, where C > 0 is either a universal constant or dependent on M,
+ρ at most. For instance, if A, B are scalars, then A = B + O(a) means |A − B| ≤ Ca. Since
+the non-asymptotic settings we consider involve small ε > 0, this notation convention does
+not introduce significant ambiguity. Further, a subscript will indicate a special dependence.
+For instance, A = Of (a) means |A| ≤ Cf a, where Cf > 0 depends on f .
+3 Setup
+In the following discussions, the basic assumptions from Section 2.2 concerning the geometry
+of M, the regularity of the density ρ of the natural data, and, in particular, the microscopic
+range (2.15) of the parameter ε, will be understood throughout.
+3.1 Setting for pointwise consistency
+Recall that εn = ετ +1, with τ > 0. Recall further from Section 2.2 that ˜	NxM denotes the
+affine normal plane of M at x in Rd. We define
+Nεn (M) := {x + h : x ∈ M, h ∈ ˜	NxM − x, and ∥h∥ < εn}
+to be an εn-tubular neighborhood of M. For ¯x ∈ ¯	X ∩ Nεn (M), we denote by Q¯x the
+closest point on M to ¯x. I.e., Q¯x is the orthogonal projection point of ¯x onto M, and
+∥¯x − Q¯x∥ = dist(¯x, M). By (2.15) and the definition of manifold reach, Q¯x exists uniquely
+for every such ¯x. Further, recall from Lemma 2 that ¯	X = ¯	X ∩ Nεn (M) with probability at
+least 1 − 2dn exp(−η−2/d/(2d)). Hence, from this point onward, we assume the following.
+Assumption 5 ¯	X ⊂ Nεn (M).
+Moreover, we demonstrate that there exists a one-to-one correspondence between a point
+¯x and its projection Q¯x.
+Lemma 6 Let ¯x, ¯x′ ∈ ¯	X be such that ¯x̸ = ¯x′. Let Q¯x, Q¯x′ denote the orthogonal projections
+of ¯x, ¯x′ onto M, respectively. Then with probability 1, Q¯x̸ = Q¯x′ .
+13
+
+-- 13 of 69 --
+
+C. Li and A.M. Neuman
+Proof [Proof of Lemma 6] The event E1 that Q¯x = Q¯x′ is equivalent to the event E2 that
+both ¯x, ¯x′ belong to ˜	NxM for some x ∈ M. However, as ˜	NxM is of dimension d − m, and
+not of full dimension d, P(E2) = 0. Integrating this probability over x ∼ μ, we obtain that
+P(E1) = 0 as well.
+A summary of the relevant parameters and hyperparameters is given in Table 1.
+Symbol Meaning
+η, τ hyperparameters
+ε graph connectivity parameter
+εw = ετ edge weight parameter
+εp = η1/dετ +1 variance parameter of the data-generating probability
+εn = ετ +1 neighborhood parameter of the augmented data
+Table 1: Parameters/hyperparameters and their meanings. Note that τ, η > 0 are treated
+as hyperparameters, i.e. given a priori and not subject to variation.
+Under Assumption 5, an augmented point ¯x ∈ ¯	X can be expressed as z + h, where
+z ∈ M and h ∈ ˜	Nz M ∩ Nεn (M) − z. Here, z is unique and represents the projected point
+Q¯x. Such points z are identically distributed according to a measure ν, which is supported
+on M and has a density
+q(z) := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn(M)
+Z
+M
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh. (3.1)
+Furthermore, the regularity of q can be established for a suitable range of ε.
+Proposition 7 Let τ > 0, ε > 0, and εn = ετ +1. Let ε > 0 be further sufficiently small, so
+that
+exp
+
+− c
+ε2/3
+n
+
+≤ εm+2
+n . (3.2)
+Let q be given in (3.1). Then under Assumption 5, for any z ∈ M, we have
+|q(z) − ρ(z)| ≤ Cηε2/3
+n . (3.3)
+Moreover, we have q ∈ C2(M), which means, specifically, for any z ∈ M,
+0 < cη ≤ q(z) ≤ Cη < ∞, (3.4)
+and for any unit vectors ˜u, ˜	w ∈ ˜	Tz M,
+|∂˜uq(z)| ≤ Cη, (3.5)
+|∂ ˜w∂˜uq(z)| ≤ Cη, (3.6)
+and finally, all the relevant partial derivatives are continuous in a neighborhood of z in M.
+The constant Cη > 0 in (3.3) depends on η and M. Then constants Cη, cη > 0 in (3.4),
+(3.5), (3.6) depend on η and at most M, ρ.
+14
+
+-- 14 of 69 --
+
+Consistency of augmentation graph and network approximability
+A detailed proof of Proposition 7 can be found in Appendix D. We briefly remark that
+(3.2) serves as a crucial condition to ensure the boundedness of the first and second deriva-
+tives of q in our proof, which relies heavily on a divide-and-conquer technique. However, in
+order to further guarantee the pointwise consistency of Laug, it will be necessary for us to
+enforce an additional condition, that is
+exp
+
+− cε4/3
+ε2τ /3
+
+≤ εm
+w ε2. (3.7)
+It is also evident that τ > 2 for (3.7) to hold. We summarize the key requirements for τ , η,
+ε as follows.
+Assumption 8 (Parameter assumption) Let τ > 2, η > 0, and let ε > 0 be sufficiently
+small as to satisfy (2.15), (3.2), (3.7).
+We are now ready to formulate the setting for our first main result.
+Setting I Let η, τ > 0 and ε > 0. Let εw, εp, εn be given in Table 1. Let M ⊂ Rd be
+a closed manifold of dimension m, satisfying the fundamental geometry outlined in Sec-
+tion 2.2. Let X = {x1, . . . , xN } be the set of natural data, where xi ∼ μ, whose density
+ρ ∈ C2(M) satisfies (2.14). Let ¯	X = {¯x1, . . . , ¯xn} be the set of augmented data generated
+from X according to the law (2.1). Let Assumption 1 hold. Let G ¯X be the augmentation
+graph on ¯	X as described in Section 2.1, and let the associated augmentation graph Laplacian
+Laug be given in (2.4). Let Assumptions 5, 8 hold. Let q ∈ C2(M) be the density (3.1) of the
+measure ν to which the projections of the augmented data are distributed on M. Finally,
+let ∆aug be a Laplace-Beltrami operator defined as follows:
+∆augf (x) := − 1
+2 div(q2∇f )(x), (3.8)
+for every f ∈ C2(M) and x ∈ M.
+Remark 9 It can be shown, by extending the techniques from the proof of Proposition 7,
+that q and ρ are also close in C2(M) sense, i.e.
+∥q − ρ∥C2(M) = Oη(ε). (3.9)
+We choose to omit this due to the already extensive technical details involved. However,
+once (3.9) holds, then we can further rewrite the limit in (3.8) to − 1
+2 div(ρ2∇f )(x), making
+the natural data sampling density explicit in the expression.
+3.2 Setting for spectral consistency
+In this section, we demonstrate that the eigenvalues and eigenvectors of Laug converge to
+the corresponding eigenvalues and eigenfunctions of the continuum operator ∆aug. To lay
+the groundwork, we review the fundamental properties of a graph Laplacian and Laplace-
+Beltrami operator, with a specific focus on the respective examples of Laug and ∆aug.
+15
+
+-- 15 of 69 --
+
+C. Li and A.M. Neuman
+Define on ¯	X = {¯x1, . . . , ¯xn} a discrete probability measure ϑn, that is
+ϑn := 1
+n
+n	X
+i=1
+δ¯xi , (3.10)
+where δ denotes the Dirac delta measure. We then endow L2
+ϑn ( ¯	X ) with an inner product
+⟨f, g⟩L2
+ϑn ( ¯X ) := 1
+n
+n	X
+i=1
+f (¯xi)g(¯xi).
+It is known that Laug is a positive semi-definite and self-adjoint operator on L2
+ϑn ( ¯	X ) (von
+Luxburg, 2007). Particularly, we can list its eigenvalues in non-decreasing order (repeated
+according to multiplicity) as follows:
+0 = ˆλaug
+1 ≤ ˆλaug
+2 ≤ · · · ≤ ˆλaug
+n . (3.11)
+An orthonormal basis for L2
+ϑn ( ¯	X ) can be constructed from their associated eigenvectors,
+denoted ˆ	f aug
+1 , . . . , ˆ	f aug
+n , where Laug ˆ	f aug
+l = ˆλaug
+l ˆ	f aug
+l . Furthermore, the eigenvalues in (3.11)
+can also be characterized variationally according to the Courant-Fisher min-max principle:
+ˆλaug
+l = min
+S∈Gl¯X
+max
+f ∈S\{0}
+E ¯X (f )
+∥f ∥2
+L2
+ϑn ( ¯X )
+. (3.12)
+Here, Gl¯X denotes the Grassmannian manifold of all linear subspaces of L2
+ϑn ( ¯	X ) of dimension
+l, and E ¯X represents a graph-based Dirichlet energy, defined such that for f ∈ L2
+ϑn ( ¯	X ):
+E ¯X (f ) := 1
+n2εm
+w εm+2
+n	X
+i,j=1
+ω(¯xi, ¯xj )1{0<∥¯xi−¯xj ∥≤ε}(f (¯xi) − f (¯xj ))2 = 2⟨Laugf, f ⟩ℓ2( ¯X ),
+(3.13)
+with 1 being the indicator function. Thus, for each orthonormal eigenvector ˆ	fl, its graph-
+based Dirichlet energy E ¯X ( ˆ	fl) is given by
+E ¯X ( ˆ	fl) = 1
+n2εm
+w εm+2
+n	X
+i,j=1
+ω(¯xi, ¯xj )1{0<∥¯xi−¯xj ∥≤ε}( ˆ	fl(¯xi) − ˆ	fl(¯xj ))2.
+Continuing, we endow L2(M) with an inner product
+⟨f, g⟩L2(M) :=
+Z
+M
+f (x)g(x)dV(x).
+Next, recall the Laplace-Beltrami operator ∆aug defined in (3.8). Then the operator ∆aug
+is a positive semi-definite and self-adjoint operator on L2(M). Consequently, it has a well-
+defined point spectrum, allowing its eigenvalues to be listed in increasing order (repeated
+according to multiplicity) as
+0 ≤ λ1 ≤ λ2 ≤ . . . , (3.14)
+16
+
+-- 16 of 69 --
+
+Consistency of augmentation graph and network approximability
+such that limn→∞ λn = ∞. Moreover, we can build an orthonormal basis for L2(M)
+comprising eigenfunctions fl of ∆aug, where ∆augfl = λlfl. Denote by H1(M) the Sobolev
+space of functions possessing a weak gradient in L2(M). Alternatively, H1(M) is a subspace
+of L2(M) consisting of functions with a finite continuum Dirichlet energy, which is expressed
+for f ∈ L2(M), as
+EM(f ) :=
+(R
+M |∇f (x)|2q2(x)dV(x) = 2⟨∆augf, f ⟩L2(M) if f ∈ H1(M),
++∞ otherwise. (3.15)
+Similarly as before, the eigenvalues in (3.14) of ∆aug can be written variationally in terms
+of Dirichlet energy; that is
+λl = min
+S∈Gl
+M
+max
+f ∈S\{0}
+EM(f )
+∥f ∥2
+L2(M)
+, (3.16)
+where Gl
+M denotes the Grassmannian manifold of all linear subspaces of L2(M) of dimension
+l.
+Inspired by (Calder and Garc´ıa Trillos, 2022), our spectral convergence result hinges on
+a crucial interpolation between the graph-based and continuum energies. In our context,
+this interpolation is achieved through an optimal transport that, roughly speaking, connects
+the sampling probability measure μ on M with the discrete probability measure ϑn on ¯	X ,
+mediated by a suitable discrete probability measure υn on M, as will be specified later in
+Proposition 20. To facilitate the construction of such a map, and to assess the error in our
+subsequent analysis of discrete-to-continuum approximation, we introduce two additional
+key parameters: ι1, ι2. The first measures the proximity of υn to ϑn in an optimal transport
+sense, and the second reflects the uniform closeness of υn to ρ. Furthermore, a stricter
+condition on ε must be imposed, requiring it to lie within a narrower range than specified
+in (3.7), that is
+exp
+
+− cε4/3
+ε2τ /3
+
+≤ εm
+w ε3. (3.17)
+The following summarizes the technical smallness assumptions on all the involved param-
+eters and hyperparameters, ensuring we operate in the appropriate regime for the validity
+of our theorems.
+Assumption 10 (Parameter assumption) Let τ > 2, η > 0, and let ε > 0 be suffi-
+ciently small as to satisfy (2.15), (3.2), (3.17). Further, let ι1, ι2 > 0 satisfy:
+1. max{n−1/m, Cε3/2} < ι2 ≤ ε
+4 , where C > 0 depends on M;
+2. ι1 + ι2 ≤ c, where c > 0 depends on M, ρ.
+Observe that ι1, ι2 respectively correspond to ˜δ, θ in (Calder and Garc´ıa Trillos,
+2022). The additional lower bound Cε3/2 ≤ ι2 in Assumption 10, compared to (Calder
+and Garc´ıa Trillos, 2022, Assumption 2.3), reflects an extra step necessary in our proof of
+Theorem 12, specifically in Lemma 24.
+We present the setting for our second main result.
+17
+
+-- 17 of 69 --
+
+C. Li and A.M. Neuman
+Setting II Let η, τ > 0 and ε, ι1, ι2 > 0. Let εw, εp, εn be given in Table 1. Let M ⊂
+Rd be a closed manifold of dimension m, satisfying the fundamental geometry outlined in
+Section 2.2. Let X = {x1, . . . , xN } be the set of natural data, where xi ∼ μ, whose density
+ρ ∈ C2(M) satisfies (2.14). Let ¯	X = {¯x1, . . . , ¯xn} be the set of augmented data generated
+from X according to the law (2.1). Let Assumption 1 hold. Let G ¯X be the augmentation
+graph on ¯	X as described in Section 2.1. Let the augmentation graph Laplacian Laug be
+given in (2.4), possessing the spectrum (3.11) with the corresponding eigenvectors ˆ	f aug
+l ,
+l = 1, . . . , n. Let Assumptions 5, 10 hold. Finally, let ∆aug be the Laplace-Beltrami operator
+defined in (3.8), possessing the spectrum (3.14) with the corresponding eigenfunctions ˆ	fl,
+l ∈ N.
+3.3 Setting for realizability in contrastive learning
+We begin by providing a matrix form for Laug (2.4). Let Aaug ∈ Rn×n denote the symmetric
+adjacency matrix of the graph G ¯X having the entries
+(Aaug)ij := 1
+εm
+w εm+2 ω(¯xi, ¯xj )1{0<∥¯xi−¯xj ∥≤ε} for i, j = 1, . . . , n. (3.18)
+Let Daug ∈ Rn×n be the corresponding diagonal degree matrix. Then (Daug)ij = 0 if i̸ = j,
+and
+(Daug)ii :=
+n	X
+j=1
+(Aaug)ij = 1
+εm
+w εm+2
+n	X
+j=1
+ω(¯xi, ¯xj )1{0<∥¯xi−¯xj ∥≤ε}. (3.19)
+For f : ¯	X → R, we identify f with the column vector f = (f (¯x1), . . . , f (¯xn))⊤ ∈ Rn. Then
+under such identification, we verify that
+Laugf = 1
+n [Daug − Aaug]f.
+Indeed, adapted from definition (2.4), at ¯xi, we have
+Laugf (¯xi) = 1
+nεm
+w εm+2
+X
+¯xj ∈ ¯X :0<∥¯xj −¯xi∥≤ε
+ω(¯xi, ¯xj )(f (¯xi) − f (¯xj ))
+= 1
+n
+
+f (¯xi)(Daug)ii −
+n	X
+j=1
+(Aaug)ij f (¯xj )
+
+= 1
+n
+ n	X
+j=1
+δij (Daug)ij f (¯xj ) −
+n	X
+j=1
+(Aaug)ij f (¯xj )
+
+= 1
+n
+n	X
+j=1
+((Daug)ij − (Aaug)ij )f (¯xj ) = 1
+n [Daug − Aaug]f,
+where the second equality follows from definitions (3.18), (3.19), and the fourth equality
+uses the fact that Daug is diagonal. Therefore, we will refer to the graph Laplacian operator
+18
+
+-- 18 of 69 --
+
+Consistency of augmentation graph and network approximability
+Laug as the matrix 1
+n [Daug − Aaug] ∈ Rn×n whenever appropriate5. Recall from Section 2.2
+that ∥·∥ denotes the Euclidean vector norm or the Frobenius matrix norm. Let k ∈ N, which
+acts as a parameter determining the spectral embedding dimension. Let a ≥ max{(Daug)ii}.
+It follows that aIn×n − Laug, where In×n is the n × n identity matrix, is positive semidefinite.
+Then by Eckart-Young-Minsky theorem (Eckart and Young, 1936), any minimizer Y ∗ ∈
+Rn×k, of the optimization objective6
+min
+Y ∈Rn×k ∥Y Y ⊤ − aIn×n + Laug∥2, (3.20)
+contains, as its columns, the scaled versions of the last k normalized (in the Euclidean
+norm) eigenvectors of aIn×n − Laug (corresponding to the largest k eigenvalues), up to
+multiplication on the right by an k × k orthogonal matrix. These eigenvectors are in turn,
+the first k normalized (in the Euclidean norm) eigenvectors of Laug (corresponding to the
+smallest k eigenvalues). In other words, solving (3.20) is equivalent to performing spectral
+embedding of G ¯X using Laug. We aim to learn a minimizer of (3.20) over a hypothesis
+set of neural networks (NNs) with parameterizable architectures. Specifically, we solve the
+following optimization problem:
+min
+θ∈Θ ∥YθY ⊤
+θ − aIn×n + Laug∥2, (3.21)
+where θ denotes the parameter vector of a NN fθ : Rd → Rk, and Θ denotes the space of
+all admissible parameter vectors. Moreover, Yθ ∈ Rn×k contains rows that are the outputs
+fθ(¯xi), representing the embeddings of ¯xi ∈ Rd into Rk. Thus, the mapping realized by
+the NN7 fθ can be interpreted as a feature or representation map for the input data cloud
+¯	X . We specify the NNs fθ as multi-layer ReLU neural networks (ReLU NNs), with the
+architectures given as follows. Let M, L, p ∈ N and m > 0. The NNs fθ are functions of the
+form:
+Rd ∋ x 7	 → WL(ReLU(WL−1 · · · ReLU(W1x + b1) · · · + bL−1)) + bL ∈ Rk. (3.22)
+Here, Wi ∈ Rp×p, bi ∈ Rp for i = 2, . . . , L − 1, W1 ∈ Rp×d, b1 ∈ Rp, and WL ∈ Rk×p, bL ∈ Rk.
+It follows that each network architecture described in (3.22) is characterized by a parameter
+vector
+θ := (W1, b1, . . . , WL, bL). (3.23)
+It can be seen from (3.22) that L corresponds to the network depth L(fθ) of fθ, and p
+corresponds to the network width p(fθ). We say a parameter θ is admissible if, additionally,
+the following two conditions on network complexity hold:
+∥Wi∥∞ ≤ m and ∥bi∥∞ ≤ m for i = 1, . . . , L, (3.24)
+5. The choice to keep the factor 1/n explicit is intended to emphasize the underlying empirical Monte–Carlo
+averaging process, which is natural from the manifold-learning perspective. If instead one rescales A ←
+A/n and D ← D/n then one recovers the standard graph-theoretic definition of the unnormalized graph
+Laplacian Laug = D − A.
+6. Note that (3.20) can be rewritten as minY ∈Rn×k ℓ(Y ) in terms of the loss function ℓ(Y ) := ∥Y Y ⊤ −
+aIn×n + Laug∥2. Then by the reasoning given in (HaoChen et al., 2021), this optimization problem,
+involving matrix factorization, corresponds to an optimization problem based on their population spectral
+contrastive loss.
+7. In this paper, we will not differentiate between a network architecture and its realization.
+19
+
+-- 19 of 69 --
+
+C. Li and A.M. Neuman
+and L	X
+i=1
+∥Wi∥0 + ∥bi∥0 ≤ M. (3.25)
+Condition (3.24) imposes a bound on the magnitude m(fθ) of the network weights, whereas
+condition (3.25) restricts the number M(fθ) of nonzero weights. Equivalently, the space Θ
+is defined as
+Θ := {θ given in (3.23) : θ satisfies (3.24), (3.25)}. (3.26)
+We conclude the subsection by introducing the setting for our third main result.
+Setting III Let Setting II hold. For k ∈ N, consider the optimization problem (3.21),
+where
+Yθ = (fθ(¯x1), . . . , fθ(¯xn))⊤ ∈ Rn×k, (3.27)
+and fθ : Rd → Rk is a ReLU NN of the form (3.22) for some L, p ∈ N. Moreover, θ given in
+(3.23) is a network parameter vector, and the space Θ of admissible parameters is defined
+in (3.26) for some M ∈ N, m > 0.
+4 Main results
+Our main results are framed as probabilistic statements, expressed in terms of all relevant
+parameters and hyperparameters.
+A pointwise consistency result. Let
+α :=
+Z
+Rm
+exp(−∥y∥2)dy (4.1)
+and
+β :=
+Z
+Bm(0,1)
+|y1|2dy (4.2)
+where,8 recall that y1 denotes the first coordinate of y ∈ Rm. Our first result demonstrates
+that, with high probability, Laug behaves pointwise in close approximation to an αβ∆aug.
+A proof is given in Section 6.3.
+Theorem 11 Assume Setting I. Let f ∈ C3(M). Then for ε ≤ δ ≤ ε−1,
+P
+
+max
+¯x∈ ¯X
+Laugf (¯x) − αβ∆augf (Q¯x) > Cηδ∥f ∥C3(Nεn (M))
+
+≤ 8n exp(−cηδ2nεm+2),
+for some Cη, cη > 0 depending on η and M, ρ at most.
+We briefly remark that included in Setting I is Assumption 5. By Lemma 2, the event
+specified in the assumption holds with probability at least 1 − 2dn exp(−η−2/d/(2d)). This
+probability can also be incorporated into the statement of Theorem 11.
+8. A simple computation shows that β = σm/(m + 2), with σm being the volume of the m-dimensional
+Euclidean unit ball.
+20
+
+-- 20 of 69 --
+
+Consistency of augmentation graph and network approximability
+A spectral consistency result. We introduce the concept of the eigengap. Let λl be
+the lth eigenvalue of ∆aug. Let λil denote the ilth distinct eigenvalue of ∆aug, listed in an
+increasing order, that corresponds to λl, i.e. λl = λil . Then the eigengap associated with
+λl is defined to be
+γλl := 1
+2 min{|λil − λil−1|, |λil − λil+1|}. (4.3)
+Our second result establishes the spectral convergence of Laug to αβ∆aug with high proba-
+bility. A proof is given in Section 7.2.
+Theorem 12 Assume Setting II. Let l ∈ N. Let λl, ˆλaug
+l denote the lth eigenvalue of ∆aug,
+Laug, respectively. Suppose it holds that
+pλlε + C(ι1 + ι2) ≤ 1
+2l , (4.4)
+and that
+C(ε(pλl + 1) + ε + ι1)λl ≤ γλl , (4.5)
+where γλl is given in (4.3).
+Then with probability at least 1 − n exp(−cnι2
+1ιm
+2 ) − 10n exp(−cηnεm+4), for the lth
+normalized eigenvector ˆ	f aug
+l (with respect to L2
+ϑn ( ¯	X )) of Laug associated with ˆλaug
+l , there
+exists a normalized eigenfunction fl (with respect to L2(M)) of ∆aug associated with λl,
+such that
+∥ ˆ	f aug
+l (·) − fl(Q·)∥L2
+ϑn ( ¯X ) ≤ Cη,lε, (4.6)
+where Q· denotes the orthogonal projection of a point in ¯	X onto M. Here, all the constants
+C, c > 0 depend on M, ρ at most; the constant cη > 0 additionally depends on η, and the
+constant Cη,l > 0 further depends on l.
+The additional dependence on l of the constant Cη,l can be explained via Theorem 11 as
+follows. Since fl ∈ C3(M), we can extend fl to a function ¯	fl in the neighborhood Nεn (M),
+ensuring that ¯	fl(x) = ¯	fl(x + h) whenever x + h ∈ Nεn (M) ∩ ˜	NxM (as per the notation
+in Section 3.1). Note that this extension is well-defined, because a nonempty intersection
+between Nεn (M) ∩ ˜	NxM and Nεn (M) ∩ ˜	Nx′ M for x̸ = x′ on M would imply εn > R,
+contradicting (2.15). Thus, the dependence on l manifests as a factor of ∥ ¯	fl∥C3(Nεn (M)),
+which equals ∥fl∥C3(M).
+Note that, under Assumption 10, if ε scales like C  log n
+n
+ 1
+m+4 ≤ ε ≪ 1, and we set
+ι1 = Cε2 and ι2 = cε for some C > 0 and c ∈ (0, 1/4], then with high probability the spectral
+convergence rate obtained from (4.6) scales linearly in ε. Particularly, if ε = C  log n
+n
+ 1
+m+4 ,
+the convergence rate obtained is of Oη
+   log n
+n ) 1
+m+4
+. For sufficiently large n, such parameter
+selection also ensures that (4.4), (4.5) are automatically satisfied.
+A realizability result. Lastly, we provide an approximation guarantee for neural net-
+works in spectral contrastive learning tasks. This result relaxes the realizability assumption
+(HaoChen et al., 2021, Assumption 3.7) in the spectral contrastive learning framework by
+asserting the existence of a neural network with bounded complexity capable of learning a
+minimizer of (3.20). A proof is given in Section 8.
+21
+
+-- 21 of 69 --
+
+C. Li and A.M. Neuman
+Theorem 13 Assume Setting III. Suppose (4.4), (4.5) hold for all l = 1, . . . , k. Then with
+probability at least 1 − kn exp(−cnι2
+1ιm
+2 ) − k10n exp(−cηnεm+4), the following holds. For
+every ˜δ ∈ (0, 1) and every minimizer Y ∗ ∈ Rn×k of the problem (3.20), there exists a ReLU
+NN fθ such that for Yθ in (3.27),
+∥Y ∗ − Yθ∥∞ ≤ Cη,k(ε + ˜δ) and ∥Y ∗ − Yθ∥ ≤ Cη,k(ε + ˜δ).
+Moreover,
+L(fθ) ≤ C
+
+log
+ 1
+˜δ
+
++ log d
+
+and p(fθ) ≤ Ck(˜δ−m + d),
+and θ ∈ Θ, for M ∈ N, m > 0, such that
+m ≤ C and M ≤ k
+
+(˜δ−m + d) log
+ 1
+˜δ
+
++ d log d
+
+. (4.7)
+Here, all the constants C, c > 0 depend only on M; the constant cη > 0 additionally depends
+on η, and the constants Cη,k > 0 further depend on k.
+The dependence of the constants Cη,k on k arises partly from a similar dependence in
+(4.6). Additionally, these constants include at most an extra factor of √k maxl=1,...,k
+qˆλaug
+l .
+Similarly as above, if ε scales as C  log n
+n
+ 1
+m+4 ≤ ε ≪ 1, and we set ι1 = C1ε2, ι2 = c2ε,
+and ˜δ = C3ε for some constants C1, C3 > 0 and c2 ∈ (0, 1/4], then with high probability,
+the required network depth scales logarithmically with respect to the inverse of ε, while
+the network width and the number of neurons scale sublinearly. Specifically, when ε =
+C  log n
+n
+ 1
+m+4 , the network depth is of O  log   n
+log n
+, and the network width and the number
+of neurons are of O   n
+log n
+ m
+m+4 , up to an extra log factor. Note that these rates depend
+solely on the embedded dimension m and not on the ambient dimension d, effectively
+mitigating the curse of dimensionality.
+5 Numerical experiments
+In this section, we implement the spectral contrastive learning algorithm9 using parameter
+choices informed by our theoretical analysis10. We follow the same setup as in (HaoChen
+et al., 2021) and test on benchmark vision datasets. We minimize the empirical spectral
+contrastive loss with an encoder network f and generate augmentation in each iteration.
+Encoder. The encoder function f contains a backbone network, a projection MLP, and
+a projection function. The backbone network is a standard ResNet architecture. The
+projection MLP is a fully connected network with the backbone network applied to each
+layer, and ReLU activation applied to each except for the last layer. The projection function
+takes a vector and projects it onto a sphere with radius √r, where r > 0 is a tunable
+hyperparameter. Additionally, we specify the relationship between the graph connectivity
+and data generation parameters according to our theory (see (2.4) and Table 1): we use
+kNN to determine the connectivity parameter (for algorithm stability) and use quantile
+heuristic to compute ε which is used to generate Gaussian noise for the augmented dataset.
+9. The original implementation is available at https://github.com/jhaochenz96/spectral_contrastive_
+learning.
+10. Our implementation is in https://github.com/chl781/Augmented_spectral_contrastive_learning.
+22
+
+-- 22 of 69 --
+
+Consistency of augmentation graph and network approximability
+Linear evaluation protocol. Given the pre-trained encoder network, we follow the stan-
+dard linear evaluation protocol (Chen and He, 2021) and train a supervised linear classifier
+on frozen representations.
+Results. We present the accuracy results on CIFAR-10/100 (Krizhevsky, 2009) in Table
+2. Our empirical findings show that our spectral contrastive learning approach either out-
+performs or performs comparably to two widely used baseline algorithms, SimCLR (Chen
+et al., 2020b) and SimSiam (Chen et al., 2020a). Notably, our algorithm builds upon
+(HaoChen et al., 2021) by incorporating an explicit, theoretically motivated choice of the
+noise parameter. It therefore avoids exhaustive hyperparameter tuning, while exhibiting
+similar empirical behavior to that of (HaoChen et al., 2021).
+Datasets CIFAR-10 CIFAR-100
+Epochs 200 400 800 200 400 800
+SimCLR 83.73 87.72 90.60 54.74 61.05 63.88
+SimSiam 87.54 90.31 91.40 61.56 64.96 65.87
+(HaoChen et al., 2021) 88.66 90.17 92.07 62.45 65.82 66.18
+Ours 87.80 89.79 91.70 58.64 63.81 66.36
+Table 2: Top-1 accuracy under linear evaluation protocol. SimCLR and SimSiam results
+are reported in (HaoChen et al., 2021).
+6 Pointwise consistency of augmentation graph Laplacian
+6.1 From augmentation graph to projected graph
+We maintain Assumption 5. For ¯x̸ = ¯x′ ∈ ¯	X and each x ∈ M, we define the random
+variable
+X = X(x; ¯x, ¯x′) := 1{∥x−Q¯x∥<ε2/3
+n }∧{∥x−Q¯x′ ∥<ε2/3
+n }, (6.1)
+where Q¯x, Q¯x′ are the respective projections onto M of ¯x, ¯x′. For each such pair, we equip
+with a connection strength
+ς(Q¯x, Q¯x′ ) := Ex∼μ
+h
+X exp
+ −∥Q¯x − x∥2 − ∥Q¯x′ − x∥2
+2ε2
+w
+i
+. (6.2)
+Let Q ¯X denote the set of all Q¯x from ¯x ∈ ¯	X . Let GQ ¯X be a graph on the vertex set Q ¯X ,
+where each edge (Q¯x, Q¯x′ ) corresponds to an edge (¯x, ¯x′) in ¯	X , i.e. 0 < ∥¯x− ¯x′∥ ≤ ε, and vice
+versa. Construct a projected graph Laplacian operator11 Lproj such that for f : Q ¯X → R,
+Lprojf (Q¯x) := 1
+nεm
+w εm+2
+X
+Q¯x′ :0<∥¯x−¯x′∥≤ε
+ς(Q¯x, Q¯x′ )(f (Q¯x) − f (Q¯x′ )) (6.3)
+The augmentation graph Laplacian Laug serves as an approximation to the graph Laplacian
+Lproj. This is formally stated in the following proposition, whose proof can be found at the
+end of this subsection.
+11. The subscript “proj” stands for “projection.”
+23
+
+-- 23 of 69 --
+
+C. Li and A.M. Neuman
+Proposition 14 Let τ > 2, ε > 0, and εw = ετ , εn = ετ +1. Let Assumption 5 hold. Let
+Laug and Lproj be respectively defined as in (2.4) and in (6.3). Let f ∈ C1(Nεn (M)). Then
+for ε sufficiently small satisfying (3.7), and ε2 ≤ δ ≤ 1, we have
+P
+
+max
+¯x∈ ¯X
+Laugf (¯x) − Lprojf (Q¯x) > Cηε∥f ∥C1(Nεn (M))(1 + δ)
+
+≤ 6n exp(−cδ2nεm),
+where c > 0 depends on M, ρ at most, and Cη > 0 further depends on η.
+In preparation, we introduce a key prerequisite result. Using (6.2), we define an inter-
+mediate connection between ¯x, ¯x′ that simultaneously approximates ω(¯x, ¯x′) and ς(Q¯x, Q¯x′ )
+up to a factor related to the distance of ¯	X to the manifold M; that is
+ξ(¯x, ¯x′) := exp
+ −∥¯x − Q¯x∥2 − ∥¯x′ − Q¯x′ ∥2
+2ε2
+w
+
+ς(Q¯x, Q¯x′ ). (6.4)
+The relationship between ω, ξ is clarified by the following proposition, whose technical proof
+can be found in Appendix C.
+Proposition 15 Let τ > 0, ε > 0. Let ω, ξ be as in (2.3), (6.4), respectively. Then under
+Assumption 5, the following holds,
+exp   − Cε2ξ(¯x, ¯x′) ≤ ω(¯x, ¯x′) ≤ exp  C′ε2ξ(¯x, ¯x′) + exp
+
+− cε4/3
+ε2τ /3
+
+, (6.5)
+for some universal c > 0, and C, C′ > 0 depending on M.
+Proposition 15 provides an approximate Pythagorean decomposition. Indeed, this is
+encoded in the definition (6.4) of ξ(¯x, ¯x′), which separates the contributions ∥x − Q¯x∥2 and
+∥x − Q¯x′ ∥2 from the contributions ∥¯x − Q¯x∥2 and ∥¯x′ − Q¯x′ ∥2 to the ambient Euclidean
+distances ∥x − ¯x∥2 and ∥x − ¯x′∥2, respectively, appearing in ω(¯x, ¯x′). Since the manifold is
+curved, such an approximate decomposition holds up to small curvature-induced additive
+error terms given in (6.5). These terms are controlled via the choice of range ε2/3
+n in
+definition (6.1) of X. In turn, they ensure that the resulting error contributions remain
+sufficiently lower order in the subsequent estimates. Next, we present the final lemma before
+moving on to the proof of Proposition 14. This lemma explains the additional scaling factor
+εm
+w in definition (2.4).
+Lemma 16 Let τ > 0, ε > 0, and εw = ετ . Then
+max
+¯x,¯x′∈ ¯X
+ς(Q¯x, Q¯x′ ) ≤ Cεm
+w and max
+¯x,¯x′∈ ¯X
+ξ(¯x, ¯x′) ≤ Cεm
+w ,
+for some C > 0 depending on M, ρ.
+Proof [Proof of Lemma 16] From definition (6.4), it suffices to prove ∥ς∥∞ ≤ Cεm
+w . By
+utilizing (2.7) and definition (6.2), we get
+ς(Q¯x, Q¯x′ ) ≤
+Z
+{x:∥x−Q¯x∥<ε2/3
+n }∩M
+exp
+
+− ∥Q¯x − x∥2
+2ε2
+w
+
+ρ(x)dV(x)
+≤
+Z
+{x:d(Q¯x,x)<cε2/3
+n }∩M
+exp
+
+− cd(Q¯x, x)2
+ε2
+w
+
+ρ(x)dV(x), (6.6)
+24
+
+-- 24 of 69 --
+
+Consistency of augmentation graph and network approximability
+for some c > 0 depending on M. Since ε is sufficiently small (2.15), the map ExpQ¯x :
+Bm(0, cε2/3
+n ) → B(Q¯x, cε2/3
+n ) is a diffeomorphism. Hence, recalling the change of variables
+and notation system given in Section 2.2, for x ∈ B(Q¯x, cε2/3
+n ), there exists a unique y ∈
+Bm(0, cε2/3
+n ) such that ExpQ¯x (y) = x. Writing ˜ρ(y) = ρ(ExpQ¯x (y)), we obtain from (2.14),
+(2.10), (6.6)
+ς(Q¯x, Q¯x′ ) ≤
+Z
+Bm(0,cε2/3
+n )⊂TQ¯xM
+exp
+
+− c∥y∥2
+ε2
+w
+
+˜ρ(y)JQ¯x (y)dy
+≤ Cρmaxεm
+w
+Z
+Bm(0,cε−1/3
+w ε2/3)
+exp(−c∥y∥2)dy
+≤ Cεm
+w ,
+and the desired conclusion follows.
+Proof [Proof of Proposition 14] We define two auxiliary operators. For f : ¯	X → R, let
+L ¯X f (¯x) := 1
+nεm
+w εm+2
+X
+¯x′:0<∥¯x−¯x′∥≤ε
+ξ(¯x, ¯x′)(f (¯x) − f (¯x′)),
+and for f : Q ¯X → R, let
+LQ ¯X f (Q¯x) := 1
+nεm
+w εm+2
+X
+¯x′:0<∥¯x−¯x′∥≤ε
+ξ(¯x, ¯x′)(f (Q¯x) − f (Q¯x′ )).
+Recall that f ∈ C1(Nεn (M)). We make the following claims:
+Laugf (¯x) − L ¯X f (¯x) ≤ Cε∥f ∥C1(Nεn (M))
+nεm
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1, (6.7)
+L ¯X f (¯x) − LQ ¯X f (Q¯x) ≤ Cετ −1∥f ∥C1(Nεn (M))
+nεm
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1, (6.8)
+LQ ¯X f (Q¯x) − Lprojf (Q¯x) ≤ Cε∥f ∥C1(Nεn (M))
+nεm
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1. (6.9)
+We will validate (6.7), (6.8), (6.9) sequentially. First, note that if ∥¯x − ¯x′∥ ≤ ε, then
+∥Q¯x − Q¯x′ ∥ ≤ ∥¯x − ¯x′∥ + ∥Q¯x − ¯x∥ + ∥¯x′ − Q¯x′ ∥ ≤ cε + 2εn ≤ 2ε. (6.10)
+Proof of (6.7). Recall from Proposition 15 that
+h
+exp   − Cε2 − 1
+i
+ξ(¯x, ¯x′) ≤ ω(¯x, ¯x′) − ξ(¯x, ¯x′) ≤
+h
+exp  Cε2 − 1
+i
+ξ(¯x, ¯x′) + exp
+
+− cε4/3
+ε2τ /3
+
+,
+(6.11)
+which, together with Lemma 16 and that τ > 2, delivers
+|ω(¯x, ¯x′) − ξ(¯x, ¯x′)| ≤ Cεm
+w ε2, (6.12)
+25
+
+-- 25 of 69 --
+
+C. Li and A.M. Neuman
+for sufficiently small ε satisfying (3.7). Using (6.10), (6.12), we conclude for ¯x ∈ ¯	X ,
+Laugf (¯x) − L ¯X f (¯x) ≤ 1
+nεm
+w εm+2
+X
+¯x′:0<∥¯x−¯x′∥≤ε
+|ω(¯x, ¯x′) − ξ(¯x, ¯x′)||f (¯x) − f (¯x′)|
+≤ Cε∥f ∥C1(Nεn (M))
+nεm
+X
+¯x′:0<∥¯x−¯x′∥≤ε
+1
+≤ Cε∥f ∥C1(Nεn (M))
+nεm
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1,
+which completes the proof for (6.7).
+Proof of (6.8). We note that Assumption 5 implies
+|f (¯x) − f (Q¯x)| ≤ εn∥f ∥C1(Nεn (M)) and |f (¯x′) − f (Q¯x′ )| ≤ εn∥f ∥C1(Nεn (M)). (6.13)
+Hence, from (6.10), (6.13) and Lemma 16 again, we can finish (6.8):
+L ¯X f (¯x) − LQ ¯X f (¯x) ≤ 1
+nεm
+w εm+2
+X
+¯x′:0<∥¯x−¯x′∥≤ε
+ξ(¯x, ¯x′)
+
+|f (¯x) − f (Q¯x)| + |f (¯x′) − f (Q¯x′ )|
+
+≤ 2εn∥f ∥C1(Nεn (M))
+nεm+2
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1
+≤ 2ετ −1∥f ∥C1(Nεn (M))
+nεm
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1.
+This completes the proof for (6.8).
+Proof of (6.9). Assumption 5 gives
+exp
+ −∥¯x − Q¯x∥2 − ∥¯x′ − Q¯x′ ∥2
+2ε2
+w
+
+≥ exp(−Cε2),
+whence, from definition (6.4), it follows that
+|ξ(¯x, ¯x′) − ς(Q¯x, Q¯x′ )| ≤ ς(Q¯x, Q¯x′ ) 1 − exp(−Cε2) ≤ Cεm
+w ε2. (6.14)
+Subsequently, from (6.14), and (6.10) once more,
+LQ ¯X f (¯x) − Lprojf (Q¯x) ≤ 1
+nεm
+w εm+2
+X
+¯x′:0<∥¯x−¯x′∥≤ε
+|ξ(¯x, ¯x′) − ς(Q¯x, Q¯x′ )||f (Q¯x) − f (Q¯x′ )|
+≤ Cε∥f ∥C1(Nεn (M))
+nεm
+X
+Q¯x′ :0<∥Q¯x−Q¯x′ ∥≤2ε
+1.
+This completes the proof for (6.9).
+We now estimate the right-hand sides of (6.7), (6.8), (6.9). Recall from Section 3.1 that
+the projection points Q¯x ∼ ν on M, with the probability density q. By Proposition 7,
+26
+
+-- 26 of 69 --
+
+Consistency of augmentation graph and network approximability
+q ∈ C2(M) and q(x) ≤ Cη for all x ∈ M. By rescaling, we can assume 2ε satisfies (2.15) in
+place of ε. Let ε2 ≤ δ ≤ 1. We note that the points Q¯x are not independent, as they are
+projections of the augmented data points. However, under Lemma 6 and Assumption 1,
+we can assert that with probability 1, each Q¯x has at most C0 other Q¯x′ dependent on Q¯x.
+Therefore, an application of Lemma 28 gives
+1
+nεm
+X
+Q¯x′ : 0<∥Q¯x−Q¯x′ ∥≤2ε
+1 ≤ 1
+εm
+Z
+B(Q¯x,2ε)
+q(x)dV(x) + Cδ (6.15)
+with probability at least 1 − 2 exp(−cδ2nεm). Using the fact that ExpQ¯x : B(Q¯x, 2ε) →
+Bm(0, 2ε) is a diffeomorphism, we acquire
+Z
+B(Q¯x,2ε)
+q(x)dV(x) =
+Z
+Bm(0,2ε)⊂TQ¯x M
+˜q(v)JQ¯x (v)dv ≤ Cηεm (6.16)
+where, as outlined in Section 2.2, we apply the change of variables x = ExpQ¯x (v) and write
+˜q(v) = q(ExpQ¯x(v)). Putting (6.16) back in (6.15), we conclude
+1
+nεm
+X
+Q¯x′ : 0<∥Q¯x−Q¯x′ ∥≤2ε
+1 ≤ Cη + Cδ, (6.17)
+with probability at least 1 − 2 exp(−cδ2nεm). By combining (6.17) with (6.7), (6.8), (6.9),
+and recalling that τ > 2, we arrive at
+|Laugf (¯x) − Lprojf (Q¯x)|
+≤ |Laugf (¯x) − L ¯X f (¯x)| + |L ¯X f (¯x) − LQ ¯X f (¯x)| + |LQ ¯X f (¯x) − Lprojf (¯x)|
+≤ Cηε∥f ∥C1(Nεn (M))(1 + δ),
+with probability at least 1 − 6 exp(−cδ2nεm). The proposition can now be concluded by
+another application of union bound over ¯x ∈ ¯	X .
+6.2 From discrete to nonlocal
+We extend definition (6.2) to a function ς on M × M, that is
+ς(x, y) :=
+Z
+{∥z−x∥<ε2/3
+n }∩{∥z−y∥<ε2/3
+n }∩M
+exp
+
+− ∥z − x∥2
+2ε2
+w
+
+exp
+
+− ∥z − y∥2
+2ε2
+w
+
+ρ(z)dV(z).
+(6.18)
+Observe that the conclusion of Lemma 16 remains valid for this extension; namely
+sup
+x,y∈M
+ς(x, y) ≤ Cεm
+w . (6.19)
+Define a nonlocal operator LM such that for f ∈ L2(M),
+LMf (x) := 1
+εm
+w εm+2
+Z
+B(x,ε)
+ς(x, y)(f (x) − f (y))q(y)dV(y). (6.20)
+The augmentation graph Laplacian Laug provides, with high probability, a pointwise
+approximation of the nonlocal operator LM, as detailed below.
+27
+
+-- 27 of 69 --
+
+C. Li and A.M. Neuman
+Lemma 17 Let τ > 2, ε > 0, and εn = ετ +1. Let Laug and LM be respectively defined as
+in (2.4) and in (6.20). Let f ∈ C1(Nεn (M)). Then for ε ≤ δ ≤ ε−1,
+P
+
+max
+¯x∈ ¯X
+Laugf (¯x) − LMf (Q¯x) > Cηδ∥f ∥C1(Nεn (M))
+
+≤ 8n exp(−cηδ2nεm+2),
+for some Cη, cη > 0 depending on η and M, ρ at most.
+Proof [Proof of Lemma 17] We resume from the conclusion of the proof of Proposition 14.
+Let ¯x ∈ ¯	X . At this stage, we require a concentration result provided by Lemma 27, a
+variant of Lemma 28. We apply the concentration result of Lemma 27 to Lprojf (Q¯x),
+with the bounded open set Ω in the lemma corresponding to the orthogonal projection of
+Bd(¯x, ε) ∩ Nεn (M) onto M. Let y ∈ Nεn (M) be such that ∥y − ¯x∥ = ε, and let Qy denote
+the orthogonal projection of y onto M. Then similar to the calculation in (6.10),
+∥Q¯x − Qy∥ ≤ ε + 2εn = ε(1 + 2εw), (6.21)
+and moreover,
+∥Q¯x − Qy∥ ≥ ∥¯x − y∥ − ∥Q¯x − ¯x∥ − ∥y − Qy∥ ≥ ε − 2εn = ε(1 − 2εw). (6.22)
+It follows from (6.21), (6.22) that Ω, as the orthogonal projection of Bd(¯x, ε) ∩ Nεn (M)
+onto M, satisfies
+Bd(Q¯x, ε(1 − 2εw)) ∩ M ⊂ Ω ⊂ Bd(Q¯x, ε(1 + 2εw)) ∩ M, (6.23)
+and thus, by considering (2.7), (2.11),
+cεm ≤ V(Ω) ≤ Cεm. (6.24)
+We now apply Lemma 27 to Lprojf (Q¯x), taking into account Proposition 7 and (6.19),
+(6.24), which gives us, for 0 < δ ≤ 1,
+εmLprojf (Q¯x) − 1
+εm
+w ε2
+Z
+Ω∩M
+ς(Q¯x, y)(f (Q¯x) − f (y))q(y)dV(y) ≤ Cη∥f ∥C1(Nεn (M))εmδε−1
+(6.25)
+with probability at least 1 − 2 exp(−cηδ2nεm). Similarly, from (2.7), (2.10), as well as
+Proposition 7, (6.19), (6.23) again, we get
+1
+εm
+w ε2
+Z
+Ω∆(Bd(Q¯x,ε)∩M)
+ς(Q¯x, y)(f (Q¯x) − f (y))q(y)dV(y)
+≤ Cη∥f ∥C1(Nεn(M))
+ε
+Z
+Ω∆(Bd(Q¯x,ε)∩M)
+dV(y)
+≤ Cηεwεm∥f ∥C1(Nεn(M))
+ε
+= Cη∥f ∥C1(Nεn(M))ετ −1εm. (6.26)
+28
+
+-- 28 of 69 --
+
+Consistency of augmentation graph and network approximability
+Above, we use ∆ to denote the set symmetric difference. Therefore, combining (6.25),
+(6.26), yields
+Lprojf (Q¯x) − 1
+εm
+w εm+2
+Z
+Bd(Q¯x,ε)∩M
+ς(Q¯x, y)(f (Q¯x) − f (y))q(y)dV(y)
+≤ Cη∥f ∥C1(Nεn (M)) max{δε−1, ετ −1}, (6.27)
+with probability at least 1 − 2 exp(−cηδ2nεm). Furthermore, as part of the conclusion of
+Lemma 28 (or Lemma 26) and (6.19),
+1
+εm
+w εm+2
+Z
+Bd(Q¯x,ε)∩M
+ς(Q¯x, y)(f (Q¯x) − f (y))q(y)dV(y)
+−
+Z
+B(Q¯x,ε)
+ς(Q¯x, y)(f (Q¯x) − f (y))q(y)dV(y) ≤ C∥f ∥C1(Nεn (M))ε. (6.28)
+Now recall from the proof of Proposition 14 that for ε2 ≤ δ ≤ 1,
+|Laugf (¯x) − Lprojf (Q¯x)| ≤ Cε∥f ∥C1(Nεn (M))(1 + δ) (6.29)
+with probability at least 1 − 6 exp(−cδ2nεm). Recall that τ > 2. Then by setting δ′ = δ/ε
+for ε2 ≤ δ ≤ 1, and using (6.27), (6.28), (6.29), along with the definition (6.20), we obtain
+|Laugf (¯x) − LMf (Q¯x)| ≤ Cη∥f ∥C1(Nεn (M))δ′,
+for ε ≤ δ′ ≤ ε−1, with probability at least 1 − 8 exp(−cη(δ′)2nεm+2). Finally, we conclude
+the proof with an application of union bound over ¯x ∈ ¯	X .
+6.3 Proof of Theorem 11
+Proof Lemma 17 establishes that, with high probability Laug behaves pointwise in close
+approximation of LM. Therefore, to prove Theorem 11, it is enough to show that LM is
+approximately αβ∆aug, with a small additive error. In the ensuing proof, we will employ
+the equivalence demonstrated in (2.13).
+We define, for x, y ∈ M,
+ς∗(x, y) :=
+Z
+{z∈Rd:d(x,z)<ε2/3
+n ∧d(y,z)<ε2/3
+n }∩M
+exp
+
+− d(x, z)2
+2ε2
+w
+
+exp
+
+− d(y, z)2
+2ε2
+w
+
+ρ(z)dV(z),
+the version of ς(x, y) in (6.18) based exclusively on geodesic distances. The following lemma,
+whose proof is given in Appendix E, applies.
+Lemma 18 Let ς, ς∗ be defined as above. Then for x, y ∈ M,
+ς(x, y) = ς∗(x, y) + O(εm
+w ε2).
+29
+
+-- 29 of 69 --
+
+C. Li and A.M. Neuman
+Leveraging Lemma 18, we can substitute ς(x, y) with ς∗(x, y) in the expression (6.20)
+for LMf (x). More specifically, since
+1
+εm
+w εm+2
+Z
+B(x,ε)
+(ς(x, y) − ς∗(x, y))(f (x) − f (y))q(y)dV(y)
+≤ Cεm
+w ε2
+εm
+w εm+2
+Z
+B(x,ε)
+|f (x) − f (y)|q(y)dV(y)
+≤ Cη∥f ∥C1(B(x,ε))ε
+εm
+Z
+B(x,ε)
+dV(y)
+≤ Cη∥f ∥C1(B(x,ε))ε, (6.30)
+we get
+LMf (x) = 1
+εm
+w εm+2
+Z
+B(x,ε)
+ς∗(x, y)(f (x) − f (y))q(y)dV(y) + Of,η(ε).
+For y ∈ B(x, ε), we write ς∗
+x (y) := ς∗(x, y). Following the change of variables and notation
+modification introduced in Section 2.2, we let y ∈ B(x, ε) correspond uniquely to v ∈
+Bm(0, ε) such that Expx(v) = y, and so Expx(0) = x. We further write ˜ς∗
+0 (v) = ς∗
+x (y),
+˜	f (v) = f (y), ˜q(v) = q(y). Thus
+LM ˜	f (0) = − 1
+εm
+w εm+2
+Z
+Bm(0,ε)⊂TxM
+˜ς∗
+0 (v)( ˜	f (v) − ˜	f (0))˜q(v)Jx(v)dv + Of,η(ε). (6.31)
+From Taylor’s expansion, we obtain the following result, with a proof provided in Ap-
+pendix F.
+Lemma 19 Let v ∈ Bm(0, ε). Then
+˜ς∗
+0 (0) = εm
+w (αρ(x) + O(ε)). (6.32)
+Moreover,
+∇˜ς∗
+0 (0) = 0 and ∥D2 ˜ς∗
+0 (0)∥ = O(εm
+w ), (6.33)
+and in particular,
+˜ς∗
+0 (v) = ˜ς∗
+0 (0) + O(εm
+w ε2).
+Utilizing Lemma 19, along with (2.13), we see that, as per the computations presented
+in (6.30),
+1
+εm
+w εm+2
+Z
+Bm(0,ε)⊂TxM
+(˜ς∗
+0 (v) − ˜ς∗
+0 (0))( ˜	f (v) − ˜	f (0))˜q(v)Jx(v)dv
+≤ C
+εm
+Z
+Bm(0,ε)
+| ˜	f (v) − ˜	f (0)|dv ≤ C∥f ∥C1(B(x,ε))ε. (6.34)
+Consequently, from (6.31), (6.34),
+LM ˜	f (0) = − ˜ς∗
+0 (0)
+εm
+w εm+2
+Z
+Bm(0,ε)⊂TxM
+( ˜	f (v) − ˜	f (0))˜q(v)Jx(v)dv + Of,η(ε)
+= − ˜ς∗
+0 (0)
+εm
+w ε2
+Z
+Bm(0,1)
+( ˜	f (εv) − ˜	f (0))˜q(εv)Jx(εv)dv + Of,η(ε). (6.35)
+30
+
+-- 30 of 69 --
+
+Consistency of augmentation graph and network approximability
+Using Taylor’s expansion once again, and considering Proposition 7, we acquire
+˜	f (εv) = ˜	f (0) + ε⟨∇ ˜	f (0), v⟩ + 1
+2 ε2⟨D2 ˜	f (0)v, v⟩ + Of,η(ε3)
+˜q(εv) = ˜q(0) + ε⟨∇˜q(0), v⟩ + Oη(ε2).
+(6.36)
+Moreover, from (2.10),
+Jx(εv) = 1 + O(ε2). (6.37)
+Then putting (6.36) in (6.35), together with simple calculations, delivers
+LM ˜	f (v) = ˜ς∗
+0 (0)
+εm
+w
+(L1 + L2 + L3) + Of,η(ε), (6.38)
+where
+L1 := − ˜q(0)
+ε
+Z
+Bm(0,1)
+⟨∇ ˜	f (0), v⟩Jx(εv)dv
+L2 := −
+Z
+Bm(0,1)
+⟨∇ ˜	f (0), v⟩⟨∇˜q(0), v⟩Jx(εv)dv
+L3 := − ˜q(0)
+2
+Z
+Bm(0,1)
+⟨D2 ˜	f (0)v, v⟩Jx(εv)dv.
+Observe, due to the symmetry of odd function,
+Z
+Bm(0,1)
+⟨∇ ˜	f (0), v⟩dv = 0,
+which, combined with (6.37), subsequently gives us
+L1 = Of,η(ε). (6.39)
+Regarding L2, L3, we also get from (6.37) and a standard computation,
+L2 = −
+Z
+Bm(0,1)
+⟨∇ ˜	f (0), v⟩⟨∇˜q(0), v⟩Jx(εv)dv = −β⟨∇ ˜	f (0), ∇˜q(0)⟩ + Of (ε2), (6.40)
+and
+L3 = − ˜q(0)
+2
+Z
+Bm(0,1)
+⟨D2 ˜	f (0)v, v⟩Jx(εv)dv = − β ˜q(0)
+2 ∆M ˜	f (0) + Of (ε2). (6.41)
+By combining (6.38), (6.39), (6.40), (6.41), and applying Lemma 19, we arrive at
+LM ˜	f (0) = − ˜ς∗
+0 (0)β
+εm
+w
+ ⟨∇ ˜	f (0), ∇˜q(0)⟩ + ˜q(0)
+2 ∆M ˜	f (0) + Of,η(ε)
+= −αβρ(x) ⟨∇ ˜	f (0), ∇˜q(0)⟩ + ˜q(0)
+2 ∆M ˜	f (0) + Of,η(ε),
+31
+
+-- 31 of 69 --
+
+C. Li and A.M. Neuman
+which simplifies to
+LMf (x) = LM ˜	f (0) = − αβρ(x)
+2˜q(0) div(˜q2∇ ˜	f )(0) + Of,η(ε),
+or equivalently,
+LMf (x) = − αβρ(x)
+2q(x) div(q2∇f )(x) + Of,η(ε). (6.42)
+Recall from Proposition 7 that ∥ρ − q∥L∞(M) ≤ Cηε2/3
+n . Thus, we have, subsequently from
+(6.42),
+LMf (x) = − αβ
+2 div(q2∇f )(x) + Of,η(ε) = −αβ∆augf (x) + Of,η(ε). (6.43)
+Finally, to complete the proof, it remains to integrate (6.43) with Lemma 17.
+7 Spectral consistency of augmentation graph Laplacian
+7.1 Outline for the proof of Theorem 12
+With Theorem 11 established, the proof of Theorem 12 is primarily influenced by and
+aligned with the strategy in (Calder and Garc´ıa Trillos, 2022). Before proceeding with
+further discussion, however, it is necessary to delineate two key differences between our
+setting and that in the aforementioned work. For the first difference, the augmentation
+graph G ¯X is not built from points sampled directly on the manifold M, meaning that, for
+example, ϑn in (3.10) is not a measure on M. Nevertheless, the groundwork in Section 3.1
+ensures the construction of a unique projection point Q¯x ∈ M for each ¯x ∈ ¯	X . This bijective
+correspondence, guaranteed with probability 1 by Lemma 6, provides a matching between
+¯	X = {¯x1, . . . , ¯xn} and the set Q ¯X = {Q¯x1 , . . . , Q¯xn }, thus enabling the transfer between
+functions on the graph G ¯X and those on the graph GQ ¯X , as defined at the beginning of
+Section 6.1, and vice versa. In particular, Proposition 14 establishes, with high probability,
+the pointwise proximity between the augmentation graph Laplacian Laug (2.4) and the
+projected graph Laplacian Lproj (6.3). For the second difference, the projection points
+Q¯x ∼ ν, which is not a probability measure on M; see (3.1). However, as shown in
+Proposition 7, q closely approximates the sampling density ρ of μ, which is a probability
+measure. Therefore, with Lproj serving as a substitute for Laug, and ρ replacing q, the
+theory developed in (Calder and Garc´ıa Trillos, 2022) can be directly applied, with some
+additional considerations. We outline the application of this theory next.
+Define a discrete probability measure ˘ϑn to be
+˘ϑn := 1
+n
+n	X
+i=1
+δQ¯xi ,
+32
+
+-- 32 of 69 --
+
+Consistency of augmentation graph and network approximability
+which is a measure on M with support on Q ¯X . Further, we define a graph-based Dirichlet
+energy, on the graph GQ ¯X , such that for f ∈ L2
+˘ϑn
+(Q ¯X ),
+EQ ¯X (f ) := 1
+n2εm
+w εm+2
+n	X
+i,j=1
+ς(Q¯xi , Q¯xj )1{0<∥¯xi−¯xj ∥≤ε}(f (Q¯xi ) − f (Q¯xj ))2
+= 2⟨Lprojf, f ⟩L2
+˘ϑn (Q ¯X ), (7.1)
+where
+⟨f, g⟩L2
+˘ϑn (Q ¯X ) := 1
+n
+n	X
+i=1
+f (Q¯xi )g(Q¯xi )
+is an inner product on L2
+˘ϑn
+(Q ¯X ). Then Lproj is a positive semi-definite and self-adjoint
+operator on L2
+˘ϑn
+(Q ¯X ), whose eigenvalues are given by
+ˆλproj
+l = min
+S∈Gl
+Q ¯X
+max
+f ∈S\{0}
+EQ ¯X (f )
+∥f ∥2
+L2
+˘ϑn (Q ¯X )
+, (7.2)
+where Gl
+Q ¯X denotes the Grassmannian manifold of all linear subspaces of L2
+˘ϑn
+(Q ¯X ) of di-
+mension l, and l = 1, . . . , n. An orthonormal basis of L2
+˘ϑn
+(Q ¯X ) can be formed by the
+associated eigenvectors ˆ	f proj
+l of Lproj. Establishing a quantitative interpolation between
+the graph-based Dirichlet energy EQ ¯X and the continuum energy EM (3.15) is critical for
+our spectral convergence analysis. Such interpolation can be realized through two maps
+P : L2(M) → L2
+˘ϑn
+(Q ¯X ) and I : L2
+˘ϑn
+(Q ¯X ) → L2(M), which act as near-isometries when
+restricted to functions with finite Dirichlet energy (in the discrete and continuum settings).
+Precisely, these maps further satisfy estimates of the form
+EQ ¯X (P f ) ≤ αβ(1 + small error)EM(f ), ∀f ∈ L2(M),
+αβEM(If ), ≤ (1 + small error)EQ ¯X (f ) ∀f ∈ L2
+˘ϑn (Q ¯X );
+see Proposition 21 in the next subsection. When combined with the result of Theorem 11 and
+the variational identities (7.2), (3.16), these inequalities translate to proximity between the
+spectra of Lproj and αβ∆aug, following the steps in (Calder and Garc´ıa Trillos, 2022). Then
+the final step of our analysis involves leveraging Proposition 14 and (3.12) to demonstrate
+the spectral alignment of Laug and αβ∆aug.
+For the remainder of this subsection, we outline the construction of the maps P , I, which
+are constructed using an ∞-optimal transport (∞-OT) map between ˘ϑn and a suitably
+chosen probability measure on M, provided below.
+Proposition 20 Let ι1, ι2 > 0 satisfy12:
+1. n−1/m < ι2 ≤ 1;
+12. The proof of (Calder and Garc´ıa Trillos, 2022, Proposition 2.12) only requires that ι2 be of small, fixed
+scale, greater than n−1/m.
+33
+
+-- 33 of 69 --
+
+C. Li and A.M. Neuman
+2. ι1 + ι2 ≤ c, where c > 0 depends on M, ρ.
+Then with probability at least 1 − n exp(−c′nι2
+1ιm
+2 ), there exist a probability measure υn with
+density pn : M → R, such that
+min
+S#υn= ˘ϑn
+sup
+x∈M
+d(x, S(x)) ≤ ι2,
+and that
+∥pn − ρ∥L∞(M) ≤ C(ι1 + ι2).
+Here, the constant C > 0 depends on M, ρ, and the constant c′ > 0 depends solely on13 M.
+This proposition directly follows from (Calder and Garc´ıa Trillos, 2022, Proposition
+2.12) and its proof.
+We denote by T an ∞-OT map between ˘ϑn and υn given in Proposition 20. Let Ui :=
+T −1({Q¯xi }). We define an adaptive contraction discretization map P : L2(M) → L2
+˘ϑn
+(Q ¯X )
+by
+P f (Q¯xi ) := n R
+Ui f (x)pn(x)dV(x)
+ρ(Q¯xi )1/2 , (7.3)
+as well as an adaptive extension map P ∗ : L2
+˘ϑn
+(Q ¯X ) → L2(M), by
+P ∗f (x) :=
+n	X
+i=1
+f (Q¯xi )ρ(Q¯xi )1/21Ui (x). (7.4)
+Next, we describe the construction of an interpolation map I : L2
+˘ϑn
+(Q ¯X ) → H1(M) ⊂
+L2(M). It will be apparent below that such a map inherently possesses a smoothing prop-
+erty. Let ϕ : [0, ∞) → [0, ∞) be a non-increasing function of choice with support on the
+interval [0, 1], whose restriction to [0, 1) is Lipschitz continuous and non-vanishing. Let
+ψ : [0, ∞) → [0, ∞) be a smooth function, given by
+ψ(t) := 1
+β
+Z ∞
+t
+ϕ(s)sds,
+where we recall β is defined in (4.2).
+Lastly, for a bandwidth r > 0, let Λr : L2(M) → H1(M) be a convolution operator with
+kernel
+Kr(x, y) := 1
+rm ψ
+ d(x, y)
+r
+
+,
+such that
+Λrf (x) :=
+ Z
+M
+Kr(x, y)dμ(y)
+−1 Z
+M
+Kr(x, y)f (y)dμ(y).
+We then build an interpolation map I : L2
+˘ϑn
+(Q ¯X ) → H1(M) with bandwidth ε − 2ι2,
+specifically
+If (x) := Λε−2ι2 P ∗f (x). (7.5)
+13. specifically on its dimension m.
+34
+
+-- 34 of 69 --
+
+Consistency of augmentation graph and network approximability
+7.2 Proof of Theorem 12
+Proof The beginning of the proof follows almost the same approach as that of (Calder and
+Garc´ıa Trillos, 2022, Theorem 2.4 (i)), and, subsequently, that of (Calder and Garc´ıa Tril-
+los, 2022, Theorem 2.7 (ii)), with some modifications. To further clarify, we introduce
+Propositions 21, 22 below. They correspond to (Calder and Garc´ıa Trillos, 2022, Proposi-
+tions 4.1, 4.2), respectively, which are the two main components for the proofs of (Calder
+and Garc´ıa Trillos, 2022, Theorems 2.4, 2.7). We recall the discretization map P defined in
+(7.3) and the interpolation map I defined in (7.5).
+Proposition 21 Let ε > 0 and ι1, ι2 > 0 satisfy Assumption 10. Then both of the following
+hold with probability at least 1 − n exp(−cnι2
+1ιm
+2 ),
+EQ ¯X (P f ) ≤ αβ
+
+1 + Cη
+ ι2
+ε + ε + ι1
+
+EM(f ), ∀f ∈ L2(M), (7.6)
+αβEM(If ) ≤
+
+1 + Cη
+ ι2
+ε + ε + ι1
+
+EQ ¯X (f ), ∀f ∈ L2
+˘ϑn (Q ¯X ), (7.7)
+where α and β are defined in (4.1) and (4.2), respectively; the constants Cη > 0 depend on
+η and M, ρ, and the constant c > 0 depends solely on M.
+Proposition 22 Let ε > 0 and ι1, ι2 > 0 satisfy:
+1. n−1/m < ι2 ≤ ε
+4 ;
+2. ι1 + ι2 ≤ c, where c > 0 depends on M, ρ.
+Then both of the following hold with probability at least 1 − n exp(−c′nι2
+1ιm
+2 ),
+∥f ∥2
+L2(M)−∥P f ∥2
+L2
+˘ϑn (Q ¯X ) ≤Cι2∥f ∥L2(M)
+pEM(f )+C(ι1+ι2)∥f ∥2
+L2(M), ∀f ∈ L2(M),
+(7.8)
+∥f ∥2
+L2
+˘ϑn (Q ¯X )−∥If ∥2
+L2(M) ≤Cε∥f ∥L2
+˘ϑn (Q ¯X )
+q
+EQ ¯X (f )+C(ι1+ι2)∥f ∥2
+L2
+˘ϑn (Q ¯X ), ∀f ∈ L2
+˘ϑn (Q ¯X ).
+(7.9)
+Here, all the constants C > 0 depend on M, ρ, and the constant c′ > 0 depends solely on
+M.
+Note that these are the near-isometric inequalities discussed at the beginning of Sec-
+tion 7.1.
+The proof of Proposition 21 mirrors that of (Calder and Garc´ıa Trillos, 2022, Proposi-
+tion 4.1), and the proof of Proposition 22 mirrors that of (Calder and Garc´ıa Trillos, 2022,
+Proposition 4.2). The former, given in Section 7.3, is more involved than the latter, outlined
+in Section 7.4. One modification in these proofs arises from our definition of discretization
+and extension maps, (7.3) and (7.4), which explicitly incorporate a local density factor. This
+definition is guided by the specific formulation (7.1) of the energy EQ ¯X and contrasts with
+the discretization and extension maps in (Calder and Garc´ıa Trillos, 2022). For instance,
+see the proof of Lemma 24 for how this difference is addressed. Another modification stems
+35
+
+-- 35 of 69 --
+
+C. Li and A.M. Neuman
+from the fact that an edge (Q¯x, Q¯x′ ) in the graph GQ ¯X is designed to correspond to the edge
+(¯x, ¯x′) in the graph G ¯X , thus causing the Euclidean distance between Q¯x, Q¯x′ to vary from
+ε(1 − 2εw) to ε(1 + 2εw). This differs from the ε- and kNN graphs considered in (Calder
+and Garc´ıa Trillos, 2022), where all edges have a fixed length. To handle this, we will take
+advantage of the negligible difference between ε(1 − 2εw) ≈ ε ≈ ε(1 + 2εw), and refer to the
+technical result in (Garc´ıa Trillos et al., 2020, Lemma 5) for further details.
+Given Propositions 21, 22, we can follow the reasoning in (Calder and Garc´ıa Trillos,
+2022, Theorem 2.4 (i)) (minmax principle) to conclude that, for the first step, if
+pλlι2 + C(ι1 + ι2) ≤ pλlε + C(ι1 + ι2) ≤ 1
+2l , (7.10)
+then with probability at least 1 − n exp(−cnι2
+1ιm
+2 ),
+|λl − αβˆλproj
+l | ≤ C
+
+ε(pλl + 1) + ε + ι1
+
+λl. (7.11)
+Note that the probability derived here matches the probability that the conclusions of
+Propositions 21 and 22 hold, which, in turn, is guaranteed whenever the conclusion of
+Proposition 20 holds. For the second step, we suppose in addition that
+C(ε(pλl + 1) + ε + ι1)λl ≤ γλl (7.12)
+holds. We infer from the reasoning near the end of the proof in (Calder and Garc´ıa Trillos,
+2022, Theorem 2.7(ii)) (Davis-Kahan-type expansion), and the proof of Lemma 17, the
+existence of an eigenfunction fl of ∆aug, with probability at least 1 − n exp(−cnι2
+1ιm
+2 ) −
+2n exp(−cηnεm+4), such that
+∥fl − ˆ	f proj
+l ∥L2
+˘ϑn (Q ¯X ) ≤ Cη,lε. (7.13)
+The additional reduction in probability stems from the pointwise consistency probability,
+transitioning from Lproj to the nonlocal operator LM (6.20) (with δ = ε) in the proof of
+Lemma 17, and ultimately to ∆aug.
+With (7.13), we complete the first part of our analysis, which establishes the spectral
+alignment between Lproj and ∆aug, as discussed at the beginning of Section 7.1. In order
+to further extend (7.13) to a conclusion about the spectral proximity between Laug and
+αβ∆aug, we define a matching map M that sends ¯x ∈ ¯	X to Q¯x ∈ Q ¯X . By Lemma 6, this
+map M establishes a bijection between ¯	X and Q ¯X with probability 1. Thus, if f ∈ L2
+˘ϑn
+(Q ¯X ),
+then f ◦ M ∈ L2
+ϑn ( ¯	X ), and conversely, if f ∈ L2
+ϑn ( ¯	X ), then f ◦ M−1 ∈ L2
+˘ϑn
+(Q ¯X ). Analogous
+to Propositions 21, 22, we have the following proposition.
+Proposition 23 Under Assumption 5, it holds with probability 1 that
+∥f ∥L2
+ϑn ( ¯X ) = ∥f ◦ M−1∥L2
+˘ϑn (Q ¯X ), ∀f ∈ L2
+ϑn ( ¯	X ), (7.14)
+∥f ∥L2
+˘ϑn (Q ¯X ) = ∥f ◦ M∥L2
+ϑn ( ¯X ), ∀f ∈ L2
+˘ϑn (Q ¯X ). (7.15)
+36
+
+-- 36 of 69 --
+
+Consistency of augmentation graph and network approximability
+Moreover, let ε > 0 be sufficiently small to satisfy (3.17). Then both of the following hold
+with probability at least 1 − 2n exp(−cηnεm+4),
+E ¯X (f ) ≤ (1 + Cε2)EQ ¯X (f ◦ M−1) + Cηε∥f ∥2
+L2
+ϑn ( ¯X ), ∀f ∈ L2
+ϑn ( ¯	X ), (7.16)
+EQ ¯X (f ) ≤ (1 + Cε2)E ¯X (f ◦ M), ∀f ∈ L2
+˘ϑn (Q ¯X ). (7.17)
+Here, the constants Cη, cη > 0 depend on η and M, ρ at most, while the constants C > 0
+in (7.16), (7.17) depend on M.
+The proof of Proposition 23 is presented in Section 7.5. By combining (7.6), (7.16), we
+obtain, for f ∈ L2(M),
+E ¯X (P f ◦ M) ≤ αβ(1 + Cε2)
+
+1 + Cη
+ ι2
+ε + ε + ι1
+
+EM(f ) + Cηε∥P f ◦ M∥2
+L2
+ϑn ( ¯X ), (7.18)
+and by combining (7.7), (7.17), we get, for f ∈ L2
+ϑn ( ¯	X ),
+αβEM(I(f ◦ M−1)) ≤ (1 + Cε2)
+
+1 + Cη
+ ι2
+ε + ε + ι1
+
+E ¯X (f ). (7.19)
+Similarly, by combining (7.8) with (7.15) and (7.9) with (7.14), (7.17), we respectively derive
+∥f ∥2
+L2(M)−∥P f ◦ M∥2
+L2
+ϑn ( ¯X ) ≤Cι2∥f ∥L2(M)
+pEM(f )+C(ι1 + ι2)∥f ∥2
+L2(M), ∀f ∈ L2(M),
+(7.20)
+∥f ∥2
+L2
+ϑn ( ¯X )−∥I(f ◦ M−1)∥2
+L2(M) ≤Cε∥f ∥L2
+ϑn ( ¯X )
+pE ¯X (f )+C(ι1+ι2)∥f ∥2
+L2
+ϑn ( ¯X ), ∀f ∈ L2
+ϑn ( ¯	X ).
+(7.21)
+With (7.18), (7.19), (7.20), (7.21) established, we proceed similarly to before, directly adapt-
+ing the remainder of the proof to the variational argument in (Calder and Garc´ıa Trillos,
+2022, Theorem 2.4 (i)), and subsequently to (Calder and Garc´ıa Trillos, 2022, Theorem 2.7
+(ii)), line by line. In particular, if (7.10) holds, we derive that in place of (7.11),
+|λl − αβˆλaug
+l | ≤ C
+
+ε(pλl + 1) + ε + ι1
+
+λl,
+with probability at least 1 − n exp(−cnι2
+1ιm
+2 ) − 2n exp(−cηnεm+4). The additional reduction
+in probability, relative to what is obtained previously, arises from the probability that both
+(7.16) and (7.17) hold. Finally, if (7.12) is also met, we are guaranteed with probability at
+least 1 − n exp(−cnι2
+1ιm
+2 ) − 10n exp(−cηnεm+4), the existence of an eigenfunction fl of ∆aug
+such that
+∥ ˆ	f aug
+l (·) − fl(Q·)∥L2
+˘ϑn (Q ¯X ) ≤ Cη,lε.
+The further reduction in probability comes from leveraging Proposition 14. The proof is
+now concluded.
+37
+
+-- 37 of 69 --
+
+C. Li and A.M. Neuman
+7.3 Proof of Proposition 21
+Proof Let r > 0 be sufficiently small. We define two non-local energy forms for f ∈ L2(M),
+EM;r(f ) := α
+rm+2
+Z
+M
+Z
+M
+1{d(x,y)≤r}(f (x) − f (y))2pn(x)pn(y)dV(x)dV(y),
+E∗
+M;r(f ) := α
+rm+2
+Z
+M
+Z
+M
+1{d(x,y)≤r}(f (x) − f (y))2q(x)q(y)dV(x)dV(y).
+Moreover, we temporarily assume the validity of the following lemma, whose proof is given
+shortly after.
+Lemma 24 Let ε > 0 and ι1, ι2 > 0 satisfy Assumption 10. Let the discretization map P ,
+the extension map P ∗ be given in (7.3), (7.4), respectively. Then
+EQ ¯X (P f ) ≤
+
+1 + Cι2
+ε
+
+EM;ε+2ι2 (f ), ∀f ∈ L2(M), (7.22)
+EM;ε−2ι2 (P ∗f ) ≤
+
+1 + Cι2
+ε
+
+EQ ¯X (f ), ∀f ∈ L2
+˘ϑn (Q ¯X ). (7.23)
+Here, the constants C > 0 depend on M, ρ.
+The remainder of the proof now follows closely the approach in the proof of (Calder
+and Garc´ıa Trillos, 2022, Proposition 4.1). For instance, given Lemma 24, we can apply
+Propositions 7, 20 to obtain
+EQ ¯X (P f ) ≤
+
+1 + Cι2
+ε
+
+1 + C(ι1 + ι2)
+
+1 + Cηε2/3
+n
+
+E∗
+M;ε+2ι2 (f ), ∀f ∈ L2(M),
+(7.24)
+E∗
+M;ε−2ι2 (P ∗f ) ≤
+
+1 + Cι2
+ε
+
+1 + C(ι1 + ι2)
+
+1 + Cηε2/3
+n
+
+EQ ¯X (f ), ∀f ∈ L2
+˘ϑn (Q ¯X ),
+(7.25)
+where, both (7.24), (7.25) hold with probability at least 1−n exp(−cnι2
+1ιm
+2 ). Then, applying
+the arguments from (Garc´ıa Trillos et al., 2020, Lemmas 5, 9), we deduce, respectively for
+f ∈ L2(M) and r > 0 sufficiently small,
+E∗
+M;r(f ) ≤ αβ
+
+1 + Cr + Cr2
+EM(f ), (7.26)
+αβEM(f )(Λrf ) ≤
+
+1 + Cr + Cr2
+1 + Cr2
+E∗
+M;r(f ). (7.27)
+With minor simplifications, combining (7.24), (7.26) for r = ε + 2ι2, gives us (7.6), while
+combining (7.25), (7.27) for r = ε − 2ι2, gives us (7.7).
+It remains for us to prove Lemma 24.
+Proof [Proof of Lemma 24] We recall from Lemma 19 and its proof, that if d(x, y) ≤ r, for
+r > 0 sufficiently small, then
+ς(x, y)
+εm
+w
+= αρ(x)1/2ρ(y)1/2 + O(r1/2). (7.28)
+38
+
+-- 38 of 69 --
+
+Consistency of augmentation graph and network approximability
+Let ε∗ := ε(1 + 2εw), ε∗ := ε(1 − 2εw), and ϵ∗ := ε∗ + 8
+R2 (ε∗)3; all are small, positive
+quantities comparable to ε. We start with (7.22). The proof mirrors the approach outlined
+in (Garc´ıa Trillos et al., 2020, Lemma 13), albeit with a few modifications due to the adaptive
+definitions of discretization and extension maps, as well as the fluctuation of edge lengths
+in the graph GQ ¯X , as pointed out earlier. If f ∈ L2(M), then by definition P f ∈ L2
+˘ϑn
+(Q ¯X ).
+Thus from (6.21) and definition (7.1),
+EQ ¯X (P f ) ≤ 1
+n2εm
+w εm+2
+n	X
+i,j=1
+ς(Q¯xi , Q¯xj )1{0<∥Q¯xi −Q¯xj ∥≤ε∗}(P f (Q¯xi ) − P f (Q¯xj ))2,
+which, using (2.7), (7.28) with r = ε∗, simplifies to
+EQ ¯X (P f ) ≤ ¯	E1(P f ) + C(ϵ∗)1/2 ¯	E2(P f ), (7.29)
+where
+¯	E1(P f ) := α
+n2εm+2
+n	X
+i,j=1
+ρ(Q¯xi )1/2ρ(Q¯xj )1/21{0<∥Q¯xi −Q¯xj ∥≤ε∗}(P f (Q¯xi ) − P f (Q¯xj ))2
+¯	E2(P f ) := 1
+n2εm+2
+n	X
+i,j=1
+1{0<∥Q¯xi −Q¯xj ∥≤ε∗}(P f (Q¯xi ) − P f (Q¯xj ))2.
+Considering ¯	E1(P f ), we directly obtain from the definition (7.3) of the discretization map
+P that
+¯	E1(P f ) ≤ α
+nεm+2
+n	X
+j=1
+Z
+Uj
+ρ(Q¯xj )1/21{d(x,Q¯xj )≤ϵ∗+2ι2}(f (x) − P f (Q¯xj ))2pn(x)dV(x)
+= α
+εm+2
+Z
+M
+Z
+M
+1{d(x,y)≤ϵ∗+2ι2}(f (x) − f (y))2pn(x)pn(y)dV(x)dV(y).
+Then from this point on, we proceed identically to the proof of (Garc´ıa Trillos et al., 2020,
+Lemma 13) (and applying the technical (Garc´ıa Trillos et al., 2020, Lemma 5) to exchange
+ϵ∗ + 2ι2 ≈ ε + 2ι2) to get
+¯	E1(P f ) ≤
+
+1 + Cι2
+ε
+
+E∗
+M;ε+2ι2 (f ). (7.30)
+Regarding ¯	E2(P f ), we observe by (2.14) that
+¯	E2(P f )
+≤ C
+n2εm+2
+n	X
+i,j=1
+ρ(Q¯xi )1/2ρ(Q¯xj )1/21{0<∥Q¯xi −Q¯xj ∥≤ε∗}(P f (Q¯xi ) − P f (Q¯xj ))2 = C ¯	E1(P f );
+thus from (7.30)
+(ϵ∗)1/2 ¯	E2(P f ) ≤ C(ϵ∗)1/2
+1 + Cι2
+ε
+
+E∗
+M;ε+2ι2 (f ). (7.31)
+39
+
+-- 39 of 69 --
+
+C. Li and A.M. Neuman
+Since Cε3/2 ≤ ι2 implies that C(ϵ∗)1/2 ≤ ι2/ε, we combine (7.29), (7.30), (7.31) to conclude
+(7.22).
+For (7.23), note that if f ∈ L2
+˘ϑn
+(Q ¯X ) then P ∗f ∈ L2(M). We derive from (2.7), (6.22),
+(7.28) with r = ε∗, and definition (7.1) that
+EQ ¯X (f ) ≥ 1
+n2εm
+w εm+2
+X
+Q¯xi ,Q¯xj ∈Q ¯X
+ς(Q¯xi , Q¯xj )1{0<∥Q¯xi −Q¯xj ∥≤ε∗}(f (Q¯xi ) − f (Q¯xj ))2
+≥ 1
+n2εm
+w εm+2
+X
+Q¯xi ,Q¯xj ∈Q ¯X
+(αρ(Q¯xi )1/2ρ(Q¯xj )1/2 − Cε1/2
+∗ )1{0<∥Q¯xi −Q¯xj ∥≤ε∗}(f (Q¯xi ) − f (Q¯xj ))2.
+The proof closely parallels that of (Garc´ıa Trillos et al., 2020, Lemma 14); thus adopting a
+similar approach to the one used earlier, we obtain
+EQ ¯X (f ) ≥
+
+1 − Cι2
+ε
+
+E∗
+M;ε−2ι2 (P ∗f ),
+which is (7.23).
+7.4 Proof of Proposition 22
+Proof The proof is nearly word-for-word identical to that of (Calder and Garc´ıa Trillos,
+2022, Proposition 4.2), with modifications similar to those encountered in the proof of
+Lemma 24. One modification involves incorporating the adaptive definitions (7.3), (7.4),
+which yields
+∥P ∗P f ∥2
+L2
+υn (M) = ∥(P f )ρ1/2∥2
+L2
+ϑn (Q ¯X ),
+with the extra density above being the distinguishing factor from the corresponding quan-
+tities in (Calder and Garc´ıa Trillos, 2022, Proposition 4.2). Another modification appears
+in the application of (Garc´ıa Trillos et al., 2020, Lemma 8) near the end. Specifically, ε
+needs to be replaced by ε(1 + 2εw), and this small difference is again accounted for by the
+technical (Garc´ıa Trillos et al., 2020, Lemma 5). After these modifications, every other
+step in (Calder and Garc´ıa Trillos, 2022, Proposition 4.2) remains unchanged. Lastly, we
+mention that the probability 1 − n exp(−cnι2
+1ιm
+2 ) aligns with the probability of the existence
+of υn in Proposition 20. Further details are omitted.
+7.5 Proof of Proposition 23
+Proof Since (7.14), (7.15) follow directly from the definition of the matching map M, and
+(7.17) is similar but less complex than (7.16), we will prove only (7.16) and briefly address
+(7.17) afterward. Let f ∈ L2
+ϑn ( ¯	X ), and let ¯	f := f ◦ M−1 ∈ L2
+˘ϑn
+(Q ¯X ). Then
+E ¯X (f ) = 2⟨Laugf, f ⟩L2
+ϑn ( ¯X ) = 2⟨Laugf − (Lproj ¯	f ) ◦ M, f ⟩L2
+ϑn ( ¯X ) + 2⟨(Lproj ¯	f ) ◦ M, f ⟩L2
+ϑn ( ¯X ).
+(7.32)
+40
+
+-- 40 of 69 --
+
+Consistency of augmentation graph and network approximability
+Observe, since f (¯x) = ¯	f (Q¯x), we have
+⟨(Lproj ¯	f ) ◦ M, f ⟩L2
+ϑn ( ¯X ) = 1
+n
+n	X
+i=1
+((Lproj ¯	f ) ◦ M)(¯xi)f (¯xi)
+= 1
+n
+n	X
+i=1
+(Lproj ¯	f )(Q¯xi ) ¯	f (Q¯xi ) = 1
+2 EQ ¯X ( ¯	f ), (7.33)
+and moreover,
+⟨Laugf − (Lproj ¯	f ) ◦ M, f ⟩L2
+ϑn ( ¯X )
+= 1
+n2εm
+w εm+2
+n	X
+i=1
+n	X
+j=1
+(ω(¯xi, ¯xj ) − ς(Q¯xi , Q¯xj ))1{0<∥¯xi−¯xj ∥≤ε}( ¯	f (Q¯xi ) − ¯	f (Q¯xj )) ¯	f (Q¯xi ).
+(7.34)
+Now, recalling the steps in the proof of Proposition 14, particularly (6.11), (6.14), we obtain
+−Cε2ς(Q¯xi , Q¯xj ) ≤ ω(¯xi, ¯xj ) − ς(Q¯xi , Q¯xj ) ≤ Cε2ς(Q¯xi , Q¯xj ) + exp
+
+− cε4/3
+ε2τ /3
+
+. (7.35)
+By applying Lemma 27 (with δ = ε2), combined with a union bound, and adapting the
+argument leading to (6.24), we conclude that
+1
+n2εm
+w εm+2
+n	X
+i=1
+n	X
+j=1
+1{0<∥¯xi−¯xj ∥≤ε}( ¯	f (Q¯xi ))2 = 1
+n2εm
+w εm+2
+n	X
+i=1
+( ¯	f (Q¯xi ))2 X
+Q¯xj :0<∥¯xi−¯xj ∥≤ε
+1
+≤
+Cη(1 + ε2)∥f ∥2
+L2
+ϑn ( ¯X )
+εm
+w ε2 (7.36)
+holds with probability at least 1 − 2n exp(−cηnεm+4). Similarly,
+1
+n2εm
+w εm+2
+n	X
+i=1
+n	X
+j=1
+1{0<∥¯xi−¯xj ∥≤ε}| ¯	f (Q¯xi )|| ¯	f (Q¯xj )|
+≤ 1
+2n2εm
+w εm+2
+n	X
+i=1
+n	X
+j=1
+1{0<∥¯xi−¯xj ∥≤ε}(| ¯	f (Q¯xi )|2 + | ¯	f (Q¯xj )|2) ≤
+Cη(1 + ε2)∥f ∥2
+L2
+ϑn ( ¯X )
+εm
+w ε2
+(7.37)
+holds with the same probability. We now substitute the second inequality in (7.35) into
+(7.34), integrating (7.36), (7.37), as well as invoking (3.17), to derive
+⟨Laugf − (Lproj ¯	f ) ◦ M, f ⟩L2
+ϑn ( ¯X ) ≤ Cε2EQ ¯X ( ¯	f ) + Cη exp
+
+− cε4/3
+ε2τ /3
+ ∥f ∥2
+L2
+ϑn ( ¯X )
+εm
+w ε2
+≤ Cε2EQ ¯X ( ¯	f ) + Cηε∥f ∥2
+L2
+ϑn ( ¯X ). (7.38)
+Then, combining (7.38) with (7.32), (7.33) yields (7.16). It remains to see that the proof of
+(7.17) follows in the same manner, but utilizes the first inequality in (7.35).
+41
+
+-- 41 of 69 --
+
+C. Li and A.M. Neuman
+8 Proof of Theorem 13
+Proof Let l = 1, . . . , k. Let ˆ	f aug
+l be the jth normalized eigenvector (with respect to
+L2
+ϑn ( ¯	X )) of Laug, and, by Theorem 12, let fl be the jth normalized eigenfunction (with
+respect to L2(M)) of ∆aug that satisfies (4.6). We have
+1
+√n ∥ ˆ	f aug
+l (·) − fl(Q·)∥ℓ∞( ¯X ) ≤ ∥ ˆ	f aug
+l (·) − fl(Q·)∥L2
+ϑn ( ¯X ) ≤ Cη,lε, (8.1)
+and 1
+√n ∥ ˆ	f aug
+l (·) − fl(Q·)∥ ≤ ∥ ˆ	f aug
+l (·) − fl(Q·)∥L2
+ϑn ( ¯X ) ≤ Cη,lε, (8.2)
+where ∥ · ∥ in (8.2) denotes the Euclidean vector norm. Based on the elliptic theory of PDEs
+(Gilbarg and Trudinger, 1977, Section 6.3) and Proposition 7, fl is a Lipschitz function.
+Then as a consequence of (Chen et al., 2022, Theorem 3.1), there exists a ReLU NN (fl)θ :
+Rd → R of the form (3.22), where θ ∈ Θ given in (3.26), such that for every ˜δ ∈ (0, 1)
+1
+√n ∥fl − (fl)θ∥L∞(M) ≤ ∥fl − (fl)θ∥L∞(M) ≤ ˜δ, (8.3)
+and moreover 1
+√n ∥fl(Q·) − (fl)θ(Q·)∥ ≤ ∥fl − (fl)θ∥L∞(M) ≤ ˜δ. (8.4)
+Thus, we obtain, from (8.1), (8.3),
+1
+√n ∥ ˆ	f aug
+l (·) − (fl)θ(Q·)∥ℓ∞( ¯X ) ≤ Cη,lε + ˜δ, (8.5)
+and from (8.2), (8.4),
+1
+√n ∥ ˆ	f aug
+l (·) − (fl)θ(Q·)∥ ≤ Cη,lε + ˜δ, (8.6)
+Further, by Eckart-Young-Minsky theorem, a solution to (3.20) takes the form
+Y ∗ = 1
+√n
+hqˆλaug
+l ˆ	f aug
+l (¯xi)
+i
+i=1,...,n;l=1,...,k ∈ Rn×k,
+assuming the rotation matrix is the k × k identity matrix. Stack the ReLU NNs
+qˆλaug
+l (fl)θ,
+l = 1, . . . , k, to obtain a ReLU NN fθ : Rd → Rl, and let Yθ = 1	√n (fθ(¯x1), . . . , fθ(¯xn))⊤ ∈
+Rn×l. We conclude respectively from (8.5), (8.6),
+∥Y ∗ − Yθ∥∞ ≤ Cη,k(ε + ˜δ) and ∥Y ∗ − Yθ∥ ≤ C′
+η,k(ε + ˜δ), (8.7)
+as desired. Here, in (8.7), both Cη,k and C′
+η,k involve a factor of maxl=1,...,k
+qˆλaug
+l , with
+C′
+η,k further including a factor of √k. With L qˆλaug
+l (fl)θ
+ denoting the network depth of
+qˆλaug
+l (fl)θ, p qˆλaug
+l (fl)θ
+ its width, and m qˆλaug
+l (fl)θ
+, M qˆλaug
+l (fl)θ
+ the complexity
+42
+
+-- 42 of 69 --
+
+Consistency of augmentation graph and network approximability
+parameters from (3.24), (3.25) respectively, we obtain in addition from (Chen et al., 2022,
+Theorem 3.1),
+L
+q
+ˆλaug
+l (fl)θ
+
+≤ C
+
+log
+ 1
+˜δ
+
++ log d
+
+and p
+q
+ˆλaug
+l (fl)θ
+
+≤ C(˜δ−m + d), (8.8)
+and
+m
+q
+ˆλaug
+l (fl)θ
+
+≤ C max
+l=1,...,k
+q
+ˆλaug
+l and M
+q
+ˆλaug
+l (fl)θ
+
+≤
+
+(˜δ−m+d) log
+ 1
+˜δ
+
++d log d
+
+,
+(8.9)
+where all the constants C depend only on M. Therefore, it follows from (8.8), (8.9) respec-
+tively that
+L
+ 1
+√n fθ
+
+≤ C
+
+log
+ 1
+˜δ
+
++ log d
+
+and p
+ 1
+√n fθ
+
+≤ Ck(˜δ−m + d),
+and
+m
+ 1
+√n fθ
+
+≤ C maxl=1,...,k
+qˆλaug
+l
+√n ≤ C and M
+ 1
+√n fθ
+
+≤ k
+
+(˜δ−m+d) log
+ 1
+˜δ
+
++d log d
+
+,
+when n is sufficiently large. Finally, we perform a union bound over the probabilities of
+(4.6) occurring for all l = 1, . . . , k to complete the proof.
+Acknowledgments and disclosure of funding
+CL gratefully acknowledges the support from the IFDS at UW-Madison and the NSF
+through the TRIPODS grant 2023239. AMN is supported by the Austrian Science Fund
+(FWF) Project P-37010.
+References
+Hanan Ayad and Mohamed Kamel. Refined shared nearest neighbors graph for combining
+multiple data clusterings. In Advances in Intelligent Data Analysis V, pages 307–318,
+2003.
+St´ephane Boucheron, G´abor Lugosi, and Pascal Massart. Concentration inequalities: A
+nonasymptotic theory of independence. Oxford University Press, 2013.
+Dmitri Burago, Sergei Ivanov, and Yaroslav Kurylev. A graph discretization of the Laplace-
+Beltrami operator. Journal of Spectral Theory, 4(4):675–714, 2014.
+Jeff Calder. The game theoretic p-Laplacian and semi-supervised learning with few labels.
+Nonlinearity, 32(1):301–330, 2019.
+Jeff Calder and Nicol´as Garc´ıa Trillos. Improved spectral convergence rates for graph
+Laplacians on ε-graphs and k-NN graphs. Applied and Computational Harmonic Analysis,
+60:123–175, 2022.
+43
+
+-- 43 of 69 --
+
+C. Li and A.M. Neuman
+Jeff Calder, Nicol´as Garc´ıa Trillos, and Marta Lewicka. Lipschitz regularity of graph Lapla-
+cians on random data clouds. SIAM Journal on Mathematical Analysis, 54(1):1169–1222,
+2022.
+Yann Chaubet and Vincent Divol. Minimax spectral estimation of weighted Laplace oper-
+ators. arXiv preprint arXiv:2511.22694, 2025.
+Minshuo Chen, Haoming Jiang, Wenjing Liao, and Tuo Zhao. Nonparametric regression
+on low-dimensional manifolds using deep relu networks: Function approximation and
+statistical recovery. Information and Inference: A Journal of the IMA, 11(4):1203–1253,
+2022.
+Ting Chen, Simon Kornblith, Mohammad Norouzi, and Geoffrey Hinton. A simple frame-
+work for contrastive learning of visual representations. In Proceedings of the 37th Inter-
+national Conference on Machine Learning, pages 1597–1607, 2020a.
+Ting Chen, Simon Kornblith, Kevin Swersky, Mohammad Norouzi, and Geoffrey E. Hinton.
+Big self-supervised models are strong semi-supervised learners. In Advances in Neural
+Information Processing Systems, volume 33, pages 22243–22255, 2020b.
+Xinlei Chen and Kaiming He. Exploring simple siamese representation learning. In Pro-
+ceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages
+15750–15758, 2021.
+Manfredo P. do Carmo. Riemannian geometry. Birkh¨auser, 1992.
+David B Dunson, Hau Tieng Wu, and Nan Wu. Spectral convergence of graph laplacian
+and heat kernel reconstruction in L∞ from random samples. Applied and Computational
+Harmonic Analysis, 55:282–336, 2021.
+Carl Eckart and Gale Young. The approximation of one matrix by another of lower rank.
+Psychometrika, 1(3):211–218, 1936.
+Lawrence C Evans. Partial differential equations, volume 19. American Mathematical
+Society, 2010.
+Nicol´as Garc´ıa Trillos, Moritz Gerlach, Matthias Hein, and Dejan Slepˇcev. Error estimates
+for spectral convergence of the graph Laplacian on random geometric graphs toward the
+Laplace-Beltrami operator. Foundations of Computational Mathematics, 20(4):827–887,
+2020.
+Nicol´as Garc´ıa Trillos, Pengfei He, and Chenghui Li. Large sample spectral analysis of
+graph-based multi-manifold clustering. Journal of Machine Learning Research, 24(143):
+1–71, 2023.
+Nicol´as Garc´ıa Trillos, Chenghui Li, and Raghavendra Venkatraman. Minimax rates for
+the estimation of eigenpairs of weighted Laplace-Beltrami operators on manifolds. arXiv
+preprint arXiv:2506.00171, 2025.
+44
+
+-- 44 of 69 --
+
+Consistency of augmentation graph and network approximability
+David Gilbarg and Neil S. Trudinger. Elliptic partial differential equations of second order,
+volume 224. Springer, 1977.
+Victor Guillemin and Alan Pollack. Differential topology, volume 370. American Mathe-
+matical Soc., 2010.
+Jeff Z. HaoChen, Colin Wei, Adrien Gaidon, and Tengyu Ma. Provable guarantees for self-
+supervised deep learning with spectral contrastive loss. In Advances in Neural Information
+Processing Systems, volume 34, pages 5000–5011, 2021.
+Emmanuel Hebey. Sobolev spaces on Riemannian manifolds, volume 1635. Springer Science
+& Business Media, 1996.
+Wassily Hoeffding. Probability inequalities for sums of bounded random variables. In The
+Collected Works of Wassily Hoeffding, pages 409–426. Springer, 1994.
+Svante Janson. Large deviations for sums of partly dependent random variables. Random
+Structures & Algorithms, 24(3):234–248, 2004.
+Alex Krizhevsky. Learning multiple layers of features from tiny images. Technical report,
+University of Toronto, 2009.
+Chenghui Li, Rishi Sonthalia, and Nicol´as Garc´ıa Trillos. Spectral neural networks: Approx-
+imation theory and optimization landscape. Journal of Machine Learning, 5(1):19–70,
+2026.
+Alhassan Mumuni and Fuseini Mumuni. Data augmentation: A comprehensive survey of
+modern approaches. Array, 16:100258, 2022.
+A. Martina Neuman. Graph Laplacians on shared nearest neighbor graphs and graph
+Laplacians on k-nearest neighbor graphs having the same limit. arXiv preprint
+arXiv:2302.12399, 2023.
+Nikunj Saunshi, Orestis Plevrakis, Sanjeev Arora, Mikhail Khodak, and Hrishikesh Khan-
+deparkar. A theoretical analysis of contrastive unsupervised representation learning. In
+Proceedings of the 36th International Conference on Machine Learning, pages 5628–5637,
+2019.
+Connor Shorten, Taghi M. Khoshgoftaar, and Borko Furht. Text data augmentation for
+deep learning. Journal of Big Data, 8:101, 2021.
+Dirk Jan Struik. Lectures on classical differential geometry. Courier Corporation, 2012.
+Christopher Tosh, Akshay Krishnamurthy, and Daniel Hsu. Contrastive estimation reveals
+topic posterior information to linear models. Journal of Machine Learning Research, 22
+(281):1–31, 2021a.
+Christopher Tosh, Akshay Krishnamurthy, and Daniel Hsu. Contrastive learning, multi-
+view redundancy, and linear models. In Algorithmic Learning Theory, pages 1179–1206,
+2021b.
+45
+
+-- 45 of 69 --
+
+C. Li and A.M. Neuman
+Roman Vershynin. High-dimensional probability: An introduction with applications in data
+science, volume 47. Cambridge University Press, 2018.
+Ulrike von Luxburg. A tutorial on spectral clustering. Statistics and computing, 17(4):
+395–416, 2007.
+Caroline L Wormell and Sebastian Reich. Spectral convergence of diffusion maps: Improved
+error bounds and an alternative normalization. SIAM Journal on Numerical Analysis,
+59(3):1687–1734, 2021.
+Chulhee Yun, Suvrit Sra, and Ali Jadbabaie. Small ReLU networks are powerful memorizers:
+a tight analysis of memorization capacity. In Advances in Neural Information Processing
+Systems, volume 32, pages 15532–15543, 2019.
+Appendix A. Relevant concentration results
+We present the following two known concentration lemmas.
+Lemma 25 (Calder and Garc´ıa Trillos, 2022, Lemma 3.1 and its proof ) (see also (Calder,
+2019, Lemma 1)) Let M satisfy the assumptions made in Section 2.2. Let ψ : Rd → R be
+bounded and Borel measurable with compact support in a bounded open set Ω ⊂ Rd such
+that Ω ∩ M̸ = ∅. Let x1, . . . , xn be a sample of i.i.d points on M following a distribution
+on M with a positive continuous density p, such that p(x) ≤ pmax < ∞ for all x ∈ M. Let
+Ψ := 1
+n
+n	X
+i=1
+ψ(xi),
+and let a := R
+Ω∩M ψ(z)p(z)dV(z). Then for every 0 < δ ≤ 1,
+P |Ψ − a| > Cpmax∥ψ∥L∞(Ω)V(Ω ∩ M) δ ≤ 2 exp   − cpmaxnV(Ω ∩ M) δ2,
+where C, c > 0 depend only on M.
+When Ω = Bd(x, ε) for x ∈ M, Lemma 28 below can be seen as a special case of
+Lemma 27.
+Lemma 26 (Calder and Garc´ıa Trillos, 2022, Lemma 3.1 and its proof ) Let M satisfy the
+assumptions made in Section 2.2. Let ψ : M → R be bounded and Borel measurable. Let
+x1, . . . , xn be a sample of i.i.d points on M following a distribution on M with a positive
+continuous density p, such that p(x) ≤ pmax < ∞ for all x ∈ M. Let ε > 0. For x ∈ M,
+we define Ψ = Ψ(x) to be
+Ψ := 1
+n
+X
+i:∥xi−x∥≤ε
+ψ(xi).
+Let
+a :=
+Z
+Bd(x,ε)∩M
+ψ(z)p(z)dV(z) and b :=
+Z
+B(x,ε)
+ψ(z)p(z)dV(z).
+46
+
+-- 46 of 69 --
+
+Consistency of augmentation graph and network approximability
+Then we have
+|a − b| ≤ Cpmax∥ψ∥L∞(B(x,2ε))εm+2.
+Additionally, for any ε2 ≤ δ ≤ 1,
+P(|Ψ − b| ≥ Cpmax∥ψ∥L∞(B(x,2ε))δεm) ≤ 2 exp(−cpmaxδ2nεm),
+where C, c > 0 depend only on M.
+Both Lemmas 25, 26 apply to i.i.d. random variables. However, in the context of
+our analysis, we require concentration results for the collection Q ¯X of projection points
+Q¯x. While these points can be viewed as samples from the measure ν with density q (3.1),
+they are not independent. Nevertheless, under Assumption 1, a similar partial independence
+condition holds for Q ¯X , in that for every Q¯x, there exist at most C0 ∈ N other Q¯x′ dependent
+on Q¯x. We present variants of both lemmas to address this scenario, as follows.
+Lemma 27 Let M satisfy the assumptions made in Section 2.2. Let ψ : Rd → R be
+bounded and Borel measurable with compact support in a bounded open set Ω ⊂ Rd such
+that Ω ∩ M̸ = ∅. Let x1, . . . , xn be a sample of i.i.d points on M following a distribution
+on M with a positive continuous density p, such that p(x) ≤ pmax < ∞ for all x ∈ M.
+Suppose further that for each point xi there are at most C0 other points xj dependent on
+xi. Let
+Ψ := 1
+n
+n	X
+i=1
+ψ(xi),
+and let a := R
+Ω∩M ψ(z)p(z)dV(z). Then for every 0 < δ ≤ 1,
+P |Ψ − a| > Cpmax∥ψ∥L∞(Ω)V(Ω ∩ M) δ ≤ 2 exp   − cpmaxnV(Ω ∩ M) δ2, (A.1)
+where C, c > 0 depend only on M.
+Lemma 28 Let M satisfy the assumptions made in Section 2.2. Let ψ : M → R be
+bounded and Borel measurable. Let x1, . . . , xn be a sample of points on M following an
+identical distribution on M with a positive continuous density p, such that p(x) ≤ pmax < ∞
+for all x ∈ M. Suppose further that for each point xi there are at most C0 other points xj
+dependent on xi. Let ε > 0. For x ∈ M, we define Ψ = Ψ(x) to be
+Ψ := 1
+n
+X
+i:∥xi−x∥≤ε
+ψ(xi).
+Let
+a :=
+Z
+Bd(x,ε)∩M
+ψ(z)p(z)dV(z) and b :=
+Z
+B(x,ε)
+ψ(z)p(z)dV(z).
+Then we have
+|a − b| ≤ Cpmax∥ψ∥L∞(B(x,2ε))εm+2.
+Additionally, for any ε2 ≤ δ ≤ 1,
+P(|Ψ − b| ≥ Cpmax∥ψ∥L∞(B(x,2ε))δεm) ≤ 2 exp(−cpmaxδ2nεm), (A.2)
+where C, c > 0 depend only on M.
+47
+
+-- 47 of 69 --
+
+C. Li and A.M. Neuman
+The constant c in both probabilistic estimates (A.1), (A.2) implicitly includes a factor
+of C−1
+0 , which we assume to be predetermined. The proofs of Lemma 27 and Lemma 28 can
+be easily adapted from those in (Calder and Garc´ıa Trillos, 2022, Lemma 3.1) and (Janson,
+2004, Theorem 2.1). We skip further details.
+Appendix B. Relevant geometric construction for Propositions 7, 15
+Let r > 0 be sufficiently small. Then recall from Section 2.2 that the logarithm map
+Logx : M ⊃ B(x, r) → Bm(0, r) ⊂ TxM,
+is a diffeomorphism. Let Im : Rm → Rd, where Im(y1, . . . , ym) = (y1, . . . , ym, 0, . . . , 0), be a
+canonical immersion map (see (Guillemin and Pollack, 2010, Chapter 3)). Let Ax denote
+a composition of a translation by x and an appropriate rotation Rx, such that Ax maps
+Rm × {0} := {(y1, . . . , ym, 0, . . . , 0) : yi ∈ R}
+onto ˜	TxM. See Figure 4 below for an illustration. Then Ax ◦Im maps TxM ∼	= Rm bijectively
+and isometrically to ˜	TxM ⊂ Rd. Expressively,
+Ax ◦ Im(TxM) = ˜	TxM. (B.1)
+By letting Lx := Ax ◦ Im ◦ Logx, we obtain for x′ ∈ B(x, r) a unique image Lx(x′) ∈ ˜	TxM,
+such that
+∥Lx(x′) − x∥ = ∥Logx(x′)∥ = d(x, x′). (B.2)
+Figure 4: A two-dimensional sphere and one of its tangent planes under rotation and trans-
+lation
+(a) A two-dimensional sphere in R3 and
+one of its tangent planes colored in pink
+(b) The same sphere now repositioned with the
+tangent plane as the xy-plane
+Next, let s > 0. We consider the neighborhood Ns(B(x, r)) of B(x, r), defined to be
+Ns(B(x, r)) := {x′ + h : x′ ∈ B(x, r) and h ∈ ˜	Nx′ M ∩ Ns(M) − x′}.
+48
+
+-- 48 of 69 --
+
+Consistency of augmentation graph and network approximability
+Note, ˜	Nx′ M − x′ ∼	= Nx′ M ∼	= Rd−m. Similarly, as before, such identification can be made
+explicit, for the rotation Rx′ also maps
+{0} × Rd−m := {(0, . . . , 0, y1, . . . , yd−m) : yi ∈ R}
+onto ˜	Nx′ M − x′. Let Jd−m : Rd−m → Rd be another immersion map, where
+Jd−m(y1, . . . , yd−m) = (0, . . . , 0, y1, . . . , yd−m).
+Then, through the bijective isometric map (Rx′ ◦ Jd−m)−1, h ∈ ˜	Nx′ M ∩ Ns(M) − x′ is
+uniquely identified with k = (Rx′ ◦ Jd−m)−1(h) ∈ Bd−m(0, s). Now using the diffeomorphic
+map
+Expx : TxM ⊃ Bm(0, r) → B(x, r) ⊂ M,
+we can construct another diffeomorphic map:
+Expx : Bm(0, r) × Bd−m(0, s) → Ns(B(x, r))
+(v, k) 7 → x′ + h,
+where x′ = Expx(v) and, as noted, h = Rx′ ◦ Jd−m(k). It is readily checked that the volume
+form of Expx at (v, k) is Jx(v)dv × dk.
+Appendix C. Proof of Proposition 15
+Proof We begin by establishing the necessary groundwork. Let ˜	TQ¯x M and ˜	TQ¯x′ M be the
+tangent planes of M at Q¯x and at Q¯x′ , respectively. It follows that
+Q¯x − ¯x ⊥ ˜	TQ¯x M and Q¯x′ − ¯x′ ⊥ ˜	TQ¯x′ M, (C.1)
+where ⊥ denotes the usual orthogonal notion in Rd; see Figure 5. From (2.7), (2.15), we
+obtain14
+d(x, Q¯x) ≤ ∥x − Q¯x∥ + 8
+R2 ∥x − Q¯x∥3 ≤ Cε2/3
+n ,
+d(x, Q¯x′ ) ≤ ∥x − Q¯x′ ∥ + 8
+R2 ∥x − Q¯x′ ∥3 ≤ Cε2/3
+n .
+Hence, by applying (B.2) to the locations Q¯x, Q¯x′ , we acquire for x, respective unique
+images LQ¯x (x), LQ¯x′ (x), such that
+∥LQ¯x (x) − Q¯x∥ = ∥LogQ¯x (x)∥ = d(x, Q¯x) ≤ Cε2/3
+n , and
+∥LQ¯x′ (x) − Q¯x′ ∥ = ∥LogQ¯x′ (x)∥ = d(x, Q¯x′ ) ≤ Cε2/3
+n . (C.2)
+We now present the following two technical lemmas that will be indispensable in our analysis.
+Their proofs are provided in Appendices C.1, C.2, respectively in the order they appear.
+14. Whether these inequalities are presented as strict or non-strict will not affect the subsequent analysis.
+49
+
+-- 49 of 69 --
+
+C. Li and A.M. Neuman
+Q¯x
+¯x
+Q¯x′
+¯x′
+M
+˜	TQ¯x M
+˜	TQ¯x′ M
+x
+Figure 5: Q¯x and Q¯x′ are the closest points to ¯x and ¯x′ on M, respectively. ˜	TQ¯x M and
+˜	TQ¯x′ M are the tangent planes of M on Q¯x and Q¯x′ , respectively.
+Lemma 29 Let x, Q¯x, Q¯x′ , LQ¯x (x), LQ¯x′ (x) be as above. Then it holds that
+∥x − LQ¯x (x)∥ = O(∥LQ¯x (x) − Q¯x∥2) and ∥x − LQ¯x′ (x)∥ = O(∥LQ¯x′ (x) − Q¯x′ ∥2) (C.3)
+where the majorant constants depend only on M.
+Lemma 30 Let x, Q¯x, Q¯x′ , LQ¯x (x), LQ¯x′ (x) be as above. Then under Assumption 5, the
+following hold,
+∥x − ¯x∥2 ≤ ∥¯x − Q¯x∥2 + (1 + Cε2/3
+n )∥Q¯x − LQ¯x (x)∥2,
+∥x − ¯x′∥2 ≤ ∥¯x′ − Q¯x′ ∥2 + (1 + Cε2/3
+n )∥Q¯x′ − LQ¯x′ (x)∥2, (C.4)
+and moreover,
+∥x − ¯x∥2 ≥ ∥¯x − Q¯x∥2 + (1 − C′ε2/3
+n )∥Q¯x − LQ¯x (x)∥2,
+∥x − ¯x′∥2 ≥ ∥¯x′ − Q¯x′ ∥2 + (1 − C′ε2/3
+n )∥Q¯x′ − LQ¯x′ (x)∥2, (C.5)
+where C, C′ > 0 dependent on M.
+Recalling the random variable
+X = 1{∥x−Q¯x∥<ε2/3
+n }∧{∥x−Q¯x′ ∥<ε2/3
+n }
+from (6.1), we define another, related variable
+Y := 1 − X = 1{∥x−Q¯x∥≥ε2/3
+n }∨{∥x−Q¯x′ ∥≥ε2/3
+n }. (C.6)
+50
+
+-- 50 of 69 --
+
+Consistency of augmentation graph and network approximability
+By expanding upon (2.3), we attain
+ω(¯x, ¯x′) = Ex∼μ
+h
+exp
+ −∥x − ¯x∥2 − ∥x − ¯x′∥2
+2ε2
+w
+i
+= Ex∼μ
+h
+X + Y
+
+exp
+ −∥x − ¯x∥2 − ∥x − ¯x′∥2
+2ε2
+w
+i
+. (C.7)
+We will first prove the lower bound in (6.5). By virtue of Lemma 30, we have
+
+X + Y
+
+exp
+ −∥x − ¯x∥2 − ∥x − ¯x′∥2
+2ε2
+w
+
+≥ X exp
+ −∥¯x − Q¯x∥2 − ∥¯x′ − Q¯x′ ∥2 − (1 + Cε2/3
+n )(∥Q¯x − LQ¯x (x)∥2 + ∥Q¯x′ − LQ¯x′ (x)∥2)
+2ε2
+w
+
+.
+(C.8)
+Further, by Lemma 29 along with (C.2), it holds that
+∥Q¯x−LQ¯x (x)∥2≤∥Q¯x−x∥2 + 2∥Q¯x−x∥∥x−LQ¯x (x)∥+∥x−LQ¯x (x)∥2 ≤ ∥Q¯x−x∥2 + Cε2
+n
+∥Q¯x′ −LQ¯x′ (x)∥2≤∥Q¯x′ −x∥2 + 2∥Q¯x′ −x∥∥x−LQ¯x′ (x)∥+∥x−LQ¯x′ (x)∥2≤∥Q¯x′ −x∥2+Cε2
+n,
+(C.9)
+and that
+Cε2/3
+n ∥Q¯x − LQ¯x (x)∥2 ≤ Cε2
+n
+Cε2/3
+n ∥Q¯x′ − LQ¯x′ (x)∥2 ≤ Cε2
+n. (C.10)
+Hence, combining (C.8), (C.9), (C.10) gives us the desired lower bound
+ω(¯x, ¯x′) ≥ exp
+
+− Cε2
+n
+ε2
+w
+
+ξ(¯x, ¯x′) = exp(−Cε2)ξ(¯x, ¯x′).
+Now, for the upper bound in (6.5), we first consider the case when
+∥x − Q¯x∥ ≥ ε2/3
+n or ∥x − Q¯x′ ∥ ≥ ε2/3
+n ,
+i.e. when Y = 1 in (C.6). Suppose the first inequality holds. Then since ε2/3
+n ≫ εn,
+∥x − Q¯x∥ − ∥¯x − Q¯x∥ ≥ cε2/3
+n > 0, and consequently,
+∥¯x − x∥2 ≥ (∥x − Q¯x∥ − ∥¯x − Q¯x∥)2 ≥ cε4/3
+n .
+Therefore,
+Ex∼μ
+h
+Y exp
+ −∥x − ¯x∥2 − ∥x − ¯x′∥2
+2ε2
+w
+i
+≤ exp
+
+− cε4/3
+n
+ε2
+w
+
+= exp
+
+− cε4/3
+ε2τ /3
+
+. (C.11)
+Next, suppose
+∥x − Q¯x∥ < ε2/3
+n and ∥x − Q¯x′ ∥ < ε2/3
+n ,
+51
+
+-- 51 of 69 --
+
+C. Li and A.M. Neuman
+i.e. when X = 1 in (6.1). Then, due to
+∥Q¯x − LQ¯x (x)∥2 ≥ ∥Q¯x − x∥2 − 2∥Q¯x − x∥∥x − LQ¯x (x)∥ + ∥x − LQ¯x (x)∥2
+∥Q¯x′ − LQ¯x′ (x)∥2 ≥ ∥Q¯x′ − x∥2 − 2∥Q¯x′ − x∥∥x − LQ¯x′ (x)∥ + ∥x − LQ¯x′ (x)∥2,
+we get, from (C.2) and Lemma 29,
+∥Q¯x − LQ¯x (x)∥2 ≥ ∥Q¯x − x∥2 − Cε2
+n
+∥Q¯x′ − LQ¯x′ (x)∥2 ≥ ∥Q¯x′ − x∥2 − Cε2
+n. (C.12)
+Further, by virtue of Lemma 30,
+−∥¯x − x∥2 ≤ −∥¯x − Q¯x∥2 − (1 − Cε2/3
+n )∥Q¯x − LQ¯x (x)∥2
+−∥¯x′ − x∥2 ≤ −∥¯x′ − Q¯x′ ∥2 − (1 − Cε2/3
+n )∥Q¯x′ − LQ¯x′ (x)∥2,
+we get from another application of (C.2)
+−∥¯x − x∥2 ≤ −∥¯x − Q¯x∥2 − ∥Q¯x − LQ¯x (x)∥2 + Cε2
+n
+−∥¯x′ − x∥2 ≤ −∥¯x′ − Q¯x′ ∥2 − ∥Q¯x′ − LQ¯x′ (x)∥2 + Cε2
+n. (C.13)
+Altogether, (C.12), (C.13) demonstrate
+Ex∼μ
+h
+X exp
+ −∥x − ¯x∥2 − ∥x − ¯x′∥2
+2ε2
+w
+i
+≤ exp
+ Cε2
+n
+ε2
+w
+
+ξ(¯x, ¯x′) = exp(Cε2)ξ(¯x, ¯x′). (C.14)
+Combining (C.7), (C.11), (C.14), we conclude
+ω(¯x, ¯x′) ≤ exp(Cε2)ξ(¯x, ¯x′) + exp
+
+− cε4/3
+ε2τ /3
+
+,
+which is the desired upper bound.
+C.1 Proof of Lemma 29
+Proof We will only prove the first inequality in (C.3); the second inequality is handled
+similarly. Let r > 0. Let y ∈ Bd(Q¯x, r) ∩ ˜	TQ¯x M, where ˜	TQ¯x M denotes the affine plane
+tangent to M at Q¯x. Recalling further that (AQ¯x ◦ Im)−1( ˜	TQ¯x M) = TQ¯x M (see (B.1)), we
+define EQ¯x := ExpQ¯x ◦ (AQ¯x ◦ Im)−1 and write
+EQ¯x (y) = Q¯x + IQ¯x (y) + 1
+2 PQ¯x (y) + . . . (C.15)
+where IQ¯x , PQ¯x are linear and quadratic forms on ˜	TQ¯x M, respectively, with values in Rd.
+Consider the plane P determined by the points x, Q¯x, LQ¯x (x), and let γ be the geodesic
+curve connecting Q¯x, x that lies in the intersection P ∩ B(Q¯x, r). Let v be the unit vector
+in the positive direction of LQ¯x (x) − Q¯x. We can suppose that γ is parametrized by its arc
+length s, such that
+γ(0) = Q¯x and d
+ds γ(0) = v.
+52
+
+-- 52 of 69 --
+
+Consistency of augmentation graph and network approximability
+Now, setting y = vs in (C.15) leads to
+γ(s) = EQ¯x (vs) = Q¯x + IQ¯x (v)s + 1
+2 PQ¯x (v)s2 + . . . (C.16)
+where IQ¯x (v) = v = d
+ds γ(0) and PQ¯x (v) = d2
+ds2 γ(0). Furthermore, since γ is a geodesic curve
+on M, we have
+d2
+ds2 γ(0) ⊥ ˜	Tγ(0)M = ˜	TQ¯x M,
+and since γ is a plane curve on P, we can write (Struik, 2012, Section 1-4)
+d2
+ds2 γ(0) = κn
+where n is the unit normal vector of γ in P at s = 0, and κ is the curvature of γ at s = 0.
+By the assumptions made on M in Section 2.2, |κ| ≤ K. Hence, if we let s = s∗ > 0 be
+such that EQ¯x (vs∗) = x in (C.16), we can conclude that
+∥x − Q¯x − vs∗∥ = O((s∗)2), (C.17)
+and the majorant constant is bounded by a multiple of K. Since Q¯x + vs∗ = LQ¯x (x), we
+obtain from (C.17),
+∥x − LQ¯x (x)∥ = O(∥LQ¯x (x) − Q¯x∥2),
+and the proof is completed.
+C.2 Proof of Lemma 30
+Proof We will only prove the first inequalities in (C.4) and in (C.5). We prepare two facts.
+First, it follows from the orthogonality in (C.1) that
+∥¯x − LQ¯x (x)∥2 = ∥¯x − Q¯x∥2 + ∥Q¯x − LQ¯x (x)∥2, (C.18)
+and second, from Lemma 29,
+∥x − LQ¯x (x)∥ ≤ C∥Q¯x − LQ¯x (x)∥2. (C.19)
+For the first inequality in (C.4), we have,
+∥x − ¯x∥2 ≤ (∥LQ¯x (x) − ¯x∥ + ∥LQ¯x (x) − x∥)2
+= ∥LQ¯x (x) − ¯x∥2 + ∥LQ¯x (x) − x∥2 + 2∥LQ¯x (x) − ¯x∥∥LQ¯x (x) − x∥. (C.20)
+Observe that
+∥LQ¯x (x) − ¯x∥∥LQ¯x (x) − x∥ ≤ C∥Q¯x − LQ¯x (x)∥2
+q
+∥¯x − Q¯x∥2 + ∥Q¯x − LQ¯x (x)∥2
+≤ Cε2/3
+n ∥Q¯x − LQ¯x (x)∥2,
+(C.21)
+53
+
+-- 53 of 69 --
+
+C. Li and A.M. Neuman
+where the first inequality is due to (C.18), (C.19) and the second to (C.2). Putting (C.21)
+back in (C.20), and invoking all (C.2), (C.18), (C.19) again, allows us to obtain
+∥x − ¯x∥2 ≤ ∥Q¯x − ¯x∥2 + ∥LQ¯x (x) − Q¯x∥2 + ∥LQ¯x (x) − x∥2 + Cε2/3
+n ∥Q¯x − LQ¯x (x)∥2
+≤ ∥Q¯x − ¯x∥2 + ∥LQ¯x (x) − Q¯x∥2 + Cε2/3
+n ∥Q¯x − LQ¯x (x)∥2 + Cε2/3
+n ∥Q¯x − LQ¯x (x)∥2
+≤ ∥Q¯x − ¯x∥2 + (1 + Cε2/3
+n )∥Q¯x − LQ¯x (x)∥2.
+Similarly, to handle the first inequality in (C.5), we note
+∥x − ¯x∥2 ≥ (∥LQ¯x (x) − ¯x∥ − ∥LQ¯x (x) − x∥)2
+= ∥LQ¯x (x) − ¯x∥2 + ∥LQ¯x (x) − x∥2 − 2∥LQ¯x (x) − ¯x∥∥LQ¯x (x) − x∥
+≥ ∥LQ¯x (x) − ¯x∥2 − 2∥LQ¯x (x) − ¯x∥∥LQ¯x (x) − x∥
+≥ ∥¯x − Q¯x∥2 + ∥Q¯x − LQ¯x (x)∥2 − Cε2/3
+n ∥Q¯x − LQ¯x (x)∥2
+= ∥¯x − Q¯x∥2 + (1 − Cε2/3
+n )∥Q¯x − LQ¯x (x)∥2,
+where the last inequality is an application of (C.18), (C.21).
+Appendix D. Proof of Proposition 7
+Proof In Appendix D.1, we express the relevant partial derivatives of q as path derivatives
+and address their continuity. We prove (3.5), (3.6) in Appendices D.2, D.4, respectively.
+The proof of (3.4) and (3.3) relies on arguments similar to those in Appendix D.2 and is
+presented in Appendix D.3.
+D.1 First and second partial derivatives of q as path derivatives
+Let z ∈ M. Consider the diffeomorphic map
+Expz : Bm(0, εn) × Bd−m(0, εn) → Nεn (B(z, εn))
+(v, k) 7 → z′ + h
+constructed in Appendix B, with r = s = εn. Here, z′ = Expz (v) and h = Rz′ ◦ Jd−m(k).
+Under this map, a straight line Γ : [0, 1] → Bm(0, εn), such that Γ(t) = tu, with u ∈ Sm−1,
+is mapped to a geodesic curve γ : [0, 1] → B(z, εn), such that γ(0) = z and
+d
+dt γ(t)|t=0 = ˜u = ⟨∇Expz (0), u⟩ ∈ ˜	Tz M − z
+is a unit vector. Letting z′ denote a generic point on γ, and following definition (3.1), we
+express q(z′) as
+q(γ(t)) = 1
+(εp
+√2π)d
+Z
+Bd−m(0,εn)
+Z
+M
+exp
+
+− ∥Expz (tu) + Rγ(t) ◦ Jd−m(k) − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dk.
+54
+
+-- 54 of 69 --
+
+Consistency of augmentation graph and network approximability
+Hence,
+d
+dt q(γ(t))|t=0
+= 1
+(εp
+√2π)d
+Z
+Bd−m(0,εn)
+Z
+M
+d
+dt exp
+
+− ∥Expz (tu) + Rγ(t) ◦ Jd−m(k) − x∥2
+2ε2
+p
+
+t=0ρ(x)dV(x)dk
+(D.1)
+provides us with the directional derivative ∂˜uq(z). Observe, since Rγ(t) is a rotation, we get
+d
+dt Rγ(t)y, Rγ(t)y = 0, (D.2)
+for all y ∈ Rd. Then, from (D.1) and a straightforward calculation,
+∂˜uq(z) = d
+dt q(γ(t))|t=0 = E + Z, (D.3)
+where, due to the orthogonality h ⊥ ˜u,
+E := − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨z + h − x, ˜u⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+= − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨z − x, ˜u⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+and due to (D.2),
+Z := − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨z − x, Ah⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+where A := d
+dt Rγ(t)|t=0.
+Let w ∈ Sm−1 and ˜	w = ∇Expz (0)w ∈ ˜	Tz M − z. Repeating this process for ∂˜uq in place
+of q, and w, ˜	w in place of u, ˜u, we interpret the second partial derivative ∂ ˜w∂˜uq as the time
+derivative of ∂˜uq(ζ(t)) at t = 0, where ζ : [0, 1] → B(z, εn) is a geodesic curve on M starting
+at z with velocity ˜	w. Thus, from (D.3)
+∂ ˜w∂˜uq(z) = d
+dt ∂˜uq(ζ(t))|t=0 = D + V + F + S (D.4)
+where15
+D := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨z − x, ˜u + Ah⟩⟨z − x, ˜	w + Ah⟩
+ε4
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+15. The letters E, Z, D, V, F, S are chosen correspondingly to the German words for “first, second, third,
+fourth, fifth, sixth” which are “Erster, Zweiter, Dritter, Vierter, F¨unfter, Sechster” respectively.
+55
+
+-- 55 of 69 --
+
+C. Li and A.M. Neuman
+and
+V := − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨ ˜	w, ˜u⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+F := − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨ ˜	w, Ah⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+S := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M
+⟨z − x, Bh⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+where B := d2
+dt2 Rγ(t)|t=0.
+We conclude by observing from (D.3), (D.4) that ∂˜uq, ∂ ˜w∂˜uq are both continuous in
+terms of z.
+D.2 Proof of (3.5) in Proposition 7
+Proof From (D.3), let E = E1 + E2, where
+E1:=− 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z−x, ˜u⟩
+ε2
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+E2:=− 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+⟨z−x, ˜u⟩
+ε2
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+Starting with E2, we note from (2.7) that, d(z, x) ≥ ε2/3
+n implies ∥x − z∥ ≥ cε2/3
+n . Further,
+from the fact that ∥h∥ ≤ εn, we also acquire
+cε2/3
+n ≤ cd(z, x) ≤ ∥z − x∥ ≤ c′(∥z − x∥ − ∥h∥) ≤ c′∥z + h − x∥. (D.5)
+Recall the quantity D = sup{∥x − x′∥ : x, x′ ∈ M} in (2.16). Since M is a closed manifold,
+D < ∞. Then gathering all in (D.5), we deduce,
+|E2|≤ 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+∥z − x∥
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+≤ D
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+1
+ε2
+p
+exp
+
+− c
+η2/dε2/3
+n
+
+ρ(x)dV(x)dh. (D.6)
+By taking ε sufficiently small satisfying (3.2), we acquire from (D.6),
+|E2| ≤ Cηεm
+n
+η2/d(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+dh ≤ Cη. (D.7)
+Moving on to E1, recall that we can associate for each x ∈ B(z, ε2/3
+n ), a unique Lz (x) − z ∈
+˜	Tz M − z such that Lemma 29 holds. To simplify the notation, we will write vx := Lz (x) − z
+from here onward. Then
+∥vx∥ = d(z, x) and ∥x − (vx + z)∥ = ∥x − Lz (x)∥ ≤ C∥Lz (x) − z∥2 = Cd(z, x)2, (D.8)
+and hence, due to the orthogonality vx ⊥ h,
+∥z + h − x∥2 = ∥z − x∥2 + ∥h∥2 + 2⟨z − x, h⟩ = ∥z − x∥2 + ∥h∥2 + 2⟨z + vx − x, h⟩.
+The following straightforward lemma holds.
+56
+
+-- 56 of 69 --
+
+Consistency of augmentation graph and network approximability
+Lemma 31 For x ∈ B(z, ε2/3
+n ), it holds that
+exp
+
+− ∥x − z∥2
+2ε2
+p
++ d(z, x)2
+2ε2
+p
+
+≤ exp
+ C∥x − z∥4
+ε2
+p
+
+≤ 1 + C∥x − z∥4
+ε2
+p
+, (D.9)
+and that
+exp
+
+− Cd(z, x)2∥h∥
+ε2
+p
+
+≤ exp
+
+− ⟨z + vx − x, h⟩
+ε2
+p
+
+≤ exp
+ Cd(z, x)2∥h∥
+ε2
+p
+
+. (D.10)
+Furthermore, if h + z ∈ ˜	Nz M ∩ Nεn (M), then
+exp
+
+− ⟨z + vx − x, h⟩
+ε2
+p
+
+= 1 − ⟨z + vx − x, h⟩
+ε2
+p
++ ⟨z + vx − x, h⟩2
+2ε4
+p
+− ⟨z + vx − x, h⟩3
+3!ε6
+p
++ ⟨z + vx − x, h⟩4
+4!ε8
+p
+− ⟨z + vx − x, h⟩5
+5!ε10
+p
++ Oη(ε2
+n). (D.11)
+Proof [Proof of Lemma 31] Observe that (D.9) follows from a combination of (2.7) and
+Taylor’s expansion, (D.10) from (D.8), and (D.11) from Taylor’s expansion again.
+Coming back to E1, we split E1 = E11 + E12, where
+E11:= 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨˜u, z+vx−x⟩
+ε2
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+E12:= 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+− ⟨˜u, vx⟩
+ε2
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+Guided by Lemma 31, we let
+E∗
+11 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨˜u, z + vx − x⟩
+ε2
+p
+× exp
+
+− ∥h∥2
+2ε2
+p
+
+exp
+
+− ∥x − z∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+and
+E∗
+12 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+− ⟨˜u, vx⟩
+ε2
+p
+× exp
+
+− ∥h∥2
+2ε2
+p
+
+exp
+
+− ∥x − z∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+Then another lemma applies.
+Lemma 32 Let E∗
+1i be defined as above, for i = 1, 2. Then |E∗
+1i| ≤ C.
+57
+
+-- 57 of 69 --
+
+C. Li and A.M. Neuman
+Proof [Proof of Lemma 32] It is straightforward from (2.7), (D.8) and a familiar calculation
+that
+|E∗
+11|≤ C
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+d(z, x)2
+ε2
+p
+× exp
+
+− ∥h∥2
+2ε2
+p
+
+exp
+
+− cd(z, x)2
+ε2
+p
+
+ρ(x)dV(x)dh
+= Cεd−m
+p
+(εp
+√2π)d
+Z
+[−η−1/d,η−1/d]d−m
+exp
+
+− ∥h∥2
+2
+
+dh
+Z
+Bm(0,ε2/3
+n )⊂Tz M
+∥y∥2
+ε2
+p
+× exp
+
+− c∥y∥2
+ε2
+p
+
+˜ρ(y)Jz (y)dy
+≤ C.
+We next focus on a version of E∗
+12, which is
+E∗∗
+12 :=− ρ(z)
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨˜u, vx⟩
+ε2
+p
+exp
+
+− ∥h∥2
+2ε2
+p
+
+exp
+
+− d(z, x)2
+2ε2
+p
+
+dV(x)dh.
+Note, for a fixed h + z ∈ ˜	Nz M ∩ Nεn (M), if x, x′ ∈ M are such that vx = −vx′ , then
+d(z, x) = d(z, x′), and conversely. Therefore
+−
+Z
+B(z,ε2/3
+n )
+⟨˜u, vx⟩
+ε2
+p
+exp
+
+− d(z, x)2
+2ε2
+p
+
+dV(x) = 0,
+and we conclude that E∗∗
+12 = 0. Thus, by virtue of Lemma 31, particularly (D.9), the
+Lipschitz continuity of ρ, and (D.8),
+|E∗
+12−E∗∗
+12 |≤ C
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(z,ε2/3
+n )
+d(z, x)2
+ε2
+p
+× exp
+
+− cd(z, x)2
+ε2
+p
+
+dV(x)dh
+≤ C.
+Henceforth, |E∗
+12| ≤ C.
+In view of Lemma 31, particularly (D.11),
+|E11 − E∗
+11| ≤ Cεn
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+× exp
+
+− ∥y∥2
+2ε2
+p
+ Z
+B(z,ε2/3
+n )
+d(z, x)4
+ε4
+p
+exp
+
+− cd(z, x)2
+ε2
+p
+
+dV(x)dh ≤ Cεn,
+(D.12)
+58
+
+-- 58 of 69 --
+
+Consistency of augmentation graph and network approximability
+and
+|E12 − E∗
+12| ≤ C
+(η1/dεp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+exp
+
+− ∥y∥2
+2ε2
+p
+ Z
+B(z,ε2/3
+n )
+d(z, x)3
+ε3
+p
+× exp
+
+− cd(z, x)2
+ε2
+p
+
+dV(x)dh ≤ Cη.
+Thus, in view of Lemma 32, |E1i| ≤ Cη. Consequently,
+|E1| = |E11 + E12| ≤ Cη. (D.13)
+Combining (D.7), (D.13), we arrive at
+|E| = |E1 + E2| ≤ Cη. (D.14)
+Finally, regarding Z in (D.3), we note that Z can also be split into
+Z1:=− 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z−x, Ah⟩
+ε2
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+= − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+∥Ah∥
+Z
+B(z,ε2/3
+n )
+⟨z − x, Ah/∥Ah∥⟩
+ε2
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+and
+Z2:=− 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+⟨z−x, Ah⟩
+ε2
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+Since |⟨z − x, Ah⟩| ≤ C∥z − x∥εn, following a similar calculation to that in (D.6), (D.7), we
+get, for ε sufficiently small
+|Z2| ≤ CηD
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+1
+εp
+exp
+
+− c
+η2/dε2/3
+n
+
+ρ(x)dV(x)dh
+≤ Cη. (D.15)
+For Z1, we draw an observation from the expression of Z1 and the treatment of E1, partic-
+ularly from the proof of Lemma 32 that
+|Z1| ≤ Cηεn. (D.16)
+Then (D.15), (D.16) imply
+|Z| = |Z1 + Z2| ≤ Cη. (D.17)
+Altogether, (D.3), (D.14), (D.17) conclude |∂˜uq(z)| ≤ |E| + |Z| ≤ Cη, as desired.
+59
+
+-- 59 of 69 --
+
+C. Li and A.M. Neuman
+D.3 Proof of (3.3) and (3.4) in Proposition 7
+Proof To establish the boundedness of q in (3.1), we reuse the arguments presented in
+Appendix D.2. Specifically, we observe from the integral expression (3.1) that q(z) can be
+approximated by
+A := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+exp
+
+− d(z, x)2
+2ε2
+p
+
+exp
+
+− ∥h∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+(D.18)
+Indeed, using reasoning akin to that employed for estimating E1 in Appendix D.2, we find
+that |q(z) − A| to be bounded by a universal constant multiple of B1 + B2, where
+B1:= εn
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+exp
+
+− ∥y∥2
+2ε2
+p
+ Z
+B(z,ε2/3
+n )
+d(z, x)2
+ε2
+p
+exp
+
+− d(z, x)2
+ε2
+p
+
+dV(x)dh
+B2:= 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+To derive B1, we use (D.9), (D.11), and a similar approach to the one yielding (D.12). We
+skip further details. Then, B1 ≤ εn, and by referencing the calculations used to bound |E2|
+in (D.6), albeit with a simpler argument, we can show
+B2 = 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh ≤ Cηε2
+n.
+Back to A in (D.18), we write
+A= 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+exp
+
+− d(z, x)2
+2ε2
+p
+
+exp
+
+− ∥h∥2
+2ε2
+p
+
+(ρ(x)−ρ(z))dV(x)dh
++ ρ(z)
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+exp
+
+− d(z, x)2
+2ε2
+p
+
+exp
+
+− ∥h∥2
+2ε2
+p
+
+dV(x)dh,
+(D.19)
+where Jz is the Jacobian matrix. Using a now-standard argument and the Lipschitz conti-
+nuity of ρ, we find that the absolute value of the first integral in (D.19) is bounded above
+by Cηε2/3
+n , while the second simplifies to
+ρ(z)
+(εp
+√2π)d
+Z
+[−εn,εn]d−m
+exp
+
+− ∥h∥2
+2ε2
+p
+
+dh
+Z
+Bm(0,ε2/3
+n )
+exp
+
+− ∥x∥2
+2ε2
+p
+
+Jz (x)dx
+= ρ(z)
+(2π)d/2
+ Z
+[−η−1/d,η−1/d]d−m
+exp
+
+− ∥h∥2
+2
+
+dh
+Z
+Bm(0,η−1/dε−1/3
+n )
+exp
+
+− ∥x∥2
+2
+
+dx
+
+1+O(ε4/3
+n )
+
+=ρ(z) + Oη(ε4/3
+n ).
+Combining all the derivations, we conclude that q(z) = ρ(z) + Oη(ε2/3
+n ), which is (3.3).
+Then (3.4) follows as a consequence of (3.3).
+60
+
+-- 60 of 69 --
+
+Consistency of augmentation graph and network approximability
+D.4 Proof of (3.6) in Proposition 7
+Proof Recall the expression (D.4) in Appendix D.1 that describes ∂˜u∂ ˜wq(z). We proceed
+to establish that all quantities D, V, F, S in (D.4) are bounded. As usual, we split each
+quantity into two parts, a local part, and a tail part. Specifically, we let
+D1 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, ˜u + Ah⟩⟨z − x, ˜	w + Ah⟩
+ε4
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+and
+V1 := − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨ ˜	w, ˜u⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+F1 := − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨ ˜	w, Ah⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+S1 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, Bh⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+and D2 := D − D1, V2 := V − V1, F2 := F − F1, S2 := S − S1.
+Bounding F . Let
+F ∗
+1 := − 1
+(εp
+√2π)d
+ Z
+h+z∈ ˜Nz M∩Nεn (M)
+⟨ ˜	w, Ah⟩
+ε2
+p
+exp
+
+− ∥h∥2
+2ε2
+p
+
+dh
+
+×
+ Z
+B(z,ε2/3
+n )
+exp
+
+− ∥x − z∥2
+2ε2
+p
+
+ρ(x)dV(x)
+
+.
+Due to symmetry, we have F ∗
+1 = 0. Then applying (D.8) and Lemma 31, we obtain
+|F1 − F ∗
+1 | ≤ Cη
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(z,ε2/3
+n )
+d(z, x)2
+εp
+× exp
+
+− cd(z, x)2
+ε2
+p
+
+ρ(x)dV(x)dh ≤ Cηε2/3
+n .
+Thus, |F1| ≤ Cηε2/3
+n . Moreover, by employing a similar argument as in (D.6), (D.7)
+|F2| ≤ C
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+∥h∥
+η2/dεp
+Z
+M\B(z,ε2/3
+n )
+1
+εp
+exp
+
+− c
+ε2/3
+n
+
+ρ(x)dV(x)dh ≤ Cη.
+Gathering all this, we conclude |F | ≤ Cη.
+Bounding S. We note that the expression of S is analogous to that of Z in (D.3). There-
+fore, by applying a similar argument to deduce (D.17) previously, we obtain |S| ≤ Cη.
+61
+
+-- 61 of 69 --
+
+C. Li and A.M. Neuman
+Bounding D and V . We write D1 = D11 + D12 + D13 + D14, where
+D11 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, ˜u⟩
+ε2
+p
+⟨z − x, ˜	w⟩
+ε2
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+D12 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, ˜u⟩
+ε2
+p
+⟨z − x, Ah⟩
+ε2
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+D13 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, Ah⟩
+ε2
+p
+⟨z − x, ˜	w⟩
+ε2
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+D14 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, Ah⟩
+ε2
+p
+⟨z − x, Ah⟩
+ε2
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+We will now bound D12, D13, D14, D11 + V1, sequentially. Starting with D12, we consider
+D∗
+12 := 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+⟨z − x, ˜u⟩
+ε2
+p
+⟨z − x, Ah⟩
+ε2
+p
+× exp
+
+− ∥h∥2
+2ε2
+p
+
+exp
+
+− ∥z − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+Then by integrating in terms of h first, we get D∗
+12 = 0. Moreover, by Lemma 31
+|D12 − D∗
+12| ≤ Cη
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+d(z, x)4
+ε4
+p
+× exp
+
+− ∥h∥2
+2ε2
+p
+
+exp
+
+− cd(z, x)2
+ε2
+p
+
+ρ(x)dV(x)dh ≤ Cη,
+and we get |D12| ≤ Cη. Due to the analogous expressions, it follows that |D13| ≤ Cη as
+well. As for D14, we see simply that
+|D14|≤ C
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+B(z,ε2/3
+n )
+∥z−x∥2∥h∥2
+ε4
+p
+exp
+
+− ∥z+h−x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh
+≤ Cη.
+To facilitate the upcoming calculations for D11 + V1, we use a translation by −z to
+temporarily set z = 0, and use the rotation A−1
+0 , as discussed in Appendix B, to align ˜	T0M
+62
+
+-- 62 of 69 --
+
+Consistency of augmentation graph and network approximability
+with Rm × {0} ⊂ Rd. Then D11 + V1 becomes
+1
+(εp
+√2π)d
+Z
+h∈ ˜N0M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(0,ε2/3
+n )
+ ⟨x, ˜u⟩
+ε2
+p
+⟨x, ˜	w⟩
+ε2
+p
+− ⟨˜u, ˜	w⟩
+ε2
+p
+
+× exp
+
+− ∥x∥2
+2ε2
+p
+
+f(x, h)ρ(x)dV(x)dh,
+where, from Lemma 31,
+f(x, h) := exp
+
+− ⟨vx − x, h⟩
+ε2
+p
+
+= 1+
+5	X
+i=1
+fi(x, h)+Oη(ε2
+n) := 1+
+5	X
+i=1
+(−1)i⟨vx − x, h⟩i
+i!ε2i
+p
++Oη(ε2
+n).
+(D.20)
+Note that, if i is odd, then fi(x, h) is odd in terms of h, and if i is even, then
+|fi(x, h)| ≤ C∥x∥2i∥h∥i
+ε2i
+p
+, (D.21)
+due to (D.8). Let
+I := 1
+(εp
+√2π)d
+Z
+h∈ ˜N0M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(0,ε2/3
+n )
+ ⟨x, ˜u⟩
+ε2
+p
+⟨x, ˜	w⟩
+ε2
+p
+− ⟨˜u, ˜	w⟩
+ε2
+p
+
+× exp
+
+− ∥x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+Then using the given observation, and particularly (D.20), (D.21), we can dominate |D11 +
+V1 − I| with a Cη multiple of I1 + I2 + I3, where
+Ii := 1
+(εp
+√2π)d
+Z
+h∈ ˜N0M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(0,ε2/3
+n )
+∥x∥4i
+ε4i
+p
+ ∥x∥2
+ε2
+p
++ 1
+
+× exp
+
+− ∥x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+for i = 1, 2, and
+I3:= 1
+(εp
+√2π)d
+Z
+h∈ ˜N0M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(0,ε2/3
+n )
+ ∥x∥2
+ε2
+p
++1
+
+exp
+
+− ∥x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh.
+It is straightforward to see that Ii ≤ Cη. To calculate I, we note that vx ∈ Rm × {0} is
+Log0(x) ∈ Rm canonically embedded in Rd. Moreover, since ˜u, ˜	w ∈ Rm × {0}, they are
+canonically embedded images of some u, w ∈ Rm. Therefore, using Lemma 31, particularly
+(D.9), we can bound |I| by a sum of the integral
+1
+(εp
+√2π)d
+Z
+h∈ ˜N0M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+B(0,ε2/3
+n )
+∥x∥2
+ε2
+p
+ ∥x∥4
+ε4
+p
++ ∥x∥2
+ε2
+p
+
+× exp
+
+− ∥x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh ≤ Cη,
+63
+
+-- 63 of 69 --
+
+C. Li and A.M. Neuman
+and another integral, expressed in local coordinates as
+1
+(εp
+√2π)d
+Z
+h∈ ˜N0M∩Nεn (M)
+exp
+
+− ∥h∥2
+2ε2
+p
+ Z
+Bm(0,ε2/3
+n )
+ ⟨y, u⟩
+ε2
+p
+⟨y, w⟩
+ε2
+p
+− ⟨u, w⟩
+ε2
+p
+
+× exp
+
+− ∥y∥2
+2ε2
+p
+
+˜ρ(y)J0(y)dydh.
+Let I∗ be the inner integral above; that is,
+I∗ :=
+Z
+Bm(0,ε2/3
+n )
+ ⟨y, u⟩
+ε2
+p
+⟨y, w⟩
+ε2
+p
+− ⟨u, w⟩
+ε2
+p
+
+exp
+
+− ∥y∥2
+2ε2
+p
+
+˜ρ(y)J0(y)dy.
+For y ∈ Bm(0, ε2/3
+n ), we rely on Taylor’s expansion to get
+˜ρ(y) = ˜ρ(0) + ⟨∇˜ρ(0), y⟩ + 1
+2 ⟨D2 ˜ρ(0)y, y⟩ + Oη(ε2
+p), (D.22)
+and on (2.10) to get
+|J0(y) − 1| ≤ C∥y∥2. (D.23)
+Applying (D.22), (D.23), and a standard argument that uses linear symmetry for cancella-
+tion, we obtain
+I∗ = εm
+p
+Z
+Bm(0,η−1/dε−1/3
+n )
+ ⟨y, u⟩⟨y, w⟩
+ε2
+p
+− ⟨u, w⟩
+ε2
+p
+
+exp
+
+− ∥y∥2
+2
+
+˜ρ(0)dy + Oη(εm
+p ). (D.24)
+We now introduce a basic estimate for the m-dimensional Gaussian distribution on Eu-
+clidean spaces.
+Lemma 33 Let σ > 0. Let X ∈ Rm be a centered Gaussian distributed random variable
+such that
+fX (x) = 1
+(σ√2π)m exp
+
+− ∥x∥2
+2σ2
+
+.
+Then for any v, w ∈ Rm we have
+Z
+Rm
+ ⟨u, x⟩
+σ2
+⟨w, x⟩
+σ2 − ⟨u, w⟩
+σ2
+
+fX (x)dx = 0.
+Proof [Proof of Lemma 33] We first show the result for the case m = 1.
+Z
+Rm
+ ⟨u, x⟩
+σ2
+⟨w, x⟩
+σ2 − ⟨u, w⟩
+σ2
+
+fX (x)dx =
+Z
+Rm
+ x2uw
+σ4 − uw
+σ2
+
+fX (x)dx = uw
+σ2 − uw
+σ2 = 0,
+as it becomes a computation of the second moment of Gaussian distribution. For the
+case m > 1, since we can decompose the high-dimensional Gaussian distribution X into
+(X1, . . . , Xm) where Xi are i.i.d. one-dimensional centered Gaussian distributed random
+variable, and the problem reduces to one-dimensional problem. The proof is now complete.
+64
+
+-- 64 of 69 --
+
+Consistency of augmentation graph and network approximability
+Applying Lemma 33 (with σ = 1) to (D.24) gives us
+I∗ = −εm
+p
+Z
+Rm−Bm(0,η−1/dε−1/3
+n )
+ ⟨y, u⟩⟨y, w⟩
+ε2
+p
+− ⟨u, w⟩
+ε2
+p
+
+exp
+
+− ∥y∥2
+2
+
+˜ρ(0)dy + Oη(εm
+p ),
+which, due to the rapid Gaussian tail decay, implies that |I∗| ≤ Cηεm
+p . Thus, we conclude
+that |I| ≤ Cη. In addition, by recalling |D11 + V1 − I| ≤ |I1| + |I2| + |I3| ≤ Cη, we conclude
+|D11 + V1| ≤ Cη. Finally, since
+D2 = D − D1
+= 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+⟨z − x, ˜u + Ah⟩⟨z − x, ˜	w + Ah⟩
+ε4
+p
+× exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+and
+V2 = V − V1
+= − 1
+(εp
+√2π)d
+Z
+h+z∈ ˜Nz M∩Nεn (M)
+Z
+M\B(z,ε2/3
+n )
+⟨ ˜	w, ˜u⟩
+ε2
+p
+exp
+
+− ∥z + h − x∥2
+2ε2
+p
+
+ρ(x)dV(x)dh,
+employing the rapid Gaussian tail decay, as in (D.6), (D.7), yields, |D2|, |V2| ≤ Cη. Putting
+altogether, we get |D + V | ≤ |D1 + V1| + |D2| + |V2| ≤ Cη, and moreover,
+|∂ ˜w∂˜uq(z)| ≤ |D + V + F + S| ≤ |D + V | + |F | + |S| ≤ Cη,
+as desired.
+Appendix E. Proof of Lemma 18
+Proof Define
+ς1(x, y) :=
+Z
+{z∈Rd:d(x,z)<ε2/3
+n ∧∥y−z∥<ε2/3
+n }∩M
+exp
+
+− ∥x − z∥2
+2ε2
+w
+
+exp
+
+− ∥y − z∥2
+2ε2
+w
+
+ρ(z)dV(z)
+ς2(x, y) :=
+Z
+{z∈Rd:d(x,z)<ε2/3
+n ∧d(y,z)<ε2/3
+n }∩M
+exp
+
+− ∥x − z∥2
+2ε2
+w
+
+exp
+
+− ∥y − z∥2
+2ε2
+w
+
+ρ(z)dV(z).
+Then, we observe
+|ς(x, y) − ς1(x, y)| ≤
+Z
+(Bd(x,ε2/3
+n )\B(x,ε2/3
+n ))∩M
+exp
+
+− ∥x − z∥2
+2ε2
+w
+
+ρ(z)dV(z)
+≤
+Z
+B(x,2ε2/3
+n )\B(x,ε2/3
+n )
+exp
+
+− cd(x, z)2
+ε2
+w
+
+ρ(z)dV(z),
+65
+
+-- 65 of 69 --
+
+C. Li and A.M. Neuman
+as a consequence of (2.7). Therefore,
+|ς(x, y) − ς1(x, y)| ≤
+Z
+(Bm(0,2ε2/3
+n )\Bm(0,ε2/3
+n ))
+exp
+
+− c∥u∥2
+ε2
+w
+
+˜ρ(u)Jx(u)du
+≤ Cεm
+w
+Z
+Rm\Bm(0,ε−1/3
+w ε2/3)
+exp(−c∥u∥2)du
+≤ Cεm
+w ε2, (E.1)
+once ε is sufficiently small. Applying the same approach for |ς1(x, y) − ς2(x, y)|, we also
+have
+|ς1(x, y) − ς2(x, y)| ≤ Cεm
+w ε2. (E.2)
+Together, (E.1), (E.2) yield
+ς(x, y) = ς2(x, y) + O(εm
+w ε2). (E.3)
+Continuing, we define
+ς3(x, y) :=
+Z
+{z∈Rd:d(x,z)<ε2/3
+n ∧d(y,z)<ε2/3
+n }∩M
+exp
+
+− d(x, z)2
+2ε2
+w
+
+exp
+
+− ∥y − z∥2
+2ε2
+w
+
+ρ(z)dV(z)
+ς4(x, y) :=
+Z
+{z∈Rd:d(x,z)<ε2/3
+n ∧d(y,z)<ε2/3
+n }∩M
+exp
+
+− d(x, z)2
+2ε2
+w
+
+exp
+
+− d(y, z)2
+2ε2
+w
+
+ρ(z)dV(z).
+Note that ς∗(x, y) = ς4(x, y). Then it can be readily checked from (2.7) that ς3(x, y) ≤
+ς2(x, y). Moreover, for ∥x − z∥ < ε2/3
+n ,
+exp
+
+− ∥x − z∥2
+2ε2
+w
+
+≤ exp
+
+− d(x, z)2
+2ε2
+w
+
+exp
+ C∥x − z∥4
+ε2
+w
+
+≤ exp
+
+− d(x, z)2
+2ε2
+w
+
+1+Cε2/3
+w ε8/3
+,
+(E.4)
+where Taylor expansion has been applied to the last inequality, akin to the derivation of
+(D.9). Hence, from (E.4), together with (6.19),
+ς2(x, y) ≤ ς3(x, y) + Cεm
+w (ε2/3
+w ε8/3). (E.5)
+By a similar argument, we can show that
+ς3(x, y) = ς4(x, y) + O(εm
+w (ε2/3
+w ε8/3)). (E.6)
+Combining (E.3), (E.5), (E.6), we get
+ς(x, y) = ς4(x, y) + O(εm
+w ε2) = ς∗(x, y) + O(εm
+w ε2),
+which is what we want.
+66
+
+-- 66 of 69 --
+
+Consistency of augmentation graph and network approximability
+Appendix F. Proof of Lemma 19
+Proof We first demonstrate (6.32). Express ς∗
+x , via a change of variables using the expo-
+nential map Expx (2.8), as
+˜ς∗
+0 (v) =
+Z
+˜U0,v
+exp
+
+− ∥u∥2
+2ε2
+w
+
+exp
+
+− ∥u − v∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)du, (F.1)
+where ˜	U0,v := {u : ∥u∥ < ε2/3
+n ∧ ∥u − v∥ < ε2/3
+n } ∩ M, and Expx(v) = y. For instance,
+˜	U0,0 = Bm(0, ε2/3
+n ). Then by an application of Taylor’s expansion and a change in variables,
+˜ς∗
+0 (0) =
+Z
+Bm(0,ε2/3
+n )
+exp
+
+− ∥u∥2
+ε2
+w
+
+˜ρ(u)Jx(u)du
+= εm
+w
+Z
+Bm(0,ε−1/3
+w ε2/3)
+exp(−∥u∥2)(˜ρ(0) + O(ε2/3
+n ))(1 + O(ε2/3
+n ))du. (F.2)
+It is readily apparent that
+Z
+Bm(0,ε−1/3
+w ε2/3)
+exp(−∥u∥2)˜ρ(0)du
+= ˜ρ(0)
+Z
+Rm
+exp(−∥u∥2)du − ˜ρ(0)
+Z
+Rm\Bm(0,ε−1/3
+w ε2/3)
+exp(−∥u∥2)du
+= αρ(x) + O(ε) (F.3)
+due to the rapid Gaussian decay, once ε is sufficiently small. The claim (6.32) now follows
+from a combination of (F.2), (F.3).
+We demonstrate (6.33) next. For v ∈ Bm(0, ε2/3
+n ), we write v = Pd
+i=1 viei, where vi ∈ R,
+and ei is the standard ith basis vector. Let ∂i denote the partial derivative along the ith
+axis. By the Reynold’s transport equation (Evans, 2010, Appendix C, Theorem 6), the
+partial derivative ∂i ˜ς∗
+0 of ˜ς∗
+0 (F.1) at v is
+∂i ˜ς∗
+0 (v) = d
+ds
+ Z
+˜U0,v+sei
+exp
+
+− ∥u∥2
+2ε2
+w
+
+exp
+
+− ∥u − v − sei∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)du
+
+|s=0 = L1 + L2,
+(F.4)
+where
+L1 :=
+Z
+˜U0,v
+ui − vi
+ε2
+w
+exp
+
+− ∥u − v∥2
+2ε2
+w
+
+exp
+
+− ∥u∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)du,
+L2 :=
+Z
+∂ ˜U0,v
+exp
+
+− ∥u∥2
+2ε2
+w
+
+exp
+
+− ∥u − v∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)⟨ei,⃗n⟩dS.
+(F.5)
+Here,⃗n denotes the outward pointing unit normal, while ∂ ˜	U0,v denote the surface of ˜	U0,v.
+Moreover, it can be seen from (F.5) that both L1, L2 are continuous in terms of v. Thus,
+we conclude that ∇˜ς∗
+0 (0) exists. To show that
+∇˜ς∗
+0 (0) = 0, (F.6)
+67
+
+-- 67 of 69 --
+
+C. Li and A.M. Neuman
+we make an observation from (F.1) that ˜ς∗
+0 (v) ≤ ˜ς∗
+0 (0), for any v ∈ Bm(0, ε2/3
+n ). Hence in
+particular 0 is a global maximum of ˜ς∗
+0 along the ith axis. Therefore, ∂i ˜ς∗
+0 (0) = 0, and (F.6)
+must hold.
+Continuing, we prove that
+|D2 ˜ς∗
+0 (0)| = O(εm
+w ). (F.7)
+From (F.4), (F.5), and the Gauss-Green theorem (Evans, 2010, Appendix C, Theorem 1),
+∂i ˜ς∗
+0 (v) =
+Z
+˜U0,v
+ui − vi
+ε2
+w
+exp
+
+− ∥u − v∥2
+2ε2
+w
+
+exp
+
+− ∥u∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)du
++
+Z
+˜U0,v
+∂i
+
+exp
+
+− ∥u∥2
+2ε2
+w
+
+exp
+
+− ∥u − v∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)
+
+du. (F.8)
+Then, with a small simplification, repeating the previous process with v + tej replacing v
+in (F.8), we obtain
+∂j ∂i ˜ς∗
+0 (v) = d
+dt
+ Z
+˜U0,v+tej
+exp
+
+− ∥u − v − tej ∥2
+2ε2
+w
+
+∂i
+
+exp
+
+− ∥u∥2
+2ε2
+w
+
+˜ρ(u)Jx(u)
+
+du
+
+|t=0.
+(F.9)
+The existence of ∂j ∂i ˜ς∗
+0 (v) now follows from the Reynolds transport equation, and its con-
+tinuous dependence on v is straightforward. It remains to calculate individual ∂j ∂i ˜ς∗
+0 (0),
+which is, from (F.9),
+∂j ∂i ˜ς∗
+0 (0) = K1 + K2 + K3 (F.10)
+where
+K1:=
+Z
+Bm(0,ε2/3
+n )
+uj
+ε2
+w
+ui
+ε2
+w
+exp
+
+− ∥u∥2
+ε2
+w
+
+˜ρ(u)Jx(u)du−
+Z
+Bm(0,ε2/3
+n )
+δij
+ε2
+w
+exp
+
+− ∥u∥2
+ε2
+w
+
+˜ρ(u)Jx(u)du
+K2:= −
+Z
+Bm(0,ε2/3
+n )
+ui
+ε2
+w
+exp
+
+− ∥u∥2
+ε2
+w
+
+∂j
+ ˜ρ(u)Jx(u)du
+and
+K3 := d
+dt
+ Z
+˜U0,v+tej
+exp
+
+− ∥u − v − tej ∥2
+2ε2
+w
+
+exp
+
+− ∥u∥2
+2ε2
+w
+
+∂i
+ ˜ρ(u)Jx(u)du
+
+|t=0.
+Using a nearly identical argument as in Appendix D.4 to address |D11 + V1|, particularly
+Lemma 33, we get
+|K1|=
+Z
+Bm(0,ε2/3
+n )
+ui
+ε2
+w
+uj
+ε2
+w
+exp
+
+− ∥u∥2
+ε2
+w
+
+˜ρ(u)Jx(u)du−
+Z
+Bm(0,ε2/3
+n )
+δij
+ε2
+w
+exp
+
+− ∥u∥2
+ε2
+w
+
+˜ρ(u)Jx(u)du
+= O(εm
+w ).
+Another similarly straightforward argument, combined with Taylor’s expansion, also leads
+to
+|K2| =
+Z
+Bm(0,ε2/3
+n )
+ui
+ε2
+w
+exp
+
+− ∥u∥2
+ε2
+w
+
+∂j
+ ˜ρ(u)Jx(u)du = O(εm
+w ).
+68
+
+-- 68 of 69 --
+
+Consistency of augmentation graph and network approximability
+Lastly, we observe that the expression for K3 mirrors that in (F.4). Therefore, by the
+same reasoning used to derive the boundedness of the first derivative, we can express K3
+as a sum of two terms analogous to L1, L2, and, through Taylor’s expansion, deduce that
+|K3| = O(εm
+w ). Then putting all the obtained facts that |Ki| = O(εm
+w ) in (F.10), we arrive
+at (F.7), as wanted.
+69
+
+-- 69 of 69 --
+

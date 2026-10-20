@@ -1,0 +1,512 @@
+arXiv:2410.02624v3 [math.CO] 16 Jun 2025
+NORMAL TREES OF DIGRAPHS
+FLORIAN REICH
+Abstract. In this paper, we investigate normal trees of directed graphs, which extend the
+fundamental concept of normal trees of undirected graphs.
+We prove that a directed graph D has a normal spanning tree if and only if the topological
+space |D| is metrizable, which generalises Diestel’s result for undirected graphs. Furthermore, we
+show that the existence of normal arborescences implies the existence of normal trees in directed
+graphs, and that the converse is generally not true.
+1. Introduction
+Normal trees of undirected graphs are one of the most important tools in infinite graph theory.
+A rooted tree T in an undirected graph G is called normal if for every connected subgraph H
+of G and every two ≤T -incomparable vertices u, v ∈ V (H) ∩ V (T ) there exists w ∈ V (H) ∩ V (T )
+with w ≤T u, v [7]. By definition, normal trees capture how undirected graphs can be separated
+by finite vertex sets and thus, in particular, display the ends of their host graphs.
+Bowler and the author recently introduced a notion of normal trees in the general setting of
+connectoids [1], which in particular defines normal trees for directed graphs. A weak normal
+tree T of a directed graph D is a rooted, undirected tree T with V (T ) ⊆ V (D) such that
+• for every strongly connected subgraph H of D and every two ≤T -incomparable vertices
+u, v ∈ V (H) ∩ V (T ) there exists w ∈ V (H) ∩ V (T ) such that w ≤T u, v, and
+• for every two ≤T -comparable elements u ≤T v there exists a strongly connected subgraph
+of D containing u and v that avoids every element w <T u,
+where ≤T refers to the tree-order of T [1].
+Although weak normal trees have the same separation properties as normal trees of undirected
+graphs, they generally do not display the ends of their host graphs, as defined by Bürger
+and Melcher [3]: A strongly connected directed graph N is called a necklace if there exists a
+family (Hn)n∈N of finite strongly connected subgraphs such that N = ⋃
+n∈N Hn and Hi ∩ Hj̸ = ∅
+holds if and only if |i − j| ≤ 1 for every i, j ∈ N.1 The ends of a directed graph D are the
+equivalence classes of necklaces in D, where two necklaces N1 and N2 are equivalent if there are
+infinitely many disjoint N1–N2 paths and infinitely many disjoint N2–N1 paths.
+Key words and phrases. normal tree, infinite graph, infinite digraph.
+1Bürger and Melcher introduced necklaces in [3] using an equivalent definition.
+1
+
+-- 1 of 12 --
+
+2 FLORIAN REICH
+To ensure that normal trees display the ends of their host graphs we further require: A weak
+normal tree T of D is a normal tree if for every rooted ray R in T there exists a necklace η(R)
+in D that contains almost all, i.e. all but finitely many, elements of V (R) [1].
+Theorem 1.1 ([1, Theorem 5.2]). Let D be a directed graph and let T be a normal tree of D.
+Then η induces a bijection between the ends of T and the ends of D that are in the closure
+of V (T ).
+An end ω is in the closure of some set W , if for every finite set X ⊆ V (D) there exists a necklace
+in ω that avoids X and intersects W .
+The following theorem shows that normal trees can be characterised in the same way as their
+undirected counterparts. Therefore, despite their specific definition, they are a natural extension
+of normal trees of undirected graphs.
+Theorem 1.2 ([2, Theorems 1.1, 1.2, 3.2]). Let D be a strongly connected directed graph and let
+U ⊆ V (D). Then the following are equivalent:
+(1) there is a normal tree containing U ,
+(2) there is a weak normal tree containing U ,
+(3) U is a countable union of dispersed sets,
+(4) U is a countable union of fat topological split K ℵ0 -dispersed sets, and
+(5) for every end ω ∈ Ω(D) there is a finite set Xω ⊆ V (D) such that the strong component
+C(Xω, ω) has a normal tree containing U ∩ C(Xω, ω).
+Here, the terms dispersed set, fat topological split K ℵ0 -dispersed set and C(Xω, ω) are directed
+analogues of their undirected counterparts.
+In this paper, we continue to investigate the existence of normal trees of directed graphs. First,
+we compare normal tree with the notion of normal arborescences [5], which was introduced by
+Bürger and Melcher and defines normal structures within a directed graph: An arborescence
+is a rooted directed graph whose underlying undirected graph is a tree such that all edges are
+oriented away from the root. The normal assistant of A in D is the auxiliary directed graph
+obtained from A by adding an edge uv for every two ≤A-incomparable elements u, v ∈ V (A) for
+which there exists a path from ⌊u⌋A to ⌊v⌋A in D that is internally disjoint to V (A) [5]. The
+arborescence A is normal if its normal assistant is acyclic [5]. We prove:
+Lemma 1.3. Let D be a directed graph and let U ⊆ V (D). If there is a (rayless) normal
+arborescence in D containing U then there exists a (rayless) normal tree of D containing U .
+Moreover, we show that the converse is generally not true.
+Second, we characterise the existence of normal spanning trees, i.e. normal trees T with
+V (T ) = V (D), via the space |D| with Bürger and Melcher’s topology DTop (see [4] for an
+introduction). Diestel [6, Theorem 3.1] showed that there exists a normal spanning tree in an
+
+-- 2 of 12 --
+
+NORMAL TREES OF DIGRAPHS 3
+undirected graph G if and only if the space |G| with topology MTop is metrizable. We extend
+Diestel’s result to directed graphs:
+Theorem 1.4. Let D be a directed graph. In DTop, |D| is metrizable if and only if D has a
+normal spanning tree.
+This paper is organised as follows: We present basic properties of normal trees in Section 2
+and compare normal trees and normal arborescences in Section 3. Finally, we prove Theorem 1.4
+in Section 4.
+2. Basic properties
+Normal trees of directed graphs have the same separation property as normal trees of undirected
+graphs by the first condition of (weak) normal trees. We begin by stating that the deletion of
+certain vertex sets (i.e. ≤T -down-closed sets) of a normal tree splits a directed graph into strong
+components in the same way as for undirected graphs. Given a weak normal tree T and some
+t ∈ V (T ), let ⌈t⌉T := {s ∈ V (T ) : s ≤T t}, ˚	⌈t⌉T := ⌈t⌉T \ {t} and similarly ⌊t⌋T , ˚	⌊t⌋T . Further,
+let CT
+t be the unique strong component of D − ˚	⌈t⌉T that contains t.
+Proposition 2.1 ([1, Proposition 2.4]). Let D be a directed graph and T a rooted, undirected
+tree with V (T ) ⊆ V (D). Then the following properties are equivalent:
+(a) T is a weak normal tree of D, and
+(b) CT
+t ∩ V (T ) = ⌊t⌋T holds for every vertex t ∈ T .
+Furthermore, CT
+t = ⌊t⌋T holds for every vertex t of a weak normal spanning tree T .
+Given a finite set X of vertices, we set C(X, ω) to be the unique strong component of D − X
+that contains necklaces of ω. Given a necklace N and a finite set X ⊆ V (D) there exists a strong
+component of N − X that contains almost all vertices of N , which in turn is again a necklace
+[1, Proposition 2.3]. We call this unique strong component the X-tail of N [1]. We say a set U
+of vertices is dispersed if every necklace has finite intersection with U [2].
+Proposition 2.2 ([2, Corollary 3.1]). Let D be a strongly connected directed graph and U ⊆ V (D).
+Then U is dispersed if and only if there exists a rayless normal tree of D that contains U .
+We introduce a notion of minors in directed graphs that includes notions of minors like butterfly
+minors and strong minors. Let H and D be directed graphs. A broad minor model of H in D is
+a family of disjoint subsets (Xv)v∈V (H) of V (D) and a family (xv)v∈V (H) of vertices in V (D) with
+xv ∈ Xv for every v ∈ V (H) such that for each edge uv ∈ E(H) there exists an xu–xv path in
+D[Xu ∪ Xv]. We say H is a broad minor of D if there exists a broad minor model of H in D.
+Proposition 2.3. Let D be a directed graph and H a broad minor of D witnessed by the minor
+model (Xv)v∈V (H), (xv)v∈v(H). If a set U ⊆ V (D) is dispersed, then the set W := {v ∈ V (H) :
+xv ∈ U } is dispersed in H.
+
+-- 3 of 12 --
+
+4 FLORIAN REICH
+Proof. Suppose for a contradiction that there exists a necklace N in H that intersects W infinitely.
+Let (Hn)n∈N be a witness of N and let n ∈ N be arbitrary. We consider for each uv ∈ E(Hn) an
+xu–xv path Puv in D[Xu ∪ Xv] and let H′
+n be the strongly connected subgraph of D induced by the
+paths Puv for uv ∈ E(Hn). Note that {xv : v ∈ V (Hn)} ⊆ V (H′
+n) and that V (H′
+n) ⊆ ⋃
+v∈V (Hn) Xv,
+by construction.
+Thus (H′
+n)n∈N is a witness of a necklace N ′ in D. In particular, N ′ contains every vertex
+of {xv : v ∈ W ∩ N }. As N intersects W infinitely often, N ′ intersects U infinitely often, a
+contradiction to the dispersedness of U . □
+From Theorem 1.2 and Proposition 2.3 we can deduce:
+Corollary 2.4. The existence of normal spanning trees is closed under taking strongly connected
+broad minors, and thus under taking strongly connected subgraphs, butterfly minors and strong
+minors.
+3. Relation to normal arborescences
+In this section we compare the notion of normal trees with the notion of normal aborescences,
+which was introduced by Bürger and Melcher in [5]. We show that, given some set of vertices U ,
+the existence of a normal arborescence containing U implies the existence of a normal tree
+containing U . Further, we show that the converse is generally not true.
+Normal trees and normal arborescences share the same separation property:
+Proposition 3.1 ([5, Lemma 3.4]). Let D be a directed graph and let A be a normal arborescence
+in D. For every strongly connected subgraph C of D and every two ≤A-incomparable elements
+u, v ∈ V (C) ∩ V (A) there exists w ∈ V (C) such that w ≤A u, v, where ≤A refers to the tree order
+of A.
+As a normal arborescence is a subgraph of its host graph, it has more structural information
+about connectivity in terms of directed paths from the root to its vertices. Nevertheless, this
+comes with a less precise description of strong components: Given a normal arborescence A in D
+and some a ∈ V (A), every strong component of D − ˚	⌈a⌉A intersecting ⌊a⌋A has to be contained in
+⌊a⌋A by Proposition 3.1, but D[⌊a⌋A] does not have to be a strong component itself. In contrast
+to this, given a normal spanning tree T of D, D[⌊t⌋T ] is a strong component of D − ˚	⌈t⌉T for
+every t ∈ V (T ) by Proposition 2.1.
+Lemma 1.3. Let D be a directed graph and let U ⊆ V (D). If there is a (rayless) normal
+arborescence in D containing U then there exists a (rayless) normal tree of D containing U .
+Proof. Let A be a normal arborescence in D containing U . By Theorem 1.2, it suffices to
+show that the distance classes (Xn)n∈N of A are dispersed. More precisely, we show that every
+necklace N has finite intersection with Xn for every n ∈ N.
+
+-- 4 of 12 --
+
+NORMAL TREES OF DIGRAPHS 5
+If there exists a ∈ V (A) such that the ⌈a⌉A-tail of N is disjoint to V (A), then N has finite
+intersection with V (A) and in particular, finite intersection with Xn for every n ∈ N. Therefore
+we can assume that the ⌈a⌉A-tail of N contains a vertex of V (A) for every a ∈ V (A).
+We construct a rooted ray (an)n∈N in A such that the ˚	⌈an⌉A-tail of N intersects V (A) only in
+⌊an⌋A. Then the set Xn has finite intersection with N for every n ∈ N as the ˚	⌈an+1⌉-tail of N
+intersects V (A) only in ⌊an+1⌋A, which is disjoint to Xn since (an)n∈N is strictly ≤A-increasing.
+Let a1 be the root of A and suppose that (an)n≤m has been constructed for some m ∈ N. The
+⌈am⌉A-tail contains a vertex of A, by assumption. Further, since the ˚	⌈am⌉A-tail intersects V (A)
+only in ⌊am⌋A, the ⌈am⌉A-tail of N intersects V (A) only in ˚	⌊am⌋A. By Proposition 3.1, there
+exists a child am+1 of am such that the ⌈am⌉A-tail of N intersects V (A) only in ⌊am+1⌋A. Then
+am+1 is as desired since ˚	⌈am+1⌉A = ⌈am⌉. This finishes the construction of (an)n∈N.
+If A is rayless, then the construction of the sequence (an)n∈N terminates, i.e. every necklace
+has finite intersection with V (A), and by Proposition 2.2 there exists a rayless normal tree
+containing U . □
+Proposition 3.2. There exists a directed graph with a normal spanning tree but without a normal
+spanning arborescence.
+Proof. Let D be the directed graph with V (D) := {aα : α < ω1} ∪ {bα : α < ω1} and
+E(D) := {aαaβ : α < β < ω1} ∪ {bβ bα : α < β < ω1} ∪ {aαbα : α < ω1} ∪ {b0a0}.
+First, we show that D − a0 is acyclic: Consider the unique linear order ≤ of V (D) satisfying
+aα < aβ and bβ < bα for every α < β < ω1 and satisfying aα < bα′ for every α, α′ < ω1. Any edge
+of E(D − a0) has the property that its tail precedes its head in ≤. Thus D − a0 is acyclic and
+in particular, every strong component of D − a0 is a singleton. Thus the star with root a0 and
+leaves in V (D − a0) is a normal spanning tree of D.
+We suppose for a contradiction that D contains a normal spanning arborescence A. Let
+γ < ω1 be such that either aγ or bγ is the root of A. The arborescence A contains uncountably
+many edges in {aαbα : α < ω1}: Otherwise there exists γ < β < ω1 such that A contains no
+edge in {aαbα : β ≤ α < ω1}. But every path from aγ or bγ to bβ has to contain an edge in
+{aαbα : β ≤ α < ω1} and thus A is not spanning.
+We consider the uncountable set {aα : aαbα ∈ E(A)}. Since the branches of A are countable,
+there exist α′ < α′′ < ω1 with aα′ , aα′′ ∈ {aα : aαbα ∈ E(A)} such that aα′ , aα′′ are ≤A-
+incomparable. The edges aα′ aα′′ and bα′′ bα′ connect ⌊aα′ ⌋A and ⌊aα′′ ⌋A in both directions,
+contradicting the normality of A. This finishes the proof. □
+We remark that the proof of Proposition 3.2 does not rely on the fact that D does not have
+ends, i.e. given some cardinal κ there exists a directed graph satisfying Proposition 3.2 that has
+κ many ends: attach a disjoint family of necklaces of cardinality κ to the vertex a0 in D.
+
+-- 5 of 12 --
+
+6 FLORIAN REICH
+We can deduce from the proof of Proposition 3.2 that, in contrast to normal trees in undirected
+and directed graphs, the existence of a normal arborescence is not closed under taking strongly
+connected subgraphs:
+Proposition 3.3. The existence of normal spanning arborescences is not closed under taking
+strongly connected subgraphs.
+Proof. We consider the directed graph D in the proof of Proposition 3.2. Let D′ be the directed
+graph obtained from D by adding the edge set F := {a0bα : α < ω1}. We show that the spanning
+arborescence A with root a0 and edge set F ∪ {a0aα : 1 ≤ α < ω1} is normal.
+As all vertices except the root have distance one to the root in A, the normal assistant consists
+precisely of all edges of A and all edges of D′ − a0 = D − a0. Since D − a0 is acyclic and
+as a0 has in-degree zero in the normal assistant, the normal assistant is acyclic. Thus A is a
+normal arborescence of D′, but the strongly connected subgraph D of D′ does not have a normal
+arborescence. □
+4. Characterisation via metrizable space |D|
+Diestel proved [6, Theorem 3.1] that the topological space |G| of an undirected graph G is
+metrizable in the common topology MTop if and only if G has a normal spanning tree. For
+directed graphs Bürger and Melcher established the space |D| together with the topology DTop;
+see [4] for an introduction. In this section we show that Diestel’s characterisation carries over to
+directed graphs:
+Theorem 1.4. Let D be a directed graph. In DTop, |D| is metrizable if and only if D has a
+normal spanning tree.
+The proof of Theorem 1.4 is structured as follows. We begin by proving the forward implication
+in Lemma 4.1. For the backward implication, given a normal spanning tree T of a directed
+graph D, we define a function d : |D| × |D| 7 → R≥0 based on T and prove that d is a metric of
+|D|. Finally, we verify that d induces the topology DTop of |D|. Thus the existence of a normal
+spanning tree implies that |D| is metrizable in DTop.
+Lemma 4.1. If |D| is metrizable in DTop, then D has a normal spanning tree.
+Proof. Let d be a metric of |D| that induces DTop. We define Vn := {v ∈ V (D) : d(v, ω) >
+1
+n ∀ω ∈ Ω(D)} for all n ∈ N. Then V (D) = ⋃
+n∈N Vn since each vertex has an ϵ-ball in DTop that
+contains no ends. We show that each set Vn is dispersed. Then D has a normal spanning tree by
+Theorem 1.2.
+Let n ∈ N be arbitrary. Further, let N be an arbitrary necklace in D and let ω be the end
+that contains N . Since d induces DTop, there exists a finite set X ⊆ V (D) such that C(X, ω)
+is contained in B 1
+n
+(ω). Thus the X-tail of N is contained in C(X, ω) and, in particular, the
+
+-- 6 of 12 --
+
+NORMAL TREES OF DIGRAPHS 7
+X-tail of N avoids Vn. Thus N contains only finitely many vertices of Vn, which implies that Vn
+is dispersed. □
+We turn our attention to the backward implication. Let D be an arbitrary directed graph with
+a normal spanning tree T . Before defining the desired metric d : |D| × |D| 7 → R≥0, we define
+start(p), end(p) ⊆ V (D) ∪ Ω(D) for each point p in |D| and a length ℓ of each edge of T .
+For a vertex p or an end p, we set start (p) = end(p) := p. Given an inner point p = (uv, λ)
+of a (limit) edge uv, we set start(p) := u and end(p) := v. Further, let λ(p) := λ ∈ (0, 1).
+The function ℓ : E(T ) → (0, 1
+2 ] is defined in the following way: Let n ∈ N be arbitrary and let
+En ⊆ E(T ) be the set of edges whose endvertices have distance n − 1 and n to the root r of T in
+T . We set ℓ(e) := 1
+2n for every e ∈ En.
+Given some edge e ∈ E(T ), we describe a canonical partition of V (D) ∪ Ω(D) into two classes
+induced by T − e: The graph T − e consists of two components T1 and T2. Note that each end
+of D corresponds to an end of T by Theorem 1.1. Let V (T1) ∪ Ω(T1) and V (T2) ∪ Ω(T2) be the
+desired partition classes, which we refer to as the sides of T − e.
+Given two points p and q of |D|, we define a weight w{p,q}(e) ∈ [0, 1] of e:
+(i) One side of T − e contains no element of {start(p), start(q), end(p), end(q)}: We set
+w{p,q}(e) := 0.
+(ii) One side of T −e contains exactly one element x of {start(p), start(q), end(p), end(q)}:
+We set w{p,q}(e) :=
+
+							
+							
+1 − λ(p) if x = start(p),
+λ(p) if x = end(p),
+1 − λ(q) if x = start(q),
+λ(q) if x = end(q).
+(iii) One side of T − e contains start(p), end(p) and the other side of T − e contains
+start(q), end(q): We set w{p,q}(e) := 1.
+(iv) One side of T − e contains start (p), start (q) and the other side of T − e contains
+end(p), end(q): We set w{p,q}(e) := |λ(p) − λ(q)|.
+(v) One side of T − e contains start(p), end(q) and the other side of T − e contains
+end(p), start(q): We set w{p,q}(e) := 1 − |λ(p) − λ(q)|.
+We show that the definition of w indeed only relies on λ being defined for internal points of edges:
+Let p be either a vertex or an end of D and let q be an arbitrary point of |D|. Then only cases (i)
+to (iii) apply to p and q. Furthermore, in case (ii) x can only be start (q) or end(q). Since w is
+symmetric, we can conclude that it suffices to define λ only for internal points of edges.
+We are now ready to define
+d(p, q) := ∑
+e∈E(T )
+w{p,q}(e) · ℓ(e)
+
+-- 7 of 12 --
+
+8 FLORIAN REICH
+for every two points p, q ∈ |D|. We show that d(p, q) ∈ R≥0 for every p, q ∈ |D|: Note that
+at most four elements of En can have elements of {start(p), start(q), end(p), end(q)} on both
+sides for every n ∈ N. Thus all but at most four elements of En have weight zero. This implies
+d(p, q) = ∑
+n∈N
+∑
+e∈En w{p,q}(e) · 1
+2n ≤ ∑
+n∈N 4
+2n = 4. Since w{p,q}(e) · ℓ(e) is non-negative for every
+e ∈ E(T ), d maps to R≥0.
+We show that d is indeed a metric on |D|. The map d is symmetric since the weight of an
+edge is symmetric.
+Lemma 4.2. The map d is positive-definite.
+Proof. For p = q only cases (i) and (iv) apply. In both cases w{p,q}(e) = 0 for every e ∈ E(T ).
+Thus d(p, q) = 0 holds.
+For p̸ = q we show that d(p, q) > 0 holds. More precisely, we prove that there exists an edge with
+non-zero weight. Since p̸ = q there exist two distinct elements x, y ∈ {start (p), start (q), end(p), end(q)}.
+Let e be an edge of the x–y path in T . Then x and y witness that e is not of type (i). If e is of
+type (iii), w{p,q}(e) > 0 holds. If e is of type (ii) or (v), w{p,q}(e) > 0 holds since λ(p), λ(q) ∈ (0, 1)
+whenever they are defined. Thus we can assume that e is of type (iv) and λ(p) = λ(q). Since
+p̸ = q, either start(p)̸ = start (q) or end(p)̸ = end(q). Then one side of T − e contains an edge
+f ∈ E(T ) of type (ii), and thus w{p,q}(f ) > 0. □
+Lemma 4.3. The map d satisfies the triangle-inequality.
+Proof. Let o, p, q be three arbitrary points in |D|. We show that w{p,q}(e) ≤ w{p,o}(e) + w{o,q}(e)
+holds for every e ∈ E(T ). By definition of d, this implies that d satisfies the triangle-inequality.
+Let e ∈ E(T ) be arbitrary.
+Case 1: e is of type (i) with respect to p and q: Since w{p,q}(e) = 0, the desired inequality
+is satisfied.
+Case 2: e is of type (ii) with respect to p and q: By symmetry of d, we can assume that
+x ∈ {start(p), end(p)}. If start (o) and end(o) are contained in the same side of T − e as
+x, e is of type (iii) with respect to o and q. Thus the desired inequality is satisfied since
+w{o,q}(e) = 1. If start(o) and end(o) are contained in the opposite side of T − e as x,
+e is of type (ii) with respect to p and o. Thus the desired inequality is satisfied since
+w{p,q}(e) = w{p,o}(e). We can assume that start(o) and end(o) are contained in distinct
+sides of T − e.
+• If start(p) = x, and start(p) and start(o) are contained in the same side of T − e:
+w{p,q}(e) = 1 − λ(p) ≤ |λ(p) − λ(o)| + (1 − λ(o)) = w{p,o}(e) + w{o,q}(e).
+• If start(p) = x, and start(p) and end(o) are contained in the same side of T − e:
+w{p,q}(e) = 1 − λ(p) ≤ (1 − |λ(p) − λ(o)|) + λ(o) = w{p,o}(e) + w{o,q}(e).
+
+-- 8 of 12 --
+
+NORMAL TREES OF DIGRAPHS 9
+• If end(p) = x, and end(p) and start(o) are contained in the same side of T − e:
+w{p,q}(e) = λ(p) ≤ (1 − |λ(p) − λ(o)|) + (1 − λ(o)) = w{p,o}(e) + w{o,q}(e).
+• If end(p) = x, and end(p) and end(o) are contained in the same side of T − e:
+w{p,q}(e) = λ(p) ≤ |λ(p) − λ(o)| + λ(o) = w{p,o}(e) + w{o,q}(e).
+Case 3: e is of type (iii) with respect to p and q: If start(o) and end(o) are contained in
+the same side of T − e, the edge e is of type (iii) with respect to either p and o or o and
+q. Thus 1 ≤ w{p,o}(e) + w{o,q}(e), which implies the desired inequality.
+We can assume that start(o) and end(o) are contained in distinct sides of T − e. By
+symmetry of d, we can assume without loss of generality that start(o) and start(p) are
+contained in the same side of T − e. Thus
+w{p,q}(e) = 1 ≤ λ(o) + (1 − λ(o)) = w{p,o}(e) + w{o,q}(e).
+Case 4: e is of type (iv) with respect to p and q: • If start(o) and end(o) are contained
+in the same side of T − e as start(p) and start(q):
+w{p,q}(e) = |λ(p) − λ(q)| ≤ λ(p) + λ(q) = w{p,o}(e) + w{o,q}(e).
+• If start (o) and end(o) are contained in the same side of T − e as end(p) and end(q):
+w{p,q}(e) = |λ(p) − λ(q)| ≤ (1 − λ(p)) + (1 − λ(q)) = w{p,o}(e) + w{o,q}(e).
+• If start(o) is contained in the same side of T − e as start(p) and start(q), and end(o)
+is contained in the opposite side:
+w{p,q}(e) = |λ(p) − λ(q)| ≤ |λ(p) − λ(o)| + |λ(o) − λ(q)| = w{p,o}(e) + w{o,q}(e).
+• If end(o) is contained in the same side of T − e as start(p) and start(q), and start (o)
+is contained in the opposite side:
+w{p,q}(e) = |λ(p) − λ(q)| ≤ (1 − |λ(p) − λ(o)|) + (1 − |λ(o) − λ(q)|) = w{p,o}(e) + w{o,q}(e).
+Case 5: e is of type (v) with respect to p and q: • If start(o) and end(o) are contained
+in the same side of T − e as start(p) and end(q):
+w{p,q}(e) = 1 − |λ(p) − λ(q)| ≤ λ(p) + (1 − λ(q)) = w{p,o}(e) + w{o,q}(e).
+• If start(o) and end(o) are contained in the same side of T − e as end(p) and start (q):
+w{p,q}(e) = 1 − |λ(p) − λ(q)| ≤ (1 − λ(p)) + λ(q) = w{p,o}(e) + w{o,q}(e).
+• If start(o) is contained in the same side of T − e as start(p) and end(q), and end(o)
+is contained in the opposite side:
+w{p,q}(e) = 1 − |λ(p) − λ(q)| ≤ |λ(p) − λ(o)| + (1 − |λ(o) − λ(q)|) = w{p,o}(e) + w{o,q}(e).
+
+-- 9 of 12 --
+
+10 FLORIAN REICH
+• If end(o) is contained in the same side of T − e as start(p) and end(q), and start (o)
+is contained in the opposite side:
+w{p,q}(e) = 1 − |λ(p) − λ(q)| ≤ (1 − |λ(p) − λ(o)|) + |λ(o) − λ(q)| = w{p,o}(e) + w{o,q}(e).
+This completes the proof. □
+Thus d is indeed a metric on |D|. It remains to prove:
+Lemma 4.4. The metric d induces the topology DTop.
+We remark that for every vertex v in D there exists a positive lower bound for the length of
+edges incident with v.
+Proof. Let p be an arbitrary point in |D|. We begin by proving that for every small basic open
+set O in DTop containing p there exists δ > 0 such that Bδ(p) ⊆ O.
+p is a vertex: Then O is a uniform star of radius ϵ > 0 around p. Let ℓ be a positive lower
+bound for the length of edges incident with p. We set δ := ϵ · ℓ and show, given an
+arbitrary point q ∈ Bδ(p) \ {p}, that q ∈ O.
+Either start(q) = p or end(q) = p: Otherwise there exist either an edge of T incident
+with p of type (iii) or two edges incident with p of type (ii) with respect to p and q. Note
+that in the latter case these edges have weight λ(q) and 1 − λ(q). In both cases d(p, q) ≥ ℓ,
+a contradiction.
+Thus there exists an edge of type (ii) with respect to p and q, where x ∈ {start(q), end(q)}.
+If x = start(q), 1 − λ(q) ≤ δ < ϵ. If x = end(q), λ(q) ≤ δ < ϵ. Thus in both cases, q is
+contained in the uniform star of radius ϵ around p.
+p is an end: We can assume that O is a basic open set of the form ˆ	Cϵ( ˚	⌈t⌉T , p) for some 1 > ϵ > 0
+and some t ∈ V (T ) \ {r} with p ∈ Ω(D[⌊t⌋T ]). Note that C( ˚	⌈t⌉T , p) = D[⌊t⌋T ]. Let ℓ be
+the length of the edge e of T incident to t and its parent. We set δ := ϵ · ℓ and show,
+given an arbitrary point q ∈ Bδ(p) \ {p}, that q ∈ O.
+Since start (p) = end(p), e is not of type (iv) or (v). Since d(p, q) < δ, w{p,q}(e) < ϵ and
+therefore e is not of type (iii). This implies that at least one of start(q) and end(q) is
+contained in ˆ	Cϵ( ˚	⌈t⌉T , p). If one of start(q) and end(q) is not contained in ˆ	Cϵ( ˚	⌈t⌉T , p), then
+e is of type (ii). Thus w{p,q}(e) < ϵ implies that (1 − λ(q)) < ϵ for start(q) /	∈ ˆ	Cϵ( ˚	⌈t⌉T , p)
+and λ(q) < ϵ for end(q) /	∈ ˆ	Cϵ( ˚	⌈t⌉T , p). Thus q ∈ ˆ	Cϵ( ˚	⌈t⌉T , p).
+p is an inner point of a (limit) edge: First, we assume that p is an inner point of a limit
+edge. We can assume that O is a basic open set of the form ˆ	Eϵ,p(X, start(p) end(p)) for
+1 > ϵ > 0 and X ⊆ V (D) such that for every end ω in {start (p), end(p)} there exists
+tω ∈ V (T ) \ {r} with C(X, ω) = C( ˚	⌈tω⌉T , ω) = D([⌊tω⌋T ]).
+Let ϱ := min (λ(p), 1 − λ(p)). For a vertex y in {start(p), end(p)}, let ℓy be a positive
+lower bound for the length of edges incident with y. For an end y in {start(p), end(p)},
+
+-- 10 of 12 --
+
+NORMAL TREES OF DIGRAPHS 11
+let ℓy be the length of the edge ey of T incident with ty and its parent. We set δ :=
+ϱ
+2 · ϵ · min (ℓstart(p), ℓend(p)) and show, given an arbitrary point q ∈ Bδ(p) \ {p}, that q ∈ O.
+We prove that start(p) = start(q) and |λ(p) − λ(q)| < ϵ if start(p) is a vertex: The
+edge e of the start(p)–end(p) path or ray in T incident with start (p) is not of type (i)
+to (iii) or (v) since w{p,q}(e) < ϱ and start(p), end(p) are on distinct sides of T − e.
+Thus e is of type (iv) and |λ(p) − λ(q)| ≤ ϱ
+2 , ϵ. This implies λ(q), (1 − λ(q)) ≥ ϱ
+2 . Thus
+no edge f incident with start (p) is of type (ii), since w{p,q}(f ) < ϱ
+2 . We can deduce
+start(p) = start(q).
+We show that start(q) ∈ V (C(X, start(p))) ∪ Ω(C(X, start(p))) and |λ(p) − λ(q)| < ϵ if
+start(p) is an end: The edge estart(p) is not of type (i) to (iii) and (v) since w{p,q}(estart(p)) <
+ϱ ≤ 1 − |λ(p) − λ(q)| ≤ 1 and start(p), end(p) are on distinct sides of T − estart(p). Thus
+estart(p) is of type (iv) and |λ(p) − λ(q)| < ϵ. Furthermore, start(q) ∈ V (C(X, start (p))) ∪
+Ω(C(X, start(p))).
+Similarly, we can prove that end(p) = end(q) if end(p) is a vertex and end(q) ∈
+V (C(X, end(p)))∪Ω(C(X, start(p))) if end(p) is an end. Thus q ∈ ˆ	Eϵ,p(X, start(p) end(p)).
+Second, we assume that p is an inner point of an edge and assume that O is a basic
+open set of p for some ϵ > 0. We define δ as before and show, given an arbitrary
+point q ∈ Bδ(p) \ {p}, that q ∈ O. We remark that, by the same argument as before,
+start(p) = start(q) and end(p) = start(q). Then there exists an edge e of T incident with
+p of type (iv). Thus |λ(p) − λ(q)| · ℓ(e) < δ ≤ ϵ · min (ℓstart(p), ℓend(p)). Since ℓ(e) ≥ ℓstart(p),
+we obtain |λ(p) − λ(q)| < ϵ. This shows that q ∈ O.
+Now we show that for every 1 > δ > 0 there exists a basic open set O in DTop containing p
+such that O ⊆ Bδ(p). Then the metric d induces the topology DTop.
+p is a vertex: We set ϵ := δ
+2 . Let o be some point in the uniform star of radius ϵ around p. Then
+every edge of T with non-zero weight with respect to p and o is of type (ii). Furthermore,
+En contains at most two edge of non-zero weight with respect to p and o for every n ∈ N.
+Thus d(p, o) < ∑
+n∈N 2 · 1
+2n · ϵ = δ.
+p is an end: Let n ∈ N with 1
+2n < δ and let t be the unique vertex of T of distance n + 3 in T to
+the root with p ∈ Ω(D[⌊t⌋T ]). Given some q ∈ ˆ	C 1
+2n+2 ( ˚	⌈t⌉T , p), we show that q ∈ B 1
+2n (p).
+By definition of ˆ	C 1
+2n+2 ( ˚	⌈t⌉T , p), either start(q) or end(q) is contained in V (C( ˚	⌈t⌉T , p)) ∪
+Ω(C( ˚	⌈t⌉T , p)). Note that C( ˚	⌈t⌉T , p) = D[⌊t⌋T ]. Thus each Em for m ≤ n + 3 contains at
+most two edges of non-zero weight with respect to p and q and these edges are of type (ii).
+Further, there are at most four edges of non-zero weight in Em for m > n + 3.
+If start(q) and end(q) are contained in V (C( ˚	⌈t⌉T , p)) ∪ Ω(C( ˚	⌈t⌉T , p)), then d(p, q) ≤
+∑
+m≤n+3 0 + ∑
+m>n+3 4 · 1 · 1
+2m < 1
+2n . Thus we can assume that exactly one of start (q)
+and end(q) is contained in V (C( ˚	⌈t⌉T , p)) ∪ Ω(C( ˚	⌈t⌉T , p)). If start(q) ∈ V (C( ˚	⌈t⌉T , p)) ∪
+Ω(C( ˚	⌈t⌉T , p)), then λ(q) < 1
+2n+2 and thus d(p, q) ≤ ∑
+m≤n+3 2· 1
+2n+2 · 1
+2m +∑
+m>n+3 4·1· 1
+2m <
+
+-- 11 of 12 --
+
+12 FLORIAN REICH
+1
+2n . If end(q) ∈ V (C( ˚	⌈t⌉T , p)) ∪ Ω(C( ˚	⌈t⌉T , p)), then 1 − λ(q) < 1
+2n+2 and thus similarly
+d(p, q) < 1
+2n .
+p is an inner point of an edge: Let q be some point in the δ
+2 -ball around p in start (p) end(p).
+We show q ∈ Bδ(p).
+Note that every edge of T is either of type (i) or of type (iv). Further there are at most
+two edges in Em of type (iv) for every m ∈ N. Thus d(p, q) ≤ ∑
+m∈N 2·|λ(p)−λ(q)|· 1
+2m < δ.
+p is an inner point of a limit edge: Let n ∈ N with 1
+2n < δ and let X ⊆ V (D) such that
+C(X, ω) contains only vertices of distance at least n + 3 to r in T for every end ω in
+{start(p), end(p)} and such that every vertex in {start(p), end(p)} is in X. Further, let q
+be some point in ˆ	E 1
+2n+2 ,p(X, start(p) end(p)). We show q ∈ Bδ(p).
+For every m ≤ n + 3 the edges in Em are either of type (i) or of type (iv) by choice of X.
+Further, there are at most two edges in Em of type (iv). Further there are at most four
+edges in Em that are of type (ii) to (v), i.e. with non-zero weight, for every m > n + 3.
+Thus d(p, q) ≤ ∑
+m≤n+3 2 · |λ(p) − λ(q)| · 1
+2m + ∑
+m>n+3 4 · 1
+2m < δ. □
+Thus d is indeed the desired metric inducing DTop, which proves the backward implication of
+Theorem 1.4.
+Acknowledgement
+The author gratefully acknowledges support by a doctoral scholarship of the Studienstiftung
+des deutschen Volkes.
+References
+[1] N. Bowler and F. Reich, Connectoids I: a universal end space theory, arXiv preprint arXiv:2405.14704 (2024).
+[2] , Connectoids II: existence of normal trees, arXiv preprint arXiv:2405.15249 (2024).
+[3] C. Bürger and R. Melcher, Ends of digraphs I: basic theory, arXiv preprint arXiv:2009.03295 (2020).
+[4] , Ends of digraphs II: the topological point of view, arXiv preprint arXiv:2009.03293 (2020).
+[5] , Ends of digraphs III: normal arborescences, arXiv preprint arXiv:2009.03292 (2020).
+[6] R. Diestel, End spaces and spanning trees, Journal of Combinatorial Theory, Series B 96 (2006), no. 6, 846–854.
+[7] , Graph Theory, 5th ed., Springer-Verlag, 2017.
+Universität Hamburg, Department of Mathematics, Bundesstrasse 55 (Geomatikum), 20146
+Hamburg, Germany
+Email address: florian.reich@uni-hamburg.de
+
+-- 12 of 12 --
+

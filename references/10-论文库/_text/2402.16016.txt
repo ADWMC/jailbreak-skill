@@ -1,0 +1,2457 @@
+arXiv:2402.16016v2 [cs.GT] 29 Mar 2024
+Complexity of Manipulation and Bribery in Premise-Based
+Judgment Aggregation with Simple Formulas
+Robert Bredereck1,2,3 and Junjie Luo4
+1Institut f¨ur Softwaretechnik und Theoretische Informatik, Technische Universit¨at Berlin, Berlin,
+Germany
+2Institut f¨ur Informatik, Humboldt-Universit¨at zu Berlin, Berlin, Germany
+3Institut f¨ur Informatik, TU Clausthal, Clausthal-Zellerfeld, Germany
+robert.bredereck@tu-clausthal.de
+4School of Mathematics and Statistics, Beijing Jiaotong University, Beijing, China jjluo1@bjtu.edu.cn
+Abstract
+Judgment aggregation is a framework to aggregate individual opinions on multiple, log-
+ically connected issues into a collective outcome. These opinions are cast by judges, which
+can be for example referees, experts, advisors or jurors, depending on the application and
+context. It is open to manipulative attacks such as Manipulation where judges cast their
+judgments strategically. Previous works have shown that most computational problems cor-
+responding to these manipulative attacks are NP-hard. This desired computational barrier,
+however, often relies on formulas that are either of unbounded size or of complex structure.
+We revisit the computational complexity for various Manipulation and Bribery prob-
+lems in premise-based judgment aggregation, now focusing on simple and realistic formulas.
+We restrict all formulas to be clauses that are (positive) monotone, Horn-clauses, or have
+bounded length. For basic variants of Manipulation, we show that these restrictions make
+several variants, which were in general known to be NP-hard, polynomial-time solvable. More-
+over, we provide a P vs. NP dichotomy for a large class of clause restrictions (generalizing
+monotone and Horn clauses) by showing a close relationship between variants of Manipu-
+lation and variants of Satisfiability. For Hamming distance based Manipulation, we
+show that NP-hardness even holds for positive monotone clauses of length three, but the
+problem becomes polynomial-time solvable for positive monotone clauses of length two. For
+Bribery, we show that NP-hardness even holds for positive monotone clauses of length two,
+but it becomes polynomial-time solvable for the same clause set if there is a constant budget.
+Key words— Judgment Aggregation; Social Choice Theory; Computational Complexity
+1 Introduction
+Justine is the head of a committee deciding on financial support for new startup companies. For
+her decisions, she uses publicly available evaluations of experts (judges) with respect to a set of
+basic features such as cult potential (c), marketability (m), high profitability (h), and strong
+competitors’ existence (s). As a brilliant mathematician and economist, Justine developed a
+model that can reliably predict the success of the startup by putting the features into logical
+relation. For example, she defined two further composed features “market entering potential” as
+e := ¬s ∨ c and “short-term risk” as r := ¬m ∨ ¬h. Since the expert’s evaluations are different,
+she needs to aggregate them to feed her model. Her first idea was to take the majority on each
+feature, but she recognizes that she may obtain the following evaluations from three experts:
+expert 1: s ∧ ¬c ∧ m ∧ h ∧ ¬e ∧ ¬r
+expert 2: s ∧ c ∧ ¬m ∧ h ∧ e ∧ r
+expert 3: ¬s ∧ ¬c ∧ m ∧ ¬h ∧ e ∧ r
+1
+
+-- 1 of 43 --
+
+where the majority opinions claim strong competitors’ existence (s), marketability (m), and
+high profitability (h), and disclaim cult potential (c). However, the majority opinions also claim
+market entering potential (e := ¬s ∨ c) and short-term risk (r := ¬m ∨ ¬h); an obviously
+paradoxical situation. Justine does a quick literature review and identifies her aggregation
+problem as “judgment aggregation” and the observed paradox as a variant of the well-known
+doctrinal paradox [26]. To avoid this paradox and since the experts are anyway better in
+evaluating basic features than evaluating composed features, she decides to adapt the concept
+of premise-based judgment aggregation rules [17] for her decision process: Basic features form
+the premises, and composed features are conclusions (which logically connect premises). The
+aggregation process is performed only on the premises and conclusions are deduced from them.
+That is, the outcome in the above example is s, ¬c, m, h, and, hence, also ¬e and ¬r.
+Justine is happy with the aggregation process, but she is worried about the reliability of
+the results. (1) For example, what if an expert made a mistake? Can she compute efficiently
+whether a set of important features remains stable even if some expert provided a wrong evalua-
+tion? (2) What if an expert evaluated strategically or untruthfully due to bribery or lobbyism?
+Is it difficult for an expert to compute a successful strategy? A quick literature review iden-
+tifies all questions posed by Justine as variants of Manipulation and Bribery, which are
+computationally intractable.
+Although the intractability of strategic evaluation and bribery seems to be good news, Justine
+is skeptical about the relevance of these results for her application. In her model, all formulas
+are length-two Horn clauses. All intractability results found, however, use rather complex or
+long formulas as conclusions, and, hence, do not apply in her situation. So Justine is stuck with
+the literature’s state of the art and cannot decide whether her model (with simple formulas) is
+vulnerable towards manipulation or bribery.
+In this paper, we help Justine (and all others in similar situations) and provide a fine-grained
+computational complexity analysis of Manipulation and Bribery for judgment aggregation
+with simple formulas. Our results are essentially good news for Justine: Concerning question (1),
+we show that checking the robustness of an outcome (i.e. whether a single judge/mistake can
+change it) turns out to become polynomial-time solvable for simple formulas. Concerning ques-
+tion (2), we show that most manipulative actions (such as strategic evaluation or bribery) remain
+computationally hard even for structurally simple formulas.
+1.1 Related Work
+For a detailed introduction to the general topic of judgment aggregation we refer to excellent
+surveys in the field [5, 19, 25, 27, 28]. We focus here on a description of work related to
+computational complexity of strategic behavior for premise-based judgment aggregation rules,
+which is most relevant to our work. We will point the interested reader to specific surveys for
+broader information.
+Dietrich and List [16] introduced strategic behavior to judgment aggregation. They in-
+troduced the concept of strategy-proofness to analyze whether certain strategic behavior can
+influence the outcome (ignoring the computational complexity of manipulative attacks). Follow-
+ing Bartholdi III et al. [1, 2], intractability of manipulative attacks is usually seen as “barrier
+against manipulation” and, hence, a desired property. Endriss et al. [20] were the first who ana-
+lyzed the computational complexity of strategic behavior in judgment aggregation and showed
+that it is NP-hard for a judge to decide whether she can cast a judgment set that influences
+the collective outcome in a beneficial way (assuming Hamming distance based preferences over
+judgment sets), even for the simple premise-based majority rule, where a premise is accepted
+if it is accepted by more than half of judges. We also consider, among others, Hamming dis-
+tance based preferences, but for uniform premise-base quota rules, which is a family of rules
+that contains their premise-based majority rule as prominent special case. Moreover, Endriss
+et al. [20] allow arbitrarily complex formulas to obtain their results. Baumeister et al. [3, 4, 7]
+2
+
+-- 2 of 43 --
+
+continued this line of research and where the first who extended the results to the more general
+uniform premise-base quota rules. They also initiated the analysis of further variants of strategic
+behavior for judgment aggregation, including further variants of Manipulation or cases where
+an external agent influences the structure (Control) or the opinions of the judges (Bribery),
+showing NP-hardness for most considered problems. However, these NP-hardness results usually
+rely on complex or size-unbounded formulas, leaving open the complexity of cases with simple
+and realistic formulas, which is the focus of our paper. Similar to Endriss et al. [20], they also did
+not impose any systematic restriction on the complexity of the formula. We continue this line
+of research but we focus on practically meaningful simple formula and analyze to which extent
+desired computational complexity transfers. Besides premise-based rules, de Haan [14] studied
+the complexity of Manipulation, Bribery and Control for the Kemeny judgment aggrega-
+tion rule, and Baumeister et al. [8] investigated the complexity of manipulation by changing the
+processing order in sequential rules. For a broader overview on strategic behavior in judgment
+aggregation, we refer to a recent survey [6].
+Our work also fits well into the line of research initiated by the seminal paper of Faliszewski
+et al. [23] showing that the barrier against manipulative attacks sometimes disappears in context
+of restricted domains. In context of voting one usually considers restricted preference domains
+(see Elkind et al. [18] for a recent survey) whereas we focus on restricted formulas.
+More generally, fine-grained analysis has also been considered for outcome determination in
+judgment aggregation, which is usually computationally intractable for many judgment aggre-
+gation rules (e.g., Kemeny rule) [22]. de Haan [13] investigated the parameterized complexity of
+outcome determination of the Kemeny rule by considering structural parameters, including the
+maximum size of formulas, which is also one restriction considered in this paper. de Haan [15]
+studied the influence of different formula restrictions (e.g., Horn and Krom formulas) on the
+complexity of outcome determination in judgment aggregation. Finally, the problem of agenda
+safety in judgment aggregation, which determines for a given set of formulas and a given aggre-
+gation procedure whether the procedure’s outcome is always consistent for any combination of
+judgment sets, has also been considered from the perspective of parameterized complexity [21].
+1.2 Contributions and Organization
+We analyze the computational complexity of variants of Manipulation and Bribery in premise-
+based judgment aggregation with simple formulas. We restrict all formulas to clauses and sys-
+tematically study the effect of the number of positive (negative) literals in a clause and clause
+length on the computational complexity. In particular, we consider Horn clauses (implication-
+like conclusions which for instance are fundamental in logic programming [11, 29]), (positive)
+monotone clauses, and clauses of bounded length. In Section 2 we describe the formal model
+and introduce our notation.
+In Section 3 we revisit the computational complexity for basic variants of Manipulation,
+showing that the restriction to clauses makes several variants, which were in general known to be
+NP-hard [4], polynomial-time solvable. Our main result in this section is a P vs. NP dichotomy
+for a large class of clause restrictions (generalizing monotone and Horn clauses) by showing
+a close relationship between variants of Manipulation and variants of Satisfiability. For
+details, we refer to Table 12 in our conclusion (Section 6).
+In Section 4 we revisit Hamming distance based Manipulation. Our main result in this
+section is that for positive monotone clauses the problem becomes polynomial-time solvable for
+clauses of length ℓ = 2 but remains NP-hard when ℓ = 3. This is particularly surprising since
+Satisfiability is trivial for positive monotone clauses even for unbounded length. The latter
+result is reached by showing NP-hardness of a natural variant of Vertex Cover which we
+believe to be interesting on its own. The NP-hardness also holds for monotone or Horn clauses
+of length ℓ = 2.
+In Section 5 we revisit the computational complexity of two variants of Bribery, where we
+3
+
+-- 3 of 43 --
+
+show that the NP-hardness even holds for positive monotone clauses of length ℓ = 2, probably
+the most basic case. We then consider the restricted case with a fixed budget, and show that
+in this case the problem becomes polynomial-time solvable for positive monotone clauses of
+length ℓ = 2. For general clause sets, we show an interesting relation between Hamming distance
+based Manipulation and Bribery with the same clause set: the NP-hardness of Hamming
+distance based Manipulation implies the NP-hardness of the corresponding Bribery.
+2 Model and Preliminaries
+2.1 Premise-Based Judgment Aggregation
+We adopt the judgment aggregation framework described by Baumeister et al. [4] and Endriss
+et al. [20] and slightly simplify the notation for premise-based rules.
+The topics to be evaluated are collected in the agenda Φ = Φp ⊎ Φc that consists of a finite
+set of premises Φp (propositional variables) as well as a finite set of conclusions Φc (propositional
+formulas built from the premises using standard logical connectives ¬, ∨, and ∧).1 In this paper
+we only study disjunctive agendas, i.e., there is no formulas containing ∧ (see more details in
+Section 2.3). The agenda does not contain any doubly negated formulas and is closed under
+complementation, that is, ¬α ∈ Φ if and only if α ∈ Φ. An evaluation on the agenda is expressed
+as a judgment set J ⊆ Φ. A judgment set is complete if each premise and conclusion is contained
+either in the negated or non-negated form and consistent if there is an assignment that satisfies
+all premises and conclusions in the judgment set simultaneously. The set of all complete and
+consistent subsets of Φ is denoted by J (Φ).
+Let N = {1, ..., n} be a set of n > 1 judges. A profile is a vector of judgment sets J =
+(J1, . . . , Jn) ∈ J (Φ)n. We denote by (J−i, Ji′) the profile that is like J, except that Ji has been
+replaced by Ji′. A judgment aggregation procedure for agenda Φ and judges N = {1, ..., n} is
+a function F : J (Φ)n → 2Φ that maps a profile J to a single judgment set, which is called a
+collective judgment set. A procedure is called complete (consistent) if the collective judgment
+set under the procedure is always complete (consistent).
+The most natural procedure is probably the majority rule, which accepts a formula if and only
+if it is accepted by more than half of the individual judges. Dietrich and List [17] introduced the
+quota rule as a generalization of the majority rule, where each formula has an given acceptance
+threshold. As shown in the introductory example, the majority rule (and the quota rule) does
+not satisfy consistency. In this paper, we consider the uniform premise-based quota rule [4],
+which first applies the quota rule to the premises and then accepts all conclusions that are
+satisfied by these collectively accepted premises. The formal definition follows.
+Definition 1 (Uniform Premise-based Quota Rule for q ∈ [0, 1)). A uniform premise-based
+quota rule UPQRq : J (Φ)n → 2Φ divides the premises Φp into two disjoint subsets Φq and Φ¯q,
+where Φq consists of all premises in the non-negated form and Φ¯q consists of all premises in
+the negated form. For each J ∈ J (Φ)n the outcome UPQRq(J) is the collective judgment set
+that contains every premise from Φq that appears at least ⌊qn + 1⌋ times in the profile J, every
+premise from Φ¯q that appears at least ⌈n − qn⌉ times in the profile, as well as all conclusions
+that are satisfied by these premises.
+Notice that since ⌊qn + 1⌋ + ⌈n − qn⌉ = n + 1, it is guaranteed that for each premise α ∈ Φp,
+we have either α ∈ UPQRq(J) or ¬α ∈ UPQRq(J). Then by the way conclusions are selected,
+the outcome UPQRq(J) is always complete and consistent.
+The following example formally restates the introductory example.
+1This implies that the agenda is closed under propositional variables, that is, if φ is a formula in the agenda,
+then so is every propositional variable occurring within φ.
+4
+
+-- 4 of 43 --
+
+Example. The premise set Φp contains two parts Φq = {s, c, m, h} and Φ¯q = {¬s, ¬c, ¬m, ¬h}.
+The conclusion set Φc contains ¬s ∨ c, ¬m ∨ ¬h and their negations. The profile is given as
+follows:
+Judgment Set s c m h ¬s ∨ c ¬m ∨ ¬h
+J1 1 0 1 1 0 0
+J2 1 1 0 1 1 1
+J3 0 0 1 0 1 1
+UPQR1/2 1 0 1 1 ⇒ 0 0
+In the table we use 1 or 0 to represent whether the formula is contained in the judgment set or
+not. As an example, J1 = {s, ¬c, m, h, ¬(¬s ∨ c), ¬(¬m ∨ ¬h)}. The collective judgment set is
+obtained by applying UPQRq with q = 1/2. Thus, to be included in the outcome, every positive
+premise needs to be accepted by ⌊ 3
+2 + 1⌋ = 2 judges, and every negative premise needs to be
+accepted by ⌈3 − 3
+2 ⌉ = 2 judges. We first have that s, ¬c , m and h are included in the outcome.
+Or we just say s = 1, c = 0, m = 1 and h = 1. Then we get that ¬s ∨ c = 0 and ¬m ∨ ¬h = 0,
+which means ¬(¬s ∨ c) and ¬(¬m ∨ ¬h) are included in the outcome.
+2.2 Decision Variables
+In order to analyze the influence of judges on the outcome UPQRq(J), we call a variable x
+decided by judge i if the outcome with respect to x is decided by the judgment set of judge i,
+i.e., for any judgment set J∗ ∈ J (Φ), it holds that x ∈ UPQRq (J−i, J∗) if and only if x ∈ J∗.
+In the above example, variables c and m are decided by the third judge while s and h are not.
+According to the definition of UPQRq, we get the following characterization for variables
+decided by a judge.
+Observation 1. A variable x ∈ Φq (resp. x ∈ Φ¯q) is decided by judge i if and only if except for
+judge i there are exactly ⌊qn⌋ (resp. ⌈n − qn − 1⌉) judges that accept x.
+It follows that if variable x is not decided by judge i, then except for judge i the number of
+judges that accept x is either at most ⌊qn⌋ − 1 or at least ⌊qn⌋ + 1 (resp. at most ⌈n − qn − 2⌉ or
+at least ⌈n − qn⌉). In both cases the outcome of x is independent of the judgment set of judge i.
+Observation 2. If variable x is not decided by judge i, then judge i cannot change the outcome
+of x, i.e., for any judgment set J∗ ∈ J (Φ), it holds that x ∈ UPQRq (J−i, J∗) if and only if
+x ∈ UPQRq (J).
+We will use these observations in the analysis of many variants of Manipulation. We call
+a variable a decision variable if the variable is decided by the manipulator. We do not consider
+the corresponding definition for conclusions since for our problems only those conclusions whose
+outcome can be changed by the judge need to be considered and the rest can simply be deleted
+from the problem input.
+2.3 Clause Restrictions
+We restrict the conclusions to be clauses and their negations, where a clause is defined as a
+disjunction of literals. In particular, we consider positive monotone clauses which are clauses
+with no negative literals, monotone clauses which are clauses with only positive literals or with
+only negative literals, Horn clauses which are clauses with at most one positive literal, and
+clauses of bounded length, where the length of a clause is the number of literals contained in
+it. Moreover, we generalize these restrictions and define classes of clause restrictions based on a
+classification with respect to the number of positive and negative literals in a clause.
+5
+
+-- 5 of 43 --
+
+Definition 2. A clause set C is called a standard-form clause set if C is a union of some Sj
+i ,
+where Sj
+i is the set of clauses which contain exactly i literals and exactly j of them are negative.
+Denote S0
+k and Sk
+k as M+
+k and M−
+k .
+This classification is useful as most clause classes we care about can be defined as the union
+of some Sj
+i . For example, positive monotone clauses can be denoted by ⋃∞
+i=1 S0
+i = ⋃∞
+i=1 M+
+i ,
+Horn clauses can be denoted by ⋃∞
+i=1(M−
+i ∪ Si−1
+i ), and clauses of length 3 can be denoted by
+⋃3
+j=0 Sj
+3 .
+We remark that our results in this paper can be directly translated to the case where we
+restrict the conclusions to be conjunctions of literals, and their negations, since the negation
+of a clause is a conjunction of literals and the agenda is closed under complementation. In
+other words, for each pair of clause α of its negation ¬α in the agenda, we can rewrite ¬α as a
+conjunction of literals and α as the negation of a conjunction of literals, such that all conclusions
+in the agenda are conjunctions of literals or their negations.
+2.4 Satisfiability
+We will build connections between variants of Manipulation and variants of Satisfiability.
+A formula is said to be satisfiable if there exists a value assignment that assigns every variable
+appearing in the formula 1 or 0 such that the formula is valued as 1. Satisfiability is the
+problem of deciding whether a given formula is satisfiable. 3-Sat is a restricted variant of
+Satisfiability where each formula is a conjunction of clauses of length 3. We define more
+general variants of Satisfiability based on the clause set.
+Definition 3. Let C be a clause set. C-Sat is the problem of deciding whether a given formula
+C1 ∧ · · · ∧ Cm with Ci ∈ C is satisfiable or not.
+Now 3-Sat corresponds to ⋃3
+j=0 Sj
+3 -Sat.
+3 Basic Manipulation Problems
+In this section, we analyze the computational complexity of problems modeling simple variants
+of strategic behavior of some judge. The core idea is that a judge might cast an untruthful
+judgment set in order to influence the collective judgment set towards some desired judgment
+set. Note that we provide alternative, simpler (yet equivalent) problem definitions compared to
+those known from the literature [4]. In contrast to Baumeister et al. [4] who focus on the as-
+sumption on the preferences of the manipulator over all possible outcomes, which requires rather
+technical concepts of preference relations between judgment sets, we take a different approach
+and directly model the requirements on the preferred outcome. For example, the simplest vari-
+ant of manipulation from Baumeister et al. [4], UPQR-U-Possible-Manipulation, actually
+models the question whether the collective outcome is “robust against one judge providing a
+faulty judgment set” as asked by Justine in the introduction. Formally, we consider the following
+problems.
+6
+
+-- 6 of 43 --
+
+UPQR Manipulation basic variants (Problem names from[4] listed below.)
+Input: An agenda Φ, a profile J = (J1, . . . , Jn) ∈ J (Φ)n, the manipulator’s desired
+consistent (possibly incomplete) set J ⊆ Jn, and a uniform rational threshold q ∈ [0, 1).
+UPQR-Robustness-Manipulation (=UPQR-U-Possible-Manipulation[4])
+Question: ∃J∗ ∈ J (Φ) : UPQRq(J) ∩ J 6 = UPQRq(J−n, J∗) ∩ J?
+UPQR-Possible-Manipulation (=UPQR-CR-Possible-Manipulation[4])
+Question: ∃J∗ ∈ J (Φ) : (UPQRq(J−n, J∗) ∩ J) \ (UPQRq(J) ∩ J) 6 = ∅?
+UPQR-Necessary-Manipulation (=UPQR-CR-Necessary-Manipulation[4])
+Question: ∃J∗ ∈ J (Φ) : UPQRq(J) ∩ J ( UPQRq(J−n, J∗) ∩ J?
+UPQR-Exact-Manipulation (=UPQR-TR-Necessary-Manipulation[4])
+Question: ∃J∗ ∈ J (Φ) : J ⊆ UPQRq(J−n, J∗)?
+Intuitively, the manipulator only cares about the formulas in the desired set J, which is a
+subset of the manipulator’s judgment set. UPQR-Robustness-Manipulation asks whether
+the manipulator can achieve a different outcome with respect to J. UPQR-Possible-Manipu-
+lation asks whether the manipulator can achieve an outcome that contains a formula from J
+which is not contained in the truthful outcome. UPQR-Necessary-Manipulation asks
+whether the manipulator can achieve an outcome that contains a formula from J which is
+not contained in the truthful outcome, and meanwhile contains all formulas that are in both J
+and the truthful outcome. UPQR-Exact-Manipulation asks whether the manipulator can
+achieve an outcome that contains all formulas from J.
+Baumeister et al. [4] showed that all the four variants of UPQR Manipulation with the
+desired set being incomplete are NP-complete. However, a complex formula in conjunctive
+normal form is needed in the conclusion set in these reductions. In this section, we give a
+more refined analysis by considering how restricting the conclusions to different standard-form
+clause sets influences the computational complexity of UPQR Manipulation for all four basic
+variants. For completeness, before presenting the tractable cases in Section 3.2 and intractable
+cases in Section 3.3, we first provide the original problem definitions in Baumeister et al. [4] and
+argue that our problem definitions are equivalent in Section 3.1.
+3.1 Relation to Baumeister et al. [4]
+Before we start the actual analysis our our problems, we show the equivalence between our
+problem definitions and those in Baumeister et al. [4].
+3.1.1 Preferences over judgment sets
+In order to define their manipulation problems, Baumeister et al. [4] used the following the
+notations for their concepts of preferences over judgment sets. Let U be the set of all weak
+orders over J (Φ). For a weak order  over J (Φ) and for all X, Y ∈ J (Φ), define X ≻ Y by
+X  Y and Y 6  X, and define X ∼ Y by X  Y and Y  X. We say X is weakly preferred to
+Y whenever X  Y , and we say X is preferred to Y whenever X ≻ Y . Given some (possibly
+incomplete) judgment set J, define
+1. the set of unrestricted J-induced (weak) preferences as the set UJ of weak orders  in U
+such that for all X, Y ∈ J (Φ), X ∼ Y whenever X ∩ J = Y ∩ J;
+2. the set of top-respecting J-induced (weak) preferences as TRJ ⊆ UJ such that  ∈ TRJ if
+and only if for all X ∈ J (Φ) with X ∩ J 6 = J, it holds that J ≻ X ;
+3. the set of closeness-respecting J-induced (weak) preferences as CRJ ⊆ UJ such that 
+∈ CRJ if and only if for all X, Y ∈ J (Φ) with Y ∩ J ⊆ X ∩ J, we have X  Y .
+7
+
+-- 7 of 43 --
+
+Table 1: Relation between original problem definitions in [4] and our definitions. We ignore
+UPQRq-U-Necessary-Manipulation as it is known to be possibly strategy proof [4].
+Definitions in [4] Our definitions
+UPQRq-U-Possible-Manipulation ↔ UPQR-Robustness-Manipulation
+UPQRq-TR-Necessary-Manipulation ↔ UPQR-Exact-Manipulation
+UPQRq-TR-Possible-Manipulation ↔ UPQR-Robustness-Manipulation
+UPQRq-CR-Necessary-Manipulation ↔ UPQR-Necessary-Manipulation
+UPQRq-CR-Possible-Manipulation ↔ UPQR-Possible-Manipulation
+Let J, X, and Y be three judgment sets for the same agenda Φ, where J is possibly incomplete
+and let TJ ∈ {UJ , TRJ , CRJ } be a type of J-induced preferences. We say judgment set X is
+necessarily preferred to judgment set Y for type TJ if X ≻ Y for all  ∈ TJ and judgment set X
+is possibly preferred to judgment set Y for type TJ if there is some  ∈ TJ with X ≻ Y .
+3.1.2 Original Problem Definitions
+For each T ∈ {U, TR, CR} and any rational quota q ∈ [0, 1), Baumeister et al. [4] defined their
+Manipulation problems as follows.
+UPQRq-T -Necessary-Manipulation (resp. UPQRq-T -Possible-Manipulation)
+Input: An agenda Φ, a profile J = (J1, . . . , Jn) ∈ J (Φ)n, the manipulator’s desired
+consistent (possibly incomplete) set J ⊆ Jn.
+Question: Does there exist a judgment set J∗ ∈ J (Φ) such that UPQRq(J−n, J∗) ≻
+UPQRq(J) for all ∈ TJ (resp. for some ∈ TJ )?
+3.1.3 Alternative Characterizations
+Since the problem definitions in its various variants together with the respective J-induces
+preference models are rather complicated to parse, we provided alternative, more direct questions
+that are helpful to analyze and understand the considered problems at the beginning of this
+section. In the following we show that our problem definitions are equivalent to the ones in
+Baumeister et al. [4] (see also Table 1). Note that some variants have trivial solutions and can
+thus be ignored in our analysis. Moreover, provide a “motivation”-paragraph for each relevant
+manipulation variant, where we discuss potential application settings.
+UPQRq-U-Necessary-Manipulation: This case is known to be possibly strategy proof, that
+is, no manipulated outcome would be necessarily preferred to truthful outcome [4]. Con-
+sequently, we ignore this problem variant.
+UPQRq-U-Possible-Manipulation: Recall that unrestricted J-induced (weak) preferences
+only require that two outcomes X and Y must be equally good, when they are identical
+with respect to J. That is, when X and Y not identical with respect to J, then both
+X ≻ Y and Y ≻ X are possible. Therefore, a manipulator that wants to obtain a possibly
+better outcome only needs to archive an outcome that is different to the original outcome
+with respect to the desired set.
+Thus, UPQRq-U-Possible-Manipulation asks whether the manipulating judge can
+achieve a different outcome (that contains at least one more or one less formula from
+the desired set compared to the truthful outcome) with respect to the desired set.
+8
+
+-- 8 of 43 --
+
+Formally, we have: ∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ≻ UPQRq(J) for some ∈ UJ ? ⇔
+∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ∩ J 6 = UPQRq(J) ∩ J?
+Thus, UPQRq-U-Possible-Manipulation is equivalent to UPQR-Robustness-Manipulation.
+Motivation: This problem can be seen as a question for stability or robustness [10].
+Interpreting the desired set as “set of relevant propositions”, it asks whether a particular
+judge can change the collective outcome with respect to relevant propositions e.g. by
+changing her mind or making a mistake. Possible applications are when we know that
+some specific judge (formally the manipulator) is not certain or perfectly qualified for a
+reliable evaluation and we want to know whether we can trust the aggregated outcome
+with respect to specific important formulas (formally the desired set).
+UPQRq-TR-Necessary-Manipulation: Recall that top-respecting J-induced (weak) prefer-
+ences only require that J is preferred to every outcome that does not already contain J.
+That is, an outcome X is necessarily better than an outcome Y when Y did not contain J
+but X does.
+Thus, UPQRq-TR-Necessary-Manipulation asks whether the manipulator can achieve an
+outcome that contains the desired set, and in addition the truthful outcome does not
+contain the whole desired set.
+Formally, we have: ∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ≻ UPQRq(J) for all ∈ TRJ ? ⇔
+∃J∗ ∈ J (Φ) : J ⊆ UPQRq(J−n, J∗) and J 6 ⊆ UPQRq(J)?
+Since it is trivial to check the second condition J 6 ⊆ UPQRq(J), UPQRq-TR-Necessary-
+Manipulation is essentially equivalent to UPQR-Exact-Manipulation.
+Motivation: The motivation for this manipulation variant is straightforward. Whenever
+one is aware of the precise goal of a potential manipulator, one can ask whether the
+manipulator can fully reach that goal.
+UPQRq-TR-Possible-Manipulation: Recall that top-respecting J-induced (weak) prefer-
+ences only require that J is preferred to every outcome that does not already contain J.
+That is, an outcome X is only required to be better than an outcome Y when Y did not
+contain J but X does. Thus, when Y does not contain J, then X is possibly better than Y
+whenever it is different from Y with respect to J.
+Thus, UPQRq-TR-Possible-Manipulation asks whether the manipulator can can achieve
+a different outcome with respect to the desired set, and in addition the truthful outcome
+does not contain the desired set.
+Formally, we have: ∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ≻ UPQRq(J) for some ∈ TRJ ? ⇔
+∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ∩ J 6 = UPQRq(J) ∩ J and J 6 ⊆ UPQRq(J)?
+Since it is trivial to check the second condition J 6 ⊆ UPQRq(J), UPQRq-TR-Possible-
+Manipulation is essentially the same as UPQR-Robustness-Manipulation.
+UPQRq-CR-Necessary-Manipulation: Recall that closeness-respecting J-induced (weak)
+preferences require that an outcome X must be better than an outcome Y when the
+set of formulas from J included in X is a superset of the set of formulas from J included
+in Y . That is, an outcome X is necessarily better than an outcome Y when X contain all
+formulas from J also included in Y plus some more.
+Thus, UPQRq-CR-Necessary-Manipulation asks whether the manipulator can achieve an
+outcome that contains at least one conclusion from the desired set that was not in the
+truthful outcome, and at the same time contains all formulas from the desired set that
+were part of the truthful outcome.
+9
+
+-- 9 of 43 --
+
+Formally, we have: ∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ≻ UPQRq(J) for all ∈ CRJ ? ⇔
+∃J∗ ∈ J (Φ) : UPQRq(J) ∩ J ( UPQRq(J−n, J∗) ∩ J?
+This is the same as UPQR-Necessary-Manipulation.
+Motivation: This variant is relevant when the goal set (desired set) of the manipulator
+is known and the valuation of the manipulator is strictly monotone (that is, obtaining
+one more desired formula is an improvement). Strict monotonicity is useful to model a
+risk-averse or conservative manipulator who would only manipulate if no formula from the
+desired set has to be given up.
+UPQRq-CR-Possible-Manipulation: Recall that closeness-respecting J-induced (weak) pref-
+erences only requires that an outcome Y must be better than an outcome X when the
+set of formulas from J included in Y is a superset of the set of formulas from J included
+in X. That is, an outcome X is possibly better than Y whenever it contains some formula
+from J which is not already included in Y .
+Thus, UPQRq-CR-Possible-Manipulation asks whether the manipulator can achieve an
+outcome that contains at least one formula from the desired set that was not in the
+truthful outcome.
+Formally, we have: ∃J∗ ∈ J (Φ) : UPQRq(J−n, J∗) ≻ UPQRq(J) for some ∈ CRJ ? ⇔
+∃J∗ ∈ J (Φ) : (UPQRq(J−n, J∗) ∩ J) \ (UPQRq(J) ∩ J) 6 = ∅?
+This is the same as UPQR-Possible-Manipulation.
+Motivation: This variant can be very useful if we have limited information about the
+manipulator. In case we know the absolute goal (formally the desired set of formulas) but
+not the respective priorities, we should consider this manipulator model since it allows to
+detect potentially dangerous situations where a manipulator may “exchange” one formula
+of the desired set from the truthful outcome by another, more prioritized formula.
+3.1.4 Minor Definition Details
+While we have seen that the manipulation variants we consider resemble those known in the
+literature, our actual definition of the decision problems still slightly differ from those in the
+literature [4] as we put the threshold value q as part of the input. For our polynomial-time
+algorithms, the quota is only interesting for computing which variables can be decided by the
+manipulator. Thus, it has no influence on the computational complexity. Our hardness reduc-
+tions usually assume that q = 1/2 and n = 3, but they can all be adapted to work for any
+rational quota q, due to the following lemma.
+Lemma 1. For any input instance I consisting of an agenda Φ, a profile J = (J1, J2, J3) ∈
+J (Φ)3, the manipulator’s desired set J ⊆ J3, and a threshold 1
+2 , for any q ∈ [0, 1), we can
+compute in polynomial time an “equivalent” instance I′ consisting of the same agenda Φ, a
+profile J′ = (J′
+1, . . . , J′
+n) ∈ J (Φ)n with J′
+n = J3 and n = max{⌈ 1
+q ⌉, ⌈ 1
+1−q ⌉} + 1, the manipulator’s
+desired set J′ = J, and the threshold q, such that UPQR1
+2
+(J−3, J∗) = UPQRq(J′
+−n, J∗) for any
+J∗ ∈ J (Φ).
+Proof. We first make some observations about the desired instance I′. Denote τ = ⌊qn + 1⌋.
+From n = max{⌈ 1
+q ⌉, ⌈ 1
+1−q ⌉} + 1 we get qn > q⌈ 1
+q ⌉ ≥ 1 and hence qn + 1 > 2. Similarly, from
+n = max{⌈ 1
+q ⌉, ⌈ 1
+1−q ⌉} + 1 we get (1 − q)n > (1 − q)⌈ 1
+1−q ⌉ ≥ 1 and hence qn + 1 < n. Thus we
+have qn + 1 ∈ (2, n), and then τ = ⌊qn + 1⌋ ∈ [2, n − 1]. For any variable x ∈ Φ, if x ∈ J′
+i for
+1 ≤ i ≤ n − 1, then x ∈ UPQRq(J′
+−n, J∗) for any J∗ ∈ J (Φ), and hence x is not decided by
+the manipulator. Similarly, if ¬x ∈ J′
+i for 1 ≤ i ≤ n − 1, then ¬x ∈ UPQRq (J′
+−n, J∗) for any
+J∗ ∈ J (Φ), and hence x is not decided by the manipulator. On the other hand, if except for the
+manipulator there are exactly τ − 1 judges that accept x, then x is decided by the manipulator.
+10
+
+-- 10 of 43 --
+
+Based on these observations, we construct the profile J′ ∈ J (Φ)n with J′
+n = J3 as follows.
+For each variable x ∈ Φ that is not decided by the manipulator in I, if x ∈ UPQR 1
+2
+(J), then
+we make x ∈ J′
+i for 1 ≤ i ≤ n − 1 such that x ∈ UPQRq(J′) and x is not decided by the
+manipulator; otherwise we make ¬x ∈ J′
+i for 1 ≤ i ≤ n − 1 such that ¬x ∈ UPQRq(J′) and x is
+not decided by the manipulator. For each variable x ∈ Φ that is decided by the manipulator in
+I, from the remaining n − 1 judges we make exactly τ − 1 judges accept x such that x is decided
+by the manipulator. This finishes the premise part. The conclusion part follows trivially since
+all judgment sets should be complete and consistent.
+Finally, we show UPQR1
+2
+(J−3, J∗) = UPQRq(J′
+−n, J∗) for any J∗ ∈ J (Φ). It suffices to
+show that UPQR 1
+2
+(J−3, J∗) ∩ Φp = UPQRq(J′
+−n, J∗) ∩ Φp for any J∗ ∈ J (Φ). For each variable
+x ∈ Φ, if x is not decided by the manipulator in I, then by construction x is not decided by the
+manipulator in I′ and x ∈ UPQR1
+2
+(J−3, J∗) if and only if x ∈ UPQRq(J′
+−n, J∗). If x is decided
+by the manipulator in I, then by construction x is also decided by the manipulator in I′, and
+hence
+x ∈ UPQR 1
+2
+(J−3, J∗) ⇔ x ∈ J∗ ⇔ x ∈ UPQRq(J′
+−n, J∗).
+We remark that the constructed equivalent instance I′ in Lemma 1 is required to have at
+least n = max{⌈ 1
+q ⌉, ⌈ 1
+1−q ⌉} + 1 judges such that we can create variables not decided by the
+manipulator. From the perspective of parameterized complexity analysis, this leaves two special
+cases: (1) instances with high quotas and small numbers of judges where a variable is accepted
+if all judges accept it and (2) instances with low quotas and small numbers of judges where
+a variable is accepted if at least one judge accepts it. We discuss how to adapt our hardness
+reductions for these two cases in Appendix B.
+3.2 Tractable Cases of Manipulation
+We start our analysis with UPQR-Robustness-Manipulation and UPQR-Possible-Manipu-
+lation which turn out to be linear-time solvable when the conclusions are just simple clauses.
+We first show that the manipulator cannot change the outcome of a premise which is in the
+desired set but not in the truthful outcome due to the monotonicity of quota rules.
+Lemma 2. For any manipulated judgment set J∗ ∈ J (Φ), we have
+(UPQRq(J−n, J∗) \ UPQRq(J)) ∩ (J ∩ Φp) = ∅.
+Proof. Assume towards a contradiction that there exists a judgment set J∗ such that
+A = (UPQRq(J−n, J∗) \ UPQRq(J)) ∩ (J ∩ Φp) 6 = ∅.
+Let x be a variable such that x ∈ A or ¬x ∈ A. We show that x ∈ A will lead to a contradiction.
+The other case can be proved analogously. Suppose x ∈ A, then we have x ∈ J ⊆ Jn and x 6 ∈
+UPQRq(J). By definition, this implies that variable x is not decided by the manipulator. By
+Observation 2, the outcome of x should be independent of the manipulator, which contradicts
+with x ∈ UPQRq(J−n, J∗) \ UPQRq(J).
+Lemma 3. UPQR-Robustness-Manipulation and UPQR-Possible-Manipulation with
+conclusions being clauses are solvable in linear time.
+Proof. We first show the result for UPQR-Possible-Manipulation. According to the defini-
+tion of UPQR-Possible-Manipulation and Lemma 2, the question is whether there exists a
+manipulated judgment set J∗ ∈ J (Φ) such that (UPQRq(J−n, J∗) \ UPQRq(J)) ∩ (J ∩ Φc) 6 = ∅.
+11
+
+-- 11 of 43 --
+
+That is, at least one target conclusion from the desired set which was not in the truthful out-
+come should be included in the manipulated outcome. We first compute the set D of decision
+variables in linear time. Then, for every target conclusion from J \ UPQRq(J), we check one by
+one whether it can be satisfied by just changing values of variables in D. The manipulation is
+successful if and only if at least one target conclusion from J \ UPQRq (J) is satisfiable. Since
+every conclusion is a clause (disjunction of literals) or a negation of a clause (conjunction of
+literals), checking its satisfiability can be done in time linear in the clause size.
+For UPQR-Robustness-Manipulation, the question is whether the manipulator can
+change the outcome of a formula in the desired set J. We first compute the set D of deci-
+sion variables in linear time. If there exists a variable x ∈ D such that x ∈ J or ¬x ∈ J, then
+this instance can be easily manipulated as the manipulator can change the outcome of a premise
+in J. Otherwise, if for every variable x ∈ D, we have that x 6 ∈ J and ¬x 6 ∈ J, then a successful
+manipulation has to influence the outcomes of conclusions in J. That is, we need to find a
+manipulated judgment set J∗ such that UPQRq(J−n, J∗) ∩ (J ∩ Φc) 6 = UPQRq(J) ∩ (J ∩ Φc).
+For every conclusion from J \ UPQRq(J), we check one by one whether it can be satisfied by
+just changing values of variables in D. For every conclusion from J ∩ UPQRq(J), we check one
+by one whether its negation can be satisfied by just changing values of variables in D. Since
+every conclusion is a clause (disjunction of literals) or a negation of a clause (conjunction of
+literals), checking its satisfiability can be done in time linear in the clause size.
+Next, we show that UPQR-Necessary-Manipulation boils down to solving a related
+Satisfiability problem.
+Lemma 4. UPQR-Necessary-Manipulation and UPQR-Exact-Manipulation with con-
+clusions chosen from clause set C 2 can be solved by solving at most |Φc| instances of C-Sat.
+Proof. We first show the result for UPQR-Necessary-Manipulation. In UPQR-Necessary-
+Manipulation we should find a manipulated judgment set J∗ ∈ J (Φ) such that UPQRq(J) ∩
+J ( UPQRq(J−n, J∗) ∩ J. That is, the manipulated result UPQRq(J−n, J∗) should not only
+contain one more formula C∗ from J \ UPQRq(J), but also contain all formulas in Q0 =
+UPQRq(J) ∩ J. According to Lemma 2, this formula C∗ cannot be a premise, and hence,
+C∗ should be a conclusion. Moreover, since the manipulated result should contain all formulas
+in Q0, specifically, all premises in Q0, the manipulator is only allowed to change the values of
+variables from D∗ = D \ {x | x ∈ Q0 ∨ ¬x ∈ Q0}, where D is the set of decision variables.
+So the problem is to check whether there exists a conclusion C∗ ∈ J \ UPQRq(J) such that a
+set Q = (Q0 ∩Φc)∪{C∗} of conclusions can be satisfied by just controlling the values of variables
+from D∗.
+We can simply try all possible C∗ ∈ J \ UPQRq(J) and for each C∗ check the set Q =
+(Q0 ∩ Φc) ∪ {C∗}. Each conclusion in Q is either a clause from C or a negation of a clause from C.
+To satisfy a negative clause (conjunction of literals), the values of all variables in this clause
+are fixed. For all negative clauses in Q, we first check whether they are consistent, which can
+be done in linear time. If all negative clauses in Q are consistent, then we get the value for
+all variables in them. Next, we need to check for each such variable whether the corresponding
+value can be satisfied, that is, either the value is the original value before the manipulation or
+the variable is in D∗. If not, these negative clauses can not be satisfied. After this, we only need
+to check whether the remaining positive clauses in Q can be satisfied. Since all clauses in Q are
+chosen from C, the remaining problem forms an instance of C-Sat.
+For UPQR-Exact-Manipulation, the question is whether there exists a manipulated
+judgment set J∗ ∈ J (Φ) such that J ⊆ UPQRq(J−n, J∗). According to Lemma 2, if J ∩ Φp 6 ⊆
+UPQRq(J), then for any J∗, we have J ∩ Φp 6 ⊆ UPQRq(J−n, J∗), which means there is no
+2For convenience, when we say conclusions are from a clause set C, we mean every conclusion is either a clause
+in C or the negation of a clause in C.
+12
+
+-- 12 of 43 --
+
+successful manipulation. Hence in the following we can assume that J ∩ Φp ⊆ UPQRq(J). Then
+the goal is to satisfy all conclusions in J ∩ Φc by changing the values of variables in D \ {x | x ∈
+J ∨ ¬x ∈ J}, where D is the set of decision variables. This can be reduced to an instance of
+C-Sat in the same way as in UPQR-Necessary-Manipulation.
+As a corollary, every polynomial-time algorithm for C-Sat can be adapted to these two
+variants of Manipulation.
+Corollary 1. Let C be a clause set. If C-Sat is in P, then UPQR-Necessary-Manipulation
+and UPQR-Exact-Manipulation with conclusions chosen from C are in P.
+In the next section we show the other direction holds for all standard-form clause sets.
+3.3 Intractable Cases of Manipulation: Manipulation vs. Satisfiability
+In this section, we give a full characterization for the computational complexity of UPQR-
+Necessary-Manipulation by showing that C-Sat and UPQR-Necessary-Manipulation
+with conclusions chosen from C are actually equivalent under polynomial-time Turing reductions
+when C is a standard-form clause set (see Definition 2 for the definition of standard-form clause
+set).
+Theorem 1. Let C be a standard-form clause set, then UPQR-Necessary-Manipulation
+with conclusions chosen from C and C-Sat are equivalent under polynomial-time Turing reduc-
+tions.
+In order to prove Theorem 1, we first identify the type of standard-form clause sets C for
+which C-Sat is NP-hard.
+Lemma 5. Let C be a standard-form clause set, then C-Sat is NP-hard if and only if
+1. there is a pair of i, j with i ≥ 3 and 0 < j < i such that M+
+2 ∪ M−
+2 ∪ Sj
+i ⊆ C, or
+2. there is a pair of k1, k2 with max{k1, k2} ≥ 3 and min{k1, k2} ≥ 2 such that M+
+k1 ∪ M−
+k2 ⊆
+C.
+Proof. ⇒ If C does not contain any M+
+k1 with k1 ≥ 2, then C-Sat can solved in linear time
+as follows. Given a formula f of C-Sat, we first take out all clauses in f that consists of
+only one positive literal (clauses from M+
+1 ) and set all these variables to 1. If this makes any
+one of the remaining clauses in f unsatisfied, then f is unsatisfiable. Otherwise, all remaining
+clauses contain at least one negative variable, which can be satisfied simultaneously by setting
+all remaining variables to 0. Similarly, if C does not contain any M−
+k2 with k2 ≥ 2, then C-Sat
+can solved in linear time. Therefore, C must contain at least one M+
+k1 with k1 ≥ 2 and at
+least one M−
+k2 with k2 ≥ 2. In addition, if C does not contain any clause set which contains
+clauses of length at least 3, then C-Sat is solvable in polynomial time since 2-SAT is solvable
+in polynomial time. Therefore, C must contain some Sj
+i with i ≥ 3 and 1 < j < i or some M+
+k
+(or M−
+k ) for some k ≥ 3.
+⇐ For the first case, we show (M+
+2 ∪M−
+2 ∪Sj
+i )-SAT is NP-hard by reducing from (M+
+i ∪M−
+2 )-
+SAT with i ≥ 3, which is NP-hard according to Lemma 14 in Appendix A. It suffices to show
+that for any clause x1 ∨ · · · ∨ xi ∈ M+
+i , there is an equivalent formula in (M+
+2 ∪ M−
+2 ∪ Sj
+i )-SAT.
+This is true since
+x1 ∨ · · · ∨ xi ⇔ (¬y1 ∨ · · · ∨ ¬yj ∨ xj+1 ∨ · · · ∨ xi) ∧ (y1 ∨ x1) ∧ · · · ∧ (yj ∨ xj ),
+where the formula on the right side is a conjunction of clauses from M+
+2 ∪ Sj
+i .
+For the second case, since (M+
+k1 ∪ M−
+k2 )-SAT and (M+
+k2 ∪ M−
+k1 )-SAT are equivalent under
+linear-time reductions, we can assume k1 ≤ k2. First, according to Lemma 14 in Appendix A,
+13
+
+-- 13 of 43 --
+
+(M+
+2 ∪ M−
+k2 )-SAT with k2 ≥ 3 is NP-hard. Then to show other cases, we construct a reduction
+from (M+
+k1−1 ∪ M−
+k2 )-SAT to (M+
+k1 ∪ M−
+k2 )-SAT. It suffices to show that for any clause Xk1−1 =
+x1 ∨ · · · ∨ xk1−1, there is an equivalent formula in (M+
+k1 ∪ M−
+k2 )-SAT. This is true since
+Xk1−1 ⇔ (Xk1−1 ∨ y1) ∧ · · · ∧ (Xk1−1 ∨ yk2 ) ∧ (¬y1 ∨ · · · ∨ ¬yk2 ).
+Combining Theorem 1 and Lemma 5 we get a full characterization for the computational
+complexity of UPQR-Necessary-Manipulation with conclusions chosen from a standard-
+form clause set C. As a corollary, the NP-hardness of UPQR-Necessary-Manipulation
+holds even if conclusions are clauses with length 3 or monotone clauses.
+Corollary 2. Let C = ∪3
+j=0Sj
+3 or C = ∪∞
+k=1(M+
+k ∪ M−
+k ). Then, UPQR-Necessary-Manipu-
+lation with conclusions chosen from C is NP-hard.
+According to Lemma 5, we need to consider two cases. We cover these two cases in the
+following by Lemma 6, Lemma 7, and Lemma 8. The main idea for the proofs of these lemmas
+is as follows. By definition, an instance of UPQR-Necessary-Manipulation with conclusions
+chosen from C is a yes-instance if and only if there is one target conclusion C∗ ∈ J \ UPQRq(J)
+such that C∗ and all formulas in Q0 = UPQRq(J) ∩ J can be included in the manipulated
+outcome simultaneously. Since all formulas in Q0 are in the original outcome UPQRq(J), we
+already know that all formulas in Q0 can be satisfied simultaneously. The question is whether
+it is possible to satisfy one more clause C∗ /∈ Q0. Therefore, Theorem 1 implies that the
+additional information “all formulas in Q0 can be satisfied simultaneously” does not help to
+efficiently determine whether all conclusions in Q = Q0 ∪ {C∗} can be satisfied simultaneously.
+Our reductions in the following lemmas will reflect this phenomenon.
+We first prove a weaker version of Theorem 1 in the following Lemma 6, where the clauses
+sets in Satisfiability and Manipulation are similar but not the same.
+Lemma 6. If (M+
+k1 ∪ M−
+k2 )-Sat is NP-hard, then UPQR-Necessary-Manipulation with
+conclusions chosen from a closely related standard-form clause set C = M+
+k1+1 ∪ M−
+k2 is NP-hard.
+Proof. We present a polynomial-time reduction from (M+
+k1 ∪ M−
+k2 )-Sat to UPQR-Necessary-
+Manipulation with conclusions chosen from C = M+
+k1+1 ∪ M−
+k2 . Given an instance
+f = C+
+1 ∧ · · · ∧ C+
+m1 ∧ C−
+1 ∧ · · · ∧ C−
+m2
+of (M+
+k1 ∪ M−
+k2 )-Sat, where C+
+i ∈ M+
+k1 and C−
+i ∈ M−
+k2 , we construct an instance of UPQR-
+Necessary-Manipulation with q = 1
+2 as follows (see also Table 2). The agenda contains
+all variables x1, . . . , xn that appear in f and their negations. In addition, we create y1, . . . , yk2
+and their negations in premises. Then we add C+
+i ∨ y1 for 1 ≤ i ≤ m1, C−
+i for 1 ≤ i ≤ m2,
+¬y1 ∨ · · · ∨ ¬yk2 and their negations as conclusions. The set of judges is N = {1, 2, 3}. The
+manipulator is the third judge and his desired set J consists of all positive conclusions. Note that
+the manipulator is decisive for variables x1, . . . , xn and y1. We now show that f is satisfiable if
+and only if the manipulation is feasible.
+⇒ Suppose that f is satisfiable, then there is a value assignment x∗
+i , 1 ≤ i ≤ n such that all
+clauses in f are satisfied. So the manipulator can set xi = x∗
+i , 1 ≤ i ≤ n to satisfy conclusions
+C+
+i ∨ y1 for 1 ≤ i ≤ m1 and C−
+i for 1 ≤ i ≤ m2. The remaining conclusion ¬y1 ∨ · · · ∨ ¬yk2 can
+be satisfied by setting y1 = 0. Thus the manipulation is feasible.
+⇐ Suppose that the manipulation is feasible. Since all positive conclusions except for ¬y1 ∨
+· · · ∨ ¬yk2 are already in the truthful outcome UPQR1/2(J), to make a successful manipulation,
+the manipulator has to make the manipulated outcome contain all positive conclusions. Specifi-
+cally, for conclusion ¬y1 ∨ · · · ∨ ¬yk2 , since yj = 1, j ≥ 2 can not be changed by the manipulator,
+the manipulator has to set y1 = 0. Then, to satisfy all remaining conclusions C+
+i ∨ y1 and C−
+i
+is equivalent to setting values for x1, . . . , xn to satisfy f = C+
+1 ∧ · · · ∧ C+
+m1 ∧ C−
+1 ∧ · · · ∧ C−
+m2 .
+14
+
+-- 14 of 43 --
+
+Table 2: Instance of UPQR-Necessary-Manipulation with conclusion set C = M+
+k1+1 ∪ M−
+k2
+for the proof of Lemma 6.
+Judgment Set x1 . . . xn y1 y2 . . . yk2 C+
+i ∨ y1 C−
+i ¬y1 ∨ · · · ∨ ¬yk2
+J1 1 . . . 1 1 1 . . . 1 1 0 0
+J2 0 . . . 0 0 1 . . . 1 0 1 1
+J3 0 . . . 0 1 0 . . . 0 1 1 1
+UPQR1/2 0 . . . 0 1 1 . . . 1 ⇒ 1 1 0
+Table 3: Instance of UPQR-Necessary-Manipulation with conclusion set C = M+
+2 ∪ M−
+3
+for the proof of Lemma 7.
+Judgment Set xi yi zi w v w ∨ v ¬xi1 ∨ ¬xi2 ∨ ¬xi3 zi1 ∨ zi2
+J1 1 1 1 1 0 1 0 1
+J2 0 0 0 0 0 0 1 0
+J3 0 1 1 0 1 1 1 1
+UPQR1/2 0 1 1 0 0 ⇒ 0 1 1
+Judgment Set ¬xi ∨ ¬yi ∨ ¬w ¬yi ∨ ¬zi ∨ ¬w xi ∨ yi yi ∨ zi
+J1 0 0 1 1
+J2 1 1 0 0
+J3 1 1 1 1
+UPQR1/2 1 1 1 1
+Note that in Lemma 6 the two clause sets M+
+k1 ∪ M−
+k2 (in Satisfiability) and M+
+k1+1 ∪
+M−
+k2 (in Manipulation) are not the same. This leaves a gap when conclusions of UPQR-
+Necessary-Manipulation are chosen from M+
+2 ∪ M−
+3 (or equivalently M+
+3 ∪ M−
+2 ): We
+cannot adopt Lemma 6, since the corresponding Satisfiability problem is (M+
+1 ∪ M−
+3 )-SAT
+(or (M+
+2 ∪ M−
+2 )-SAT), which is not NP-hard (cf. Lemma 5). Next we close this gap by giving
+a more involved reduction to show the NP-hardness for the case when conclusions are chosen
+from M+
+2 ∪ M−
+3 .
+Lemma 7. UPQR-Necessary-Manipulation with conclusions chosen from (M+
+2 ∪ M−
+3 ) is
+NP-hard.
+Proof. We present a polynomial-time reduction from (M+
+2 ∪M−
+3 )-SAT. Given an instance f1∧f2
+of (M+
+2 ∪ M−
+3 )-SAT, where f1 is a conjunction of clauses of the form “xi1 ∨ xi2 ” from M+
+2 with
+xi1 , xi2 ∈ {x1, . . . , xn} and f2 is a conjunction of clauses of the form “¬xi1 ∨ ¬xi2 ∨ ¬xi3 ” from
+M−
+3 with xi1 , xi2 , xi3 ∈ {x1, . . . , xn}, we construct an instance of UPQR-Necessary-Manipu-
+lation with conclusions chosen from M+
+2 ∪ M−
+3 and q = 1
+2 as follows (see also Table 3). The
+agenda contains xi, yi, zi (1 ≤ i ≤ n), w, v and their negations as the premise set. The conclusion
+set consists of the following conclusions and their negations.
+• w ∨ v.
+• ¬xi1 ∨ ¬xi2 ∨ ¬xi3 for every original clause ¬xi1 ∨ ¬xi2 ∨ ¬xi3 in f2.
+• zi1 ∨ zi2 for every original clause xi1 ∨ xi2 in f1. Note that original variables xi (1 ≤ i ≤ n)
+are replaced by variables zi (1 ≤ i ≤ n).
+• xi ∨ yi, yi ∨ zi, ¬xi ∨ ¬yi ∨ ¬w and ¬yi ∨ ¬zi ∨ ¬w for every 1 ≤ i ≤ n.
+15
+
+-- 15 of 43 --
+
+The set of judges is N = {1, 2, 3}. The manipulator is the third judge and his desired set J
+consists of all positive conclusions. The manipulator is decisive for all variables except for v. We
+now show that f1 ∧ f2 is satisfiable if and only if the manipulation is feasible.
+⇒ Assume that f1 ∧ f2 is satisfiable, then there is a value assignment x∗
+i , 1 ≤ i ≤ n such that
+all clauses in f1 ∧ f2 are satisfied. So the manipulator can set xi = zi = x∗
+i , 1 ≤ i ≤ n to satisfy
+conclusions ¬xi1 ∨ ¬xi2 ∨ ¬xi3 and zi1 ∨ zi2 . All remaining positive conclusions can be satisfied
+by setting w = 1 and yi = −x∗
+i for 1 ≤ i ≤ n. Thus the manipulation is feasible. Recall that
+the manipulator is decisive for all variables except for v.
+⇐ Assume that the manipulation is feasible. Since all positive conclusions, except for w ∨ v,
+are already in the truthful outcome UPQR1/2(J), the assumption that the manipulation is
+feasible means that there is a value assignment for all variables with v = 0 (since v is not
+decided by the manipulator) such that all positive conclusions can be satisfied. Specifically, for
+conclusion w ∨ v, since v = 0 can not be changed by the manipulator, the manipulator has to
+set w = 1. Then we have that
+(¬xi ∨ ¬yi ∨ ¬w) ∧ (xi ∨ yi) w=1
+⇒ xi = −yi,
+(¬yi ∨ ¬zi ∨ ¬w) ∧ (yi ∨ zi) w=1
+⇒ yi = −zi.
+This means in this value assignment xi = zi. Since all conclusions ¬xi1 ∨ ¬xi2 ∨ ¬xi3 and zi1 ∨ zi2
+can be satisfied by this value assignment with xi = zi, we have that f1 ∧ f2 is satisfiable.
+In a similar way, we can prove the result of Theorem 1 for the first case in Lemma 5. Before
+that, we show the following symmetric equivalence.
+Observation 3. UPQR-Necessary-Manipulation with conclusions chosen from ⋃ℓ
+k=1 Sjk
+ik
+and UPQR-Necessary-Manipulation with conclusions chosen from ⋃ℓ
+k=1 Sik −jk
+ik are equiv-
+alent under linear-time reductions.
+Proof. For these two problems, any instance of one problem can be transformed into an equiva-
+lent instance of the other problem by replacing every variable xi with its negation ¬xi, and vice
+versa, and replacing the quota q with q′ such that ⌊qn + 1⌋ = ⌈n − q′n⌉, where ⌊qn + 1⌋ is the
+number of judges needed for a variable xi to be included in the outcome of one problem and
+⌈n − q′n⌉ is the number of judges needed for its negation ¬xi to be included in the outcome of
+the other problem. If qn is an integer, we set q′ = 1 − q − 1
+n . Otherwise, we set q′ = 1 − q. It is
+easy to verify that in both cases we have q′ ∈ [0, 1) and ⌊qn + 1⌋ = ⌈n − q′n⌉.
+Lemma 8. UPQR-Necessary-Manipulation with conclusions chosen from M+
+2 ∪ M−
+2 ∪ Sj
+i ,
+where i ≥ 3 and 0 < j < i, is NP-hard.
+Proof. We first prove the result for i = 3. We present a polynomial-time reduction from (M+
+2 ∪
+M−
+2 ∪S2
+3 )-Sat to UPQR-Necessary-Manipulation with conclusions chosen from M+
+2 ∪M−
+2 ∪
+S2
+3 . Then, according to Observation 3, UPQR-Necessary-Manipulation with conclusions
+chosen from M+
+2 ∪ M−
+2 ∪ S1
+3 is also NP-hard.
+Given an instance f1(X) ∧ f2(X) ∧ f3(X) of (M+
+2 ∪ M−
+2 ∪ S2
+3 )-Sat, where f1(X) is a conjunc-
+tion of clauses from M+
+2 , f2(X) is a conjunction of clauses from M−
+2 , f3(X) is a conjunction of
+clauses from S2
+3 , and all variables in f1(X) ∧ f2(X) ∧ f3(X) are from X = {x1, x2, . . . , xn}. We
+denote by f1(Z) the formula after replacing every xk (1 ≤ k ≤ n) by zk in f1(X). Since
+f1(X) ⇔f1(Z) ∧
+
+ ∧
+k=1,2,...,n
+xk = zk
+
+
+⇔f1(Z) ∧
+
+ ∧
+k=1,2,...,n
+(¬xk ∨ ¬yk) ∧ (xk ∨ yk) ∧ (¬yk ∨ ¬zk) ∧ (yk ∨ zk)
+
+ ,
+16
+
+-- 16 of 43 --
+
+Table 4: Instance of UPQR-Necessary-Manipulation with conclusion set M+
+2 ∪ M−
+2 ∪ Sj
+i
+for the proof of Lemma 8.
+Judgment Set xk yk zk w v clauses in f1(Z) clauses in f2(X) clauses in f3(X)
+J1 1 1 1 1 1 1 0 1
+J2 0 0 0 0 1 0 1 1
+J3 0 1 1 1 0 1 1 1
+UPQR1/2 0 1 1 1 1 ⇒ 1 1 1
+Judgment Set ¬w ∨ ¬v ¬xk ∨ ¬yk ∨ w ¬yk ∨ ¬zk ∨ w xk ∨ yk yk ∨ zk
+J1 0 1 1 1 1
+J2 1 1 1 0 0
+J3 1 1 1 1 1
+UPQR1/2 0 1 1 1 1
+we construct an instance of UPQR-Necessary-Manipulation with q = 1
+2 as follows (see also
+Table 4). The agenda contains xk, yk, zk for 1 ≤ k ≤ n, w, v and their negations as premises.
+The conclusion set consists of the following clauses and their negations.
+• All clauses in f1(Z), f2(X) and f3(X).
+• ¬w ∧ ¬v.
+• xk ∨ yk, yk ∨ zk, ¬xk ∨ ¬yk ∨ w and ¬yk ∨ ¬zk ∨ w for every 1 ≤ k ≤ n.
+Similar to the proof for Lemma 7, the manipulator is the third judge who is decisive for
+all premises except for v. The desired set contains all positive clauses. The truthful outcome
+contains all positive clauses except for ¬w ∧ ¬v with xk = 0, yk = 1, zk = 1, w = v = 1. Similar
+to the proof for Lemma 7, we now show that f1(X) ∧ f2(X) ∧ f3(X) is satisfiable if and only if
+the manipulation is feasible.
+⇒ Assume that f1(X) ∧ f2(X) ∧ f3(X) is satisfiable, then there is a value assignment x∗
+k, 1 ≤
+k ≤ n such that all clauses in f1(X) ∧ f2(X) ∧ f3(X) are satisfied. So the manipulator can set
+xk = zk = x∗
+k (1 ≤ k ≤ n) to satisfy conclusions in f1(Z), f2(X) and f3(X). All remaining
+positive conclusions can be satisfied by setting w = 0 and yk = −x∗
+k for 1 ≤ k ≤ n. Thus the
+manipulation is feasible. Recall that the manipulator is decisive for all variables except for v.
+⇐ Assume that the manipulation is feasible. Since all positive conclusions, except for ¬w ∨
+¬v, are already in the truthful outcome UPQR1/2(J), the manipulated result must contain all
+positive conclusions. So there is a value assignment for all variables with v = 1 such that all
+positive conclusions are satisfied. Specifically, for conclusion ¬w ∨ ¬v, since v = 1 can not be
+changed by the manipulator, the manipulator has to set w = 0. Then we have that
+(¬xk ∨ ¬yk ∨ w) ∧ (xk ∨ yk) w=0
+⇒ xk = −yk,
+(¬yk ∨ ¬zk ∨ w) ∧ (yk ∨ zk) w=0
+⇒ yk = −zk.
+This means in this value assignment xk = zk (1 ≤ k ≤ n). Since all conclusions in f1(Z),
+f2(X) and f3(X) can be satisfied by this value assignment with xk = zk (1 ≤ k ≤ n), we have
+that f1(X) ∧ f2(X) ∧ f3(X) is satisfiable.
+When i > 3, we can assume j ≥ 2 according to Observation 3. We can make a reduction
+from (M+
+2 ∪ M−
+2 ∪ Sj
+i )-Sat similarly as what we did in the above reduction for i = 3. The only
+difference is that now clauses ¬xk ∨ ¬yk ∨ w and ¬yk ∨ ¬zk ∨ w are not allowed in conclusions
+since their length is 3 6 = i. To fix this, we just need to create some dummy variables whose value
+is fixed and not decided by the manipulator and add them to ¬xk ∨ ¬yk ∨ w and ¬yk ∨ ¬zk ∨ w
+17
+
+-- 17 of 43 --
+
+such that they are in Sj
+i . Formally, we first create u1, u2, . . . , ui−3, where in the truthful outcome
+we have that u1 = u2 = · · · = uj−2 = 1 and uj−1 = · · · = ui−3 = 0, and they are not decided by
+the manipulator. Then we add them into ¬xk ∨ ¬yk ∨ w and ¬yk ∨ ¬zk ∨ w in the following way:
+¬xk ∨ ¬yk ∨ w (¬xk ∨ ¬yk ∨ ¬u1 ∨ · · · ∨ ¬uj−2) ∨ (w ∨ uj−1 ∨ · · · ∨ ui−3) ∈ Sj
+i ,
+¬yk ∨ ¬zk ∨ w (¬yk ∨ ¬zk ∨ ¬u1 ∨ · · · ∨ ¬uj−2) ∨ (w ∨ uj−1 ∨ · · · ∨ ui−3) ∈ Sj
+i .
+We are now ready to prove Theorem 1.
+Proof of Theorem 1. According to Corollary 1, it suffices to show that when C-Sat is NP-hard,
+then UPQR-Necessary-Manipulation with conclusions chosen from C is NP-hard. According
+to Lemma 5, we need to consider two cases.
+Case 1: M+
+2 ∪ M−
+2 ∪ Sj
+i ⊆ C, where i ≥ 3 and 0 < j < i. This case has been proved in
+Lemma 8.
+Case 2: M+
+k1 ∪ M−
+k2 ⊆ C, where max{k1, k2} ≥ 3, min{k1, k2} ≥ 2. According to Observa-
+tion 3, it suffices to consider the case when k1 ≤ k2. If k1 ≥ 3, then according to Lemma 5,
+(M+
+k1−1 ∪ M−
+k2 )-Sat is NP-hard. Then according to Lemma 6, UPQR-Necessary-Manipu-
+lation with conclusions chosen from M+
+k1 ∪ M−
+k2 is NP-hard. If k1 = 2 and k2 ≥ 4, then
+according to Lemma 5, (M+
+2 ∪ M−
+k2−1)-Sat is NP-hard. Then according to Lemma 6, UPQR-
+Necessary-Manipulation with conclusions chosen from M+
+2 ∪ M−
+k2 is NP-hard. The only
+remaining case is when conclusions are chosen from M+
+2 ∪ M−
+3 , which is shown to be NP-hard
+in Lemma 7.
+Next, we show that the same equivalence holds for UPQR-Exact-Manipulation, since
+all reductions in Lemmas 6 to 8 can also be used for UPQR-Exact-Manipulation.
+Theorem 2. Let C be a standard-form clause set, then UPQR-Exact-Manipulation with
+conclusions chosen from C and C-Sat are equivalent under polynomial-time Turing reductions.
+Proof. According to Corollary 1, we just need to prove that when when C-Sat is NP-hard,
+UPQR-Exact-Manipulation with conclusions clause from C is also NP-hard. In all reduc-
+tions in Lemmas 6 to 8, the desired set consists of all positive conclusions and the truthful
+outcome contains all but one of them, thus to achieve UPQR-Necessary-Manipulation is
+the same as to achieve UPQR-Exact-Manipulation, i.e., the manipulated outcome should
+contain all positive conclusions (UPQRq(J−n, J∗) = J). That means all these reductions can be
+directly used to prove that the corresponding UPQR-Exact-Manipulation is NP-hard. Then
+following the same line in the proof for Theorem 1, we can prove C-Sat and UPQR-Exact-
+Manipulation with conclusions clause from C are equivalent under polynomial-time Turing
+reductions.
+Finally, we remark that our core contribution when showing our P vs. NP dichotomy (Theo-
+rem 1) can be also interpreted as a pure equivalence statement about variants of Satisfiability.
+Recall that when C-Sat is NP-hard, Theorem 1 implies that the additional information “all con-
+clusions included in the truthful outcome can be satisfied simultaneously” does not help to
+efficiently determine whether one more conclusion can be satisfied simultaneously. Accordingly,
+we introduce the following variant of Satisfiability.
+Almost Satisfiable C-Sat
+Input: A standard-form clause set C and a formula C1 ∧ · · · ∧ Cm with Ci ∈ C (1 ≤ i ≤ m)
+knowing that C1 ∧ · · · ∧ Cm−1 is satisfiable.
+Question: Is formula C1 ∧ · · · ∧ Cm satisfiable?
+18
+
+-- 18 of 43 --
+
+Proposition 1. Let C be a standard-form clause set, then C-Sat and Almost Satisfiable
+C-Sat are equivalent under polynomial-time many-one reductions.
+Proof. Note that the equivalence under polynomial-time Turing reductions between these two
+problems are trivial. Here we show the equivalence under polynomial-time many-one reductions.
+The reduction from Almost Satisfiable C-Sat to C-Sat is trivial. For the other direction,
+if for a standard-form clause set C, C-Sat is in P, then for any instance of C-Sat, we can first
+decide in polynomial time its satisfiability, and then reduce it to a trivial yes/no-instance of
+Almost Satisfiable C-Sat. The remaining case is when C-Sat is NP-hard. For this case,
+we can adopt the same idea used in the proof of Theorem 1. Recall that for the reductions in
+Lemmas 6 to 8, there exists a value assignment for all variables such that all but one positive
+conclusions are satisfied (in the truthful outcome), and the goal of the manipulator is to find
+a value assignment for decision variables such that all positive conclusions are satisfied. The
+only difference is that in Manipulation we can construct a clause where some variables in
+this clause are decided by the manipulator, while the rest variables are not. In other words, in
+Manipulation we can make use of constant 0 or 1. This, however, is not easy to achieve in
+C-Sat. Thus we need to prove that for a standard-form clause set C such that C-Sat is NP-hard,
+we can use clauses in C to create a constant 0 and 1 (i.e., to enforce a variable to be 0 or 1).
+We show that we can create a constant 1. A constant 0 can be created analogously. According
+to Lemma 5, if C-Sat is NP-hard, then C has to contain both M+
+k1 and M−
+k2 with k1, k2 ≥ 2. We
+create our target variable x, and a set of (k1 − 1)k2 variables Y = {y1, y2, . . . , y(k1−1)k2 }. Then
+we create two groups of clauses such that to satisfy all of them, the value of x must be 1.
+For the first group, we partition Y into k1 − 1 subsets, each with k2 consecutive variables
+(e.g., {y1, y2, . . . , yk2 }). For each subset, we create a clause in M−
+k2 , which is a disjunction of
+negations of all variables in this subset (e.g., ¬y1 ∨ · · · ∨ ¬yk2 ). To satisfy every clause, at least
+one variable from each subset need to be 0, and hence at least k1 − 1 variables from Y need to
+be 0.
+For the second group, for any k1 − 1 variables in Y , we create a clause in M+
+k1 which is a
+disjunction of x and all these k1 − 1 variables (e.g., x ∨ y1 · · · ∨ yk1−1). Since there are ((k1−1)k2
+k1−1
+)
+different choices, we create ((k1−1)k2
+k1−1
+) such clauses for the second group. Among all these choices,
+there is at least one choice yi1 , . . . , yik1−1 such that all of them are 0 due to clauses in the first
+group. Then in the corresponded clause x ∨ yi1 · · · ∨ yik1−1 , x must be 1. Therefore, to satisfy
+all clauses in the first and the second group, we have to set x = 1. That is, we create a constant
+x = 1 by adding k1 − 1 + ((k1−1)k2
+k1−1
+) clauses. Note that for a fixed C, k1 and k2 are constants.
+4 Hamming Distance Based Manipulation
+We now move on to UPQR-HD-Manipulation, which is the very first variant of Manipu-
+lation analyzed by Endriss et al. [20] for the majority threshold q = 1/2. In UPQR-HD-
+Manipulation, the manipulator wants to make the outcome “closer” to his desired set and
+the distance between the outcome and his desired set is measured by the Hamming distance.
+This models the case when each conclusion is equally important to the manipulator, so that
+the manipulator only cares about the number of formulas in the desired set J achieved by the
+collective judgment set. The formal definition is given as follows3.
+3Similar to before, we put the threshold value q as part of the input and this has no influence on the compu-
+tational complexity due to Lemma 1.
+19
+
+-- 19 of 43 --
+
+UPQR-HD-Manipulation
+Input: An agenda Φ, a profile J = (J1, . . . , Jn) ∈ J (Φ)n, the manipulator’s desired
+consistent (possibly incomplete) set J ⊆ Jn, and a uniform rational threshold q ∈ [0, 1).
+Question: Does there exist a judgment set J∗ ∈ J (Φ) such that
+HD(J, UPQRq (J−n, J∗)) < HD(J, UPQRq(J))?
+Herein, the Hamming distance HD(J, S) between the possibly incomplete desired set J and
+a complete collective judgment set S is the number of formulas in J which are not contained
+in S, i.e. HD(J, S) = |J \ S|.
+Without loss of generality, in this section we assume that J = Jn ∩ Φc, that is, the desired set
+contains all conclusions from Jn but no premise: Every instance of UPQR-HD-Manipulation
+can be easily transformed into an equivalent instance with J = Jn ∩ Φc as follows. If for some
+conclusion ϕ none of ϕ and ¬ϕ appears in J, then just delete ϕ and ¬ϕ from the agenda. If
+there is some premise x with x ∈ J (or ¬x ∈ J), we can remove it from J, then create two
+clauses x ∨ x′ and ¬(x ∨ x′) in the conclusions and add x ∨ x′ (or ¬(x ∨ x′)) to J, where x′
+is a dummy variable with x′ 6 ∈ Ji for all 1 ≤ i ≤ n. Note that doing so we just add positive
+monotone clauses with two literals into the conclusion set.
+Baumeister et al. [4] proved that UPQR-HD-Manipulation is NP-hard for positive mono-
+tone clauses. In this section we show that this problem is NP-hard even for positive monotone
+clauses of length ℓ = 3 by reducing from a natural variant of Vertex Cover, which could be
+interesting on its own. When the clause length is 2, we show the problem is in P for positive
+monotone clauses, but NP-hard for monotone clauses or Horn clauses.
+4.1 Condition for a Successful Manipulation
+In this section we give a sufficient and necessary condition for a successful manipulation when
+conclusions are positive monotone clauses. First we classify all variables into the following four
+different classes with respect to their value in the truthful outcome UPQRq(J) and the judgment
+set of the manipulator Jn:
+1. P 1
+1 = {x ∈ Φp | x ∈ Jn ∧ x ∈ UPQRq(J)};
+2. P 0
+1 = {x ∈ Φp | x 6 ∈ Jn ∧ x ∈ UPQRq(J)};
+3. P 0
+0 = {x ∈ Φp | x 6 ∈ Jn ∧ x 6 ∈ UPQRq(J)};
+4. P 1
+0 = {x ∈ Φp | x ∈ Jn ∧ x 6 ∈ UPQRq(J)}.
+Next we give some definitions used in this section.
+Definition 4. A variable x is called useful if it is decided by the manipulator and there exists
+a positive conclusion ϕ ∈ J \ UPQRq(J) containing x. A positive monotone clause ϕ is called a
+good conclusion if ϕ ∈ J \ UPQRq(J) and is called a bad conclusion if ϕ 6 ∈ J ∪ UPQRq(J), or
+equivalently, ¬ϕ ∈ J ∩ UPQRq(J) (recall that J is complete with respect to the conclusion set).
+According to the definition, changing the value of a useful variable can make the outcome
+include at least one more desired (good) conclusion ϕ with ϕ ∈ J \ UPQRq(J), but it could
+also make the outcome include some undesired (bad) conclusion ϕ with ϕ 6 ∈ J ∪ UPQRq(J),
+thus lose the desired conclusion ¬ϕ ∈ J ∩ UPQRq(J). We observe that all useful variables are
+from P 0
+0 due to the monotonicity of quota rules.
+Observation 4. If x is a useful variable, then x ∈ P 0
+0 .
+20
+
+-- 20 of 43 --
+
+Proof. By definition, variables from P 1
+0 ∪ P 0
+1 are not decided by the manipulator, so they are
+not useful. For a variable x ∈ P 1
+1 , any positive monotone clause ϕ containing x is already
+in J ∩ UPQRq(J), thus changing the value of x from 1 to 0 cannot make the outcome include
+any good conclusion from J \ UPQRq(J). Hence, variables from P 1
+1 are not useful. Therefore,
+all useful variables are from P 0
+0 .
+Example. Consider the following profile J = (J1, J2, J3) ∈ J (Φ)3, where the manipulator is
+the third judge and its desired set J = J3 ∩ Φc.
+Judgment Set x1 x2 x3 x′
+3 x4 x1 ∨ x2 x2 ∨ x3 x3 ∨ x′
+3 x3 ∨ x4
+J1 1 0 1 1 1 1 1 1 0
+J2 0 0 0 0 1 0 0 0 1
+J3 1 1 0 0 0 1 1 0 0
+UPQR1/2 1 0 0 0 1 ⇒ 1 0 0 1
+Variables x1, x3, and x′
+3 are decided by the manipulator, but x1 ∈ P 1
+1 is not useful since changing
+its value from 1 to 0 would only exclude x1 ∨ x2 ∈ J from the outcome. Conclusion x2 ∨ x3 ∈
+J \ UPQRq(J) is good, and changing x3 from 0 to 1 will make x3 and x2 ∨ x3 included in the
+outcome. Conclusion x3 ∨ x′
+3 6 ∈ J ∪ UPQRq(J) is bad, and changing x3 or x′
+3 from 0 to 1 will
+make x3 ∨ x′
+3 included in the outcome, and hence its negation ¬(x3 ∨ x′
+3) ∈ J will be excluded
+from the outcome.
+Now we give a sufficient and necessary condition for a successful manipulation.
+Lemma 9. An instance of UPQR-HD-Manipulation with all conclusions being positive
+monotone clauses is a yes-instance if and only if there is a set T ⊆ P 0
+0 of useful variables,
+such that after changing their values from 0 to 1, the number of good conclusions included in the
+outcome is strictly larger than the number of bad conclusions included in the outcome:
+|{ϕ ∈ J \ UPQRq(J) | Tϕ ∩ T 6 = ∅}| > |{ϕ 6 ∈ J ∪ UPQRq(J) | Tϕ ∩ T 6 = ∅}|,
+where Tϕ is the set of variables appearing in clause ϕ.
+Proof. The “if” direction is obvious and we prove the “only if” direction as follows. According to
+the definition of useful variables, if an instance is a yes-instance, then the manipulator can achieve
+a better outcome by only changing the values of useful variables. According to Observation 4,
+all useful variables are from P 0
+0 . To prove this lemma, it suffices to show that we just need to
+consider good conclusions and bad conclusions. If a positive monotone clause ϕ is neither good
+nor bad, then it must be ¬ϕ ∈ J \ UPQRq(J) or ϕ ∈ J ∩ UPQRq(J). In both cases we have
+that ϕ ∈ UPQRq(J). Changing the values of variables in P 0
+0 from 0 to 1 will not change the
+value of ϕ (ϕ is still in UPQRq(J) after this change). Therefore, we just need to consider the
+influence on the number of good conclusions and bad conclusions after changing the values of
+useful variables.
+4.2 Positive Monotone Clauses of Length ℓ = 2
+In this section we show UPQR-HD-Manipulation with positive monotone clauses of length ℓ =
+2 is solvable in polynomial time by a reduction to the Weighted Maximum Density Sub-
+graph (WMDS) problem, which can be solved in polynomial time by a reduction to the Min-
+imum Cut problem [24].
+21
+
+-- 21 of 43 --
+
+P 0
+0 P 1
+0
+bad good
+V w
+2
+0
+1
+1
+1
+Figure 1: Illustration of the constructed weighted graph in the proof of Theorem 3. On the left side a
+vertex represents a variable from P 0
+0 or P 1
+0 . A line between two vertices represents a conclusion containing
+the two corresponding variables. A red solid line represents a good conclusion and a blue dotted line
+represents a bad conclusion. We transform it into the vertex weighted graph on the right side, where the
+vertex set V corresponds to P 0
+0 and the weight w for a vertex v ∈ V is the difference between the number
+of bad and good conclusions that contain the corresponding variable xv .
+Weighted Maximum Density Subgraph
+Input: An undirected graph G = (V, E) with nonnegative rational edge weights w(e) and
+vertex weights w(v), and a nonnegative rational number k.
+Question: Does there exist a vertex subset V ′ ⊆ V with ∑
+v∈V ′ w(v) > 0 such that
+∑
+e∈E(G[V ′]) w(e)
+∑
+v∈V ′ w(v) > k,
+where G[V ′] is the subgraph induced by V ′?
+Theorem 3. UPQR-HD-Manipulation with positive monotone clauses of length ℓ = 2 is
+solvable in polynomial time.
+Proof. According to Lemma 9, we need to find a set T ⊆ P 0
+0 of useful variables such that
+the number of good conclusions containing variables from S is strictly larger than that of bad
+conclusions. For any good conclusion ϕ ∈ J \ UPQRq(J), since ϕ ∈ J ⊆ Jn, there exists one
+variable x in ϕ such that x ∈ Jn. Moreover, since ϕ 6 ∈ UPQRq(J) we have x 6 ∈ UPQRq(J).
+Thus ϕ contains at least one variable x ∈ P 1
+0 , which is not decided by the manipulator. Hence
+a good conclusion ϕ of length 2 contains at most one useful variable from P 0
+0 . However, a bad
+conclusion ϕ′ 6 ∈ J ∪ UPQRq(J) of length 2 may contain two useful variables from P 0
+0 . Thus, if
+we change the values of a set T ⊆ P 0
+0 of useful variables and sum up the number of included
+bad conclusions for each variable, then some bad conclusions will be counted twice.
+To solve this issue, we create a weighted graph G = (V, E) as follows (see also Figure 1): First,
+for every useful variable x ∈ P 0
+0 , create a vertex v ∈ V and assign it a weight w(v) = nv − pv,
+where nv is the number of bad conclusions containing x and pv is the number of good conclusions
+containing x. Thus w(v) is the increased Hamming distance when a single variable x is changed.
+Second, for every pair of vertices u and v, create an edge between them if there is a bad
+conclusion ϕ = xu ∨ xv, where xu and xv are the corresponding variables of u and v. Based on
+the constructed weighted graph, we can reduce an instance of UPQR-HD-Manipulation to
+an instance of WMDS problem.
+We first do the following preprocessing. If there is a vertex v ∈ V with w(v) < 0, then chang-
+ing this variable alone can strictly decrease the Hamming distance and hence the manipulation
+is feasible. If there is an edge e = {u, v} with w(u) = w(v) = 0, then there is a bad conclusion
+22
+
+-- 22 of 43 --
+
+P 0
+0 P 1
+0
+bad good
+ℓ = 2
+positive
+monotone
+P 0
+0
+bad good
+ℓ = 3
+positive
+monotone
+P 0
+0 P 1
+0
+bad good
+ℓ = 2
+monotone
+Figure 2: Comparison between different clause classes. A vertex represents a variable from P 0
+0 ∪ P 1
+0 , and
+only variables from P 0
+0 could be decided by the manipulator. A line between two vertices represents a
+conclusion containing the two corresponding variables. A line is solid or dotted if changing the value of
+one of its endpoints in P 0
+0 will change the value of this conclusion, while a line is dashed if changing the
+value of both endpoints in P 0
+0 will change the value of this conclusion.
+ϕ = xu ∨ xv that is counted in both w(u) and w(v). So changing the value of xu and xv can
+decrease the Hamming distance by 1, which means the manipulation is feasible.
+In the following we can assume w(v) ≥ 0 for every v ∈ V and there is no edge e = {u, v}
+with w(u) = w(v) = 0. For any vertex subset V ′ ⊆ V , changing the value of the corresponding
+variables can increase the Hamming distance by ∑
+v∈V ′ w(v) − |E(G[V ′])|, where G[V ′] is the
+subgraph induced by V ′. If ∑
+v∈V ′ w(v) = 0, then according to the above assumption, we
+have |E(G[V ′])| = 0 and the Hamming distance has not changed. Therefore manipulation is
+feasible if and only if there is a vertex subset V ′ with ∑
+v∈V ′ w(v) > 0 such that ∑
+v∈V ′ w(v) −
+|E(G[V ′])| < 0 or equivalently,
+|E(G[V ′])|
+∑
+v∈V ′ w(v) > 1.
+This is just an instance of the WMDS problem where every edge has weight 1, which can be
+solved in polynomial time [24].
+4.3 Positive Monotone Clauses of Length ℓ = 3
+In this section we show that UPQR-HD-Manipulation with positive monotone clauses of
+length ℓ = 3 is NP-hard. The main difference between ℓ = 2 and ℓ = 3 is that when ℓ = 2, every
+good conclusion must contain a variable from P 1
+0 , and hence contains at most one useful variable
+from P 0
+0 . This makes it easy to count the number of included good conclusions. When ℓ ≥ 3,
+however, in addition to one variable from P 1
+0 , a good conclusion can contain two useful variables
+from P 0
+0 . Hence, useful variables are not independent with respect to good conclusions. See
+Figure 2 for the comparison between ℓ = 2 and ℓ = 3. Intuitively, when ℓ = 3, we need to find
+a vertex subset of P 0
+0 in Figure 2 to cover more red solid edges than blue dotted edges. This
+leads us to define the following closely related graph problem.
+23
+
+-- 23 of 43 --
+
+xi
+zj
+y1
+y2
+y3
+w1
+w2
+w3
+E0
+E− E+ E− E+
+Figure 3: Illustration of the constructed instance in the proof of Lemma 10. Blue dotted edges
+are edges in E− and red solid edges are edges in E+. The manipulator just need to consider
+variables in {x1, . . . , xn, y1, y2}.
+Positive Vertex Cover
+Input: An undirected graph G = (V, E+ ∪ E−) with E+ ∩ E− = ∅.
+Question: Is there a vertex subset V ′ ⊆ V which covers strictly more edges in E+ than
+in E−? Herein, an edge is covered by a vertex subset if the vertex subset contains at least
+one endpoint of the edge.
+We show that Positive Vertex Cover is NP-hard and then provide a simple reduction
+from Positive Vertex Cover to UPQR-HD-Manipulation with positive monotone clauses
+of length ℓ = 3.
+Lemma 10. Positive Vertex Cover is NP-hard.
+Proof. We construct a reduction from Cubic Vertex Cover, where given an undirected 3-
+regular graph and an integer k, the task is to determine whether there exists a vertex cover
+of size at most k. Let (G0 = (V0, E0), k) be an instance of Cubic Vertex Cover. Denote
+n = |V0|. Then |E0| = 3n
+2 . Since a vertex cover for a cubic graph needs at least n
+2 vertices
+to cover all 3n
+2 edges, we can assume n
+2 ≤ k ≤ n. We create an instance G = (V, E+ ∪ E−)
+of Positive Vertex Cover as follows (see also Figure 3). First, for every original vertex vi
+in V0, create a vertex xi in V , and for every edge {vi, vj } in E0, create an edge {xi, xj } in E+.
+Then, create three more vertices y1, y2, y3 in V and create edges {xi, y1}, {xi, y2} and {xi, y3}
+for every 1 ≤ i ≤ n in E−. Add an edge {y1, y2} in E+. Next, create vertices z1, . . . , zn−p
+in V , where p = 3n
+4 − k
+2 , and create edges {zj , y1} and {zj , y2} for every 1 ≤ j ≤ n − p in E+.
+Finally, create vertices w1, w2, w3 in V , and create edges {zj , w1}, {zj , w2} and {zj , w3} for
+every 1 ≤ j ≤ n − p in E−.
+Notice that every vertex in {w1, w2, w3, y3} only covers edges in E−, thus it’s always better
+to not choose them. Similarly, every vertex in {z1, . . . , zn−p} covers 3 edges in E− and two
+edges in E−, thus it’s always better to not choose them. Therefore, our choice is constrained
+in {x1, . . . , xn, y1, y2}. The following lemma describes when should we choose y1 or y2, which is
+the key point in this proof.
+Lemma 11. If the number k′ of vertices chosen from {x1, . . . , xn} is less than p, then it is
+always better to not choose y1 or y2. Otherwise, it is always better to choose both y1 and y2.
+Proof. We prove the result for y1 and the result for y2 can be proved analogously. Notice
+that after choosing k′ vertices from {x1, . . . , xn}, the number of uncovered edges incident on y1
+24
+
+-- 24 of 43 --
+
+from E− is n − k′, while the number of uncovered edges incident on y1 from E+ is n − p + 1.
+If k′ < p, then n − k′ ≥ n − p + 1, and hence it is better to not choose y1. If k′ ≥ p, then n − k′ <
+n − p + 1, and hence it is better to choose y1. 
+Let V ′ be the set of vertices we will choose in the constructed instance. Denote the number
+of edges in E+ covered by V ′ and the number of edges in E− covered by V ′ by n1 and n2,
+respectively. We show in the following that there is a vertex cover of size k in G0 if and only if
+there is a vertex subset V ′ ⊆ V such that n1 > n2.
+⇒ Suppose that there is a vertex cover of size k in G0. Let V ′ consists of the corresponding k
+vertices in V and two more vertices y1 and y2. Then vertices in V ′ cover all edges in E+. That
+is, all edges corresponding to E0, edges zj y1 and zj y2 for every 1 ≤ j ≤ n − p and y1y2. Thus
+n1 = 3n
+2 + 2(n − p) + 1 = 2n + k + 1.
+On the other hand, in E−, edges xiy1 and xiy2 for every 1 ≤ i ≤ n and k edges from {xiy3 | 1 ≤
+i ≤ n} are covered, so
+n2 = 2n + k < n1.
+⇐ Suppose that there is a vertex subset V ′ ⊆ V such that n1 > n2. Let k′ = |V ′ ∩
+{x1, . . . , xn}|. We first show that k′ ≥ p. Assume towards a contradiction that k′ < p. According
+to Lemma 11, it is better to not choose y1 or y2. Therefore, we can assume that V ′ ⊆ {x1, . . . , xn}.
+Since every vertex in {x1, . . . , xn} covers 3 edges in E−, and every edge in E− is covered by at
+most one vertex in {x1, . . . , xn}, we have n2 = 3k′. Since every vertex in {x1, . . . , xn} covers 3
+edges in E+, we have n1 ≤ 3k′ = n2, which is a contradiction. In the following, we can assume
+that k′ ≥ p.
+Since k′ ≥ p, according to Lemma 11, it is better to choose y1 and y2. Thus we can assume
+that y1 ∈ V ′ and y2 ∈ V ′. Let m be the number of edges corresponding to E0 covered by vertices
+in V ′. Now we compute n1 and n2. For n1, vertices in V ′ cover edges zj y1 and zj y2 for every
+1 ≤ j ≤ n − p, y1y2 and m edges in E0, so
+n1 = 2(n − p) + 1 + m.
+For n2, edges xiy1 and xiy2 for every 1 ≤ i ≤ n and k′ of edges xiy3 are covered, so
+n2 = 2n + k′.
+Since n1 > n2, we have that m > k′ + 2p − 1 = 3n
+2 + k′ − k − 1 or
+m ≥ 3n
+2 + k′ − k.
+Since m ≤ |E0| = 3n
+2 , we have that k′ ≤ k. If k′ = k, then m = 3n
+2 . Thus V ′ ∩ {x1, . . . , xn} is
+a vertex cover of size k for G0. If k′ < k, then except for the k′ edges in V ′ ∩ {x1, . . . , xn}, we
+can always find k − k′ more vertices to cover k − k′ more edges in G0 such that m + k − k′ ≥ 3n
+2 .
+Therefore, there is a vertex cover of size k for G0.
+Now we can show the NP-hardness of UPQR-HD-Manipulation with positive monotone
+clauses of length ℓ = 3 by a simple reduction from Positive Vertex Cover.
+Theorem 4. UPQR-HD-Manipulation with positive monotone clauses of fixed length ℓ (≥ 3)
+is NP-hard.
+Proof. We prove the result for ℓ = 3. Other cases when ℓ > 3 can be shown by slightly adapting
+the following proof. We present a reduction from Positive Vertex Cover. Given a graph
+G = (V, (E+ ∪E−)) with E+ ∩E− = ∅, we construct an instance of UPQR-HD-Manipulation
+25
+
+-- 25 of 43 --
+
+Table 5: Instance of UPQR-HD-Manipulation with positive monotone clauses of length ℓ = 3
+for the proof of Theorem 4.
+Judgment Set x1 . . . xn y z xi ∨ xj ∨ y xi ∨ xj ∨ z
+J1 1 . . . 1 0 0 1 1
+J2 0 . . . 0 0 0 0 0
+J3 0 . . . 0 1 0 1 0
+UPQR1/2 0 . . . 0 0 0 ⇒ 0 0
+with q = 1
+2 as follows (see also Table 5). The agenda contains xi for each vi ∈ V (1 ≤ i ≤ n),
+y, z and their negations as the premise set. The conclusions set consists of clauses xi ∨ xj ∨ y
+for every edge {vi, vj } in E+, xi ∨ xj ∨ z for every edge {vi, vj } in E− and their negations.
+The third judge is the manipulator and the desired set J = J3 ∩ Φc. Note that except for y
+and z, all variables xi are decided by the manipulator. A successful manipulation is an action
+that changes the values of strictly more conclusions in {xi ∨ xj ∨ y | {vi, vj } ∈ E+} than that
+in {xi ∨ xj ∨ z | {vi, vj } ∈ E−}. Therefore, the manipulation is feasible if and only if there is a
+vertex subset which covers strictly more edges in E+ than E−.
+4.4 Monotone or Horn Clauses of Length ℓ = 2
+In this section we study two remaining cases: Monotone clauses of length ℓ = 2 and Horn
+clauses of length ℓ = 2. For these two cases, we cannot use the characterization of a successful
+manipulation for monotone clauses given in Lemma 9. Actually, different from positive monotone
+clauses of length ℓ = 2, we will show that these two clause structures can be used to encode
+hard problems.
+4.4.1 Monotone Clauses of Length ℓ = 2
+For monotone clauses we may have both xi ∨ xj and ¬xi ∨ ¬xj in the conclusions. Consider
+the following example, where the third judge is the manipulator and the desired set is J =
+{¬x1 ∨ ¬x2}.
+Judgment Set x1 x2 ¬x1 ∨ ¬x2
+J1 1 1 0
+J2 0 0 1
+J3 0 0 1
+UPQR1/2 0 0 ⇒ 1
+Conclusion ¬x1 ∨ ¬x2 ∈ J ∩ UPQRq(J) will be excluded from the outcome only when both x1
+and x2 have been changed. Recall that for positive monotone clauses, changing one variable is
+enough to include a bad conclusion (see also Figure 2 for the comparison). Thus, for monotone
+clauses of length ℓ = 2 we have a new kind of “bad” conclusions, which can be used to encode
+hard problems.
+Theorem 5. UPQR-HD-Manipulation with monotone clauses of length ℓ = 2 is NP-hard.
+Proof. We present a reduction from Clique on regular graphs. Given an instance (G =
+(V, E), k, d) of Clique on regular graphs, where d is the vertex degree and k is the size of
+a desired clique, we build an instance of UPQR-HD-Manipulation with q = 1
+2 as follows (see
+also Table 6 for the profile). Denote n = |V |. The agenda contains xi (1 ≤ i ≤ n), yi (1 ≤ i ≤ n),
+x∗, y∗ and their negations as the premise set. The conclusion set consists of the following clauses
+and their negations.
+26
+
+-- 26 of 43 --
+
+Table 6: Instance of UPQR-HD-Manipulation with monotone clauses of length ℓ = 2 for the
+proof of Theorem 5.
+Judgment Set xi x∗ yi y∗ ¬xi ∨ ¬xj xi ∨ xi′ xi ∨ x∗ xi ∨ yi x∗ ∨ y∗
+J1 1 1 0 0 0 1 1 1 1
+J2 0 0 0 0 1 0 0 0 0
+J3 0 0 1 1 1 0 0 1 1
+UPQR1/2 0 0 0 0 ⇒ 1 0 0 0 0
+• ¬xi ∨ ¬xj (1 ≤ i < j ≤ n).
+• xi ∨ xi′ for each edge {vi, vi′ } ∈ E.
+• xi ∨ x∗ for each 1 ≤ i ≤ n.
+• d + 1 copies4 of xi ∨ yi for each 1 ≤ i ≤ n.
+• n − k + 1 copies of x∗ ∨ y∗.
+There are three judges and their judgment sets are shown in Table 6. The manipulator is the
+third judge and his desired set J = J3 ∩ Φc. The manipulator is decisive for all xi (1 ≤ i ≤ n)
+and x∗.
+The effects of changing k′ variables from {xi | 1 ≤ i ≤ n} are as follows. On the one hand,
+k′(d + 1) of xi ∨ yi will be changed, which is good. On the other hand, from the first three groups
+¬xi ∨ ¬xj , xi ∨ xi′ , and xi ∨ x∗, p ≥ k′(d + 1) of them will be changed, which is bad. Note that
+p = k′(d + 1) holds if the corresponding k′ vertices form a clique in G, and in this case these two
+effects cancel each other out. Now, if we continue to change x∗, then n − k + 1 of x∗ ∨ y∗ will
+be changed, which is good, and n − k′ ≤ n − k more of xi ∨ x∗ will be changed, which is bad.
+The key point is that if k′ ≥ k, then we have n − k + 1 > n − k ≥ n − k′. Therefore, a clique
+of size k′ ≥ k in G corresponds to a successful manipulation that changes the corresponding k′
+variables of xi and x∗ such that overall the Hamming distance will be decreased by 1.
+Now we show that there is a clique of size k′ ≥ k in G if and only if the manipulation is
+feasible. The “only if” direction is clear from the above analysis, and we just need to show
+the “if” direction. Suppose there exists a successful manipulation. From the above analysis we
+have that x∗ has to be changed and the number k′ of changed variables from {xi | 1 ≤ i ≤ n}
+should satisfy k′ ≥ k. Let V ′ be the set of k′ vertices in G corresponding to the k′ variables.
+We claim that there are k vertices from V ′ that form a clique in G. To prove this claim, let
+us consider the induced subgraph G[V ′]. Suppose towards a contradictions that G[V ′] does not
+have a clique of size k, then there are at least k′ − k + 1 pairs of non-adjacent vertices in in G[V ′].
+To see this, notice that we can delete one vertex from each pair of non-adjacent vertices to get
+a clique. Since G[V ′] does not have a clique of size k, there should be at least k′ − k + 1 pairs
+of non-adjacent vertices. Then, after the manipulation, from the first three groups ¬xi ∨ ¬xj ,
+xi ∨ xi′ , and xi ∨ x∗, at least
+k′d + (k′ − k + 1) + n = k′(d + 1) + (n − k + 1)
+of them will be changed. On the other hand, k′(d + 1) of xi ∨ yi and n − k + 1 of w ∨ zi will be
+changed. Thus, the Hamming distance does not change, which is a contradiction.
+4A very formal interpretation of our model definition with the agenda being a set (not a multiset) may not
+allow copies. In this case, and later in Theorem 9, instead of copies, we can also introduce a separate fresh yi or
+y∗ variable for each clause. Since these variables cannot be changed, the proof does not change.
+27
+
+-- 27 of 43 --
+
+4.4.2 Horn Clauses of Length ℓ = 2
+For Horn clauses, we have conclusions of the form ¬xi ∨ xj . This allows variables from P 1
+1 to be
+“useful”. To see this, consider the following example where the third judge is the manipulator
+and J = {¬x1 ∨ x2} is the desired set.
+Judgment Set x1 x2 ¬x1 ∨ x2
+J1 1 0 0
+J2 0 0 1
+J3 1 1 1
+UPQR1/2 1 0 ⇒ 0
+Changing the value of x1 ∈ P 1
+1 from 1 to 0 can make ¬x1 ∨ x2 ∈ J \ UPQRq(J) included in the
+outcome. Thus, for Horn clauses of length ℓ = 2 we have a new kind of useful variables, which
+allows to encode hard problems.
+Theorem 6. UPQR-HD-Manipulation with Horn clauses of length ℓ = 2 is NP-hard.
+Proof. We adopt the reduction in the proof for Theorem 5 with some modifications such that all
+clauses in the modified reduction are Horn clauses. We copy the whole judgment profile, except
+for conclusions ¬xi ∨ ¬xj (1 ≤ i < j ≤ n), which are not allowed in Horn clause. To overcome
+this issue, we create a new variable xi′ ∈ P 1
+1 for every variable xi ∈ P 0
+0 (1 ≤ i ≤ n), and add
+conclusions xi′ ∨ xj ′ for all 1 ≤ i < j ≤ n. Notice that here xi′ ∨ xj ′ will play the role of ¬xi ∨ ¬xj
+in the original reduction. That is, changing xi′ or xj ′ alone is not enough to change the result
+of xi′ ∨ xj ′, and changing the value of both xi′ and xj ′ can change the result of xi′ ∨ xj ′.
+It remains to show that we can use a gadget to enforce that any successful manipulation has
+to either choose both of xi and xi′, or choose none of them, for every 1 ≤ i ≤ n. To this end,
+for each pair of xi and xi′, we add new variables ej
+i ∈ P 0
+0 (1 ≤ j ≤ N ) and f j
+i ∈ P 1
+0 (1 ≤ j ≤ N
+2 ),
+where N is a large even number whose value will be determined later. In addition, we add
+clauses xi ∨ ej
+i , xi′ ∨ ej
+i for all 1 ≤ j ≤ N , and xi ∨ tj , ¬xi′ ∨ tj for all 1 ≤ j ≤ N
+2 . See Table 7
+for the judgment sets of the gadget for the pair of xi and xi′ and see Figure 4 for an illustration.
+Note that xi, xi′ and all ej
+i (1 ≤ j ≤ N ) are decided by the manipulator.
+xi ∈ P 0
+0
+. . .
+ej
+i ∈ P 0
+0 , 1 ≤ j ≤ N
+xi′ ∈ P 1
+1
+. . .
+f j
+i ∈ P 1
+0 , 1 ≤ j ≤ N
+2
+xi ∨ ej
+i xi′ ∨ ej
+i
+xi ∨ f j
+i ¬xi′ ∨ f j
+i
+Figure 4: Gadget for the pair of xi and xi′.
+28
+
+-- 28 of 43 --
+
+Table 7: Gadget for the pair of xi and xi′ in the proof of Theorem 6.
+Judgment Set xi xi′ ej
+i f j
+i xi ∨ ej
+i xi′ ∨ ej
+i xi ∨ f j
+i ¬xi′ ∨ f j
+i
+J1 1 1 1 0 1 1 1 0
+J2 0 0 0 0 1 1 0 1
+J3 0 1 0 1 0 1 1 1
+UPQR1/2 0 1 0 0 ⇒ 0 1 0 0
+Now we show the correctness of this gadget. That is, any successful manipulation has to
+change both xi and xi′ or none of them, and for the first case, there exists a way to manipulate
+within the gadget such that within the gadget there is no influence on the Hamming distance. If
+we change xi, xi′ and all ej
+i (1 ≤ j ≤ N ), then all N conclusions from {xi ∨ f j
+i , ¬xi′ ∨ f j
+i | 1 ≤ j ≤
+N
+2 } will be newly included into the outcome, and on the other hand, N conclusions from {xi ∨ej
+i |
+1 ≤ j ≤ N } will also be newly included, while all conclusions from {xi′ ∨ ej
+i | 1 ≤ j ≤ N } remain
+to be included. Therefore, the influence on the Hamming distance within the gadget is N −N = 0.
+In other words, there exists a way to manipulate within the gadget such that we change both xi
+and xi′, and there is no influence on the Hamming distance. However, if we just change only
+one of xi and xi′, then we get only N
+2 conclusions from {xi ∨ f j
+i , ¬xi′ ∨ f j
+i | 1 ≤ j ≤ N
+2 },
+but lose N conclusions from {xi ∨ ej
+i , xi′ ∨ ej
+i | 1 ≤ j ≤ N } no matter how we change variables
+in {ej
+i | 1 ≤ j ≤ N }. We can choose the value for N to be large enough such that the difference N
+2
+in this gadget can not be reverted by any choice of other variables.
+5 Bribery
+In this section, we consider two variants of Bribery introduced by Baumeister et al. [4], where
+an external agent pays some judges to change their judgment sets so that the outcome changes
+towards some desired judgment set.
+UPQR-Bribery (resp. UPQR-Microbribery)
+Input: An agenda Φ, a profile J = (J1, . . . , Jn) ∈ J (Φ)n, a (possibly incomplete) consistent
+judgment set J desired by the briber, a budget k ∈ Z+, and a uniform rational threshold q ∈
+[0, 1).
+Question: Is it possible to change up to k individual judgment sets in J (resp. k premise
+entries in J) such that for the resulting new profile J′ it holds that HD(UPQRq(J′), J) <
+HD(UPQRq(J), J)?
+Baumeister et al. [4] proved that both UPQR-Bribery and UPQR-Microbribery are
+NP-hard when conclusions are positive monotone clauses. However, there is no bound on the
+length of conclusions used in the reductions. We study how the length of conclusions influence
+the computational complexity of these bribery problems.
+5.1 UPQR-Bribery
+We start with UPQR-Bribery and first consider the case when the budget k is a fixed constant.
+For this case, we can guess different choices of k judges to bribe. For each choice it is easy to
+determine the set of variables that can be changed and then the main problem is to determine
+which subset of variables to change. This is very similar to UPQR-HD-Manipulation where
+the manipulator needs to find a subset of decision variables to change.
+Recall that in Section 4 we show that UPQR-HD-Manipulation with positive monotone
+clauses of length ℓ = 2 is solvable in polynomial time via a reduction to WMDS. Using similar
+29
+
+-- 29 of 43 --
+
+ideas, we show that for a fixed budget k, UPQR-Bribery with the same clause set is also
+solvable in polynomial time. The main difference is that for UPQR-HD-Manipulation the
+manipulator cannot decide the outcome of variables from P 0
+1 ∪ P 1
+0 (notations from Section 4.1)
+and hence just need to consider variables from P 0
+0 according to Observation 4, while this re-
+striction does not hold for UPQR-Bribery. Consequently, for UPQR-Bribery we need to
+consider more cases, as discussed in the following.
+Theorem 7. UPQR-Bribery with conclusions being positive monotone clauses of length ℓ = 2
+is solvable in polynomial time when the budget k is a fixed constant.
+Proof. First of all, for any instance of UPQR-Bribery we can transform it into an equivalent
+instance such that J containing no premise and {ϕ, ¬ϕ} ∩ J 6 = ∅ for every conclusion ϕ ∈ Φc,
+using the same method as in Section 4. In the following we can assume that J contains only
+conclusions and for any conclusion ϕ ∈ Φc we have that ϕ ∈ J or ¬ϕ ∈ J.
+We can try all possible choices of bribing k judges from all n judges and there are (n
+k
+) different
+choices. For each choice, we can find the set D of variables whose value can be changed. For
+any x ∈ D, if all positive clauses containing x are included in the desired set J, then it is always
+better to make x included in the outcome. Otherwise, if there exists a positive clause ϕ with
+¬ϕ ∈ J that contains x, then we put x ∈ D into a set T1 if x ∈ UPQRq(J) and put x ∈ D into
+a set T0 if x 6 ∈ UPQRq(J). We just need to consider variables in T1 ∪ T0.
+We first observe that conclusions containing two variables from T1 ∪ T0 are not in the desired
+set J.
+Lemma 12. For every conclusion xi ∨ xj with xi, xj ∈ T1 ∪ T0, we have xi ∨ xj 6 ∈ J.
+Proof. Let ¯	J be any complete and consistent extension of J. For any variable x ∈ T1 ∪ T0, we
+have x 6 ∈ ¯	J since there is a positive monotone clause ϕ 6 ∈ J that contains x. Thus, xi 6 ∈ ¯	J and
+xj 6 ∈ ¯	J, which imply xi ∨ xj 6 ∈ J. 
+Next, we consider our problem in the following three cases:
+1. T1 = ∅.
+In this case we only need to consider variables in T0. We classify all conclusions xi ∨ xj into
+three cases according to the number of variables from T0 included. If both xi and xj are not
+in T0, then the value of xi ∨ xj ∈ J is fixed and we do not need care about this conclusion.
+If only one variable, say xi, is in T0, then the value of the other variable xj is fixed and
+we can take it as a constant. If xj ∈ UPQRq(J), then xi ∨ xj will be included into the
+outcome for any xi and hence we do not need care about this conclusion. The interesting
+case is when xj 6 ∈ UPQRq(J), where the result of xi ∨ xj depends only on xi. If both xi
+and xj are in T0, then we know that xi ∨xj 6 ∈ UPQRq(J) and xi ∨xj 6 ∈ J (from Lemma 12).
+In this case changing any one variable will make xi ∨ xj included into the outcome, which
+is bad. To sum up, for each variable x ∈ T0, we need to consider conclusions xi ∨ xj
+with xj 6 ∈ T0 ∪ UPQRq(J) or xj ∈ T0. We can assign each variable xi ∈ T0 a weight to
+record the difference between the number of newly included desired conclusions and the
+number of lost desired conclusions if we change the value of xi as follows:
+w(xi) =|{xi ∨ xj | xj 6 ∈ T0 ∪ UPQRq(J) and xi ∨ xj ∈ J}|
+− |{xi ∨ xj | xj 6 ∈ T0 ∪ UPQRq(J) and xi ∨ xj 6 ∈ J}|
+− |{xi ∨ xj | xj ∈ T0}|
+For any subset T ⊆ T0, let f (T ) be the difference between the number of newly included
+desired conclusions and the number of lost desired conclusions after changing the values
+of variables in T , then
+f (T ) = ∑
+xi∈T
+w(xi) + g(T ),
+30
+
+-- 30 of 43 --
+
+where g(T ) = |{xi ∨ xj | xi ∈ T and xj ∈ T }| is the number of lost desired conclu-
+sions counted twice in both w(xi) and w(xj ). Our goal is to find a subset T ⊆ T0 such
+that f (T ) > 0, that is,
+g(T )
+− ∑
+xi∈T w(xi) > 0.
+Using the same method as in the proof of Theorem 3, we can reduce this problem to
+WMDS, which is solvable in polynomial time. Note that in WMDS we do not require
+non-negativity for vertex weights.
+2. T0 = ∅.
+In this case we only need to consider variables in T1. Similar to the first case when T0 = ∅,
+we can assign each variable xi ∈ T1 a weight to record the difference between the number
+of newly included desired conclusions and the number of lost desired conclusions if we
+change the value of xi as follows:
+w(xi) =|{xi ∨ xj | xj 6 ∈ T1 ∪ UPQRq(J) and xi ∨ xj 6 ∈ J}|
+− |{xi ∨ xj | xj 6 ∈ T1 ∪ UPQRq(J) and xi ∨ xj ∈ J}|.
+Note that here we do not count conclusions xi ∨ xj with xj ∈ T1, since for this kind of
+conclusions, we need to change both xi and xj to be 0 to change the outcome of xi ∨ xj ∈
+UPQRq(J) \ J. Instead, we count this part for any subset T ⊆ T1 as g(T ) = |{xi ∨ xj |
+xi ∈ T and xj ∈ T }|. Then, f (T ), the difference between the number of newly included
+desired conclusions and the number of lost desired conclusions after changing the values
+of variables in T , can be defined as follows:
+f (T ) = ∑
+xi∈T
+w(xi) + g(T ).
+Our goal is to find a T such that f (T ) > 0, that is,
+g(T )
+− ∑
+xi∈T w(xi) > 0.
+Again, using the same method as in the proof of Theorem 3, we can reduce this problem
+to WMDS, which is solvable in polynomial time.
+3. T1 6 = ∅ and T0 6 = ∅.
+We first consider two restricted subproblems where we only change variables from T0 or
+T1. These two subproblems are just the two cases considered above, which are solvable in
+polynomial time. If we can succeed in one of them, then we are done. Otherwise, there is
+no feasible bribery if we only change variables from T0 or T1. We claim that in this case
+there is no feasible bribery.
+Suppose, towards a contradiction, that we can decrease the Hamming distance by d > 0
+through changing the value of variables in a set T ⊆ T1 ∪ T0, then T ∩ T0 6 = ∅ and
+T ∩ T1 6 = ∅. Denote d0 the decreased Hamming distance if we only change the value of
+variables in T ∩ T0, and d1 the decreased Hamming distance if we only change the value
+of variables in T ∩ T1. Since both two subproblems have no solution, we have d0 ≤ 0 and
+d1 ≤ 0. Now we consider the relation between d, d0 and d1. To this end, we just need to
+consider conclusions in Q = {xi ∨ xj | xi ∈ T ∩ T0, xj ∈ T ∩ T1}, for which we have the
+following observations:
+(a) xi ∨ xj ∈ UPQRq(J) since xj ∈ T1 implies xj ∈ UPQRq(J).
+(b) xi ∨ xj 6 ∈ J by xi, xj ∈ T0 ∪ T1 and Lemma 12.
+31
+
+-- 31 of 43 --
+
+Table 8: Profiles of variables in manipulation (left) and bribery (right).
+Judgment Set x ∈ D x ∈ V + x ∈ V −
+J1 1 1 0
+J2 0 1 0
+J3 0/1 0 1
+UPQR1/2 0/1 1 0
+JM 0/1 0 1
+Judgment Set x ∈ D x ∈ V + x ∈ V −
+J1 1 1 0
+J2 0 1 0
+J3 0/1 1 0
+UPQR1/2 0/1 1 0
+JB 0/1 0 1
+(c) Changing xi alone from 0 to 1 cannot change the value of xi ∨ xj since it is still 1.
+(d) Changing xj alone from 1 to 0 will make xi ∨ xj = 0 ∨ 0 = 0.
+(e) Changing both xi and xj cannot change the value of xi ∨ xj since it is still 1.
+From (a) and (b) we know that change the value of xi ∨ xj ∈ Q from 1 to 0 can decrease
+the Hamming distance by 1. From (c) and (e) we know that conclusions from Q has no
+influence on d0 and d, while from (d) we know that these |Q| conclusions are counted in
+d1. Thus, d = d0 + (d1 − nδ ) ≤ 0. This is a contradiction.
+Next, we consider more general clause classes with bounded length. We present a simple
+linear-time reduction from UPQR-HD-Manipulation to UPQR-Bribery, which allows to
+transfer the hardness results for UPQR-HD-Manipulation established in Section 4 to UPQR-
+Bribery.
+Lemma 13. For any clause set C, there is linear-time many-one reduction from UPQR-HD-
+Manipulation with conclusions chosen from C to UPQR-Bribery with conclusions chosen
+from C and the budget k = 1.
+Proof. For an instance of UPQR-HD-Manipulation with conclusions chosen from C, let JM
+be its profile and JM = Jn be the desired set of the manipulator. We first compute the set
+D of variables decided by the manipulator. Then we partition all variables into three sets: D,
+V + and V −, where V + is set of variables which are in UPQRq(JM ) and not decided by the
+manipulator, and V − is set of variables which are not in UPQRq(JM ) and not decided by the
+manipulator.
+Now we construct an instance of UPQR-Bribery with conclusions chosen from C as follows.
+The agenda remains the same and the desired set for the briber is JB = JM . The profile JB
+for the instance of UPQR-Bribery is the same as JM for all variables in D. While for each
+variable x ∈ V +, x is contained in every judgment set, and for each variable x ∈ V −, x is
+not contained in any judgment set. Finally, we set k = 1. See Table 8 for the two profiles for
+variables in JM and JB in an example with three judges.
+With budget k = 1 the briber can only change the values of variables in D, the same as
+the manipulator. In addition, we have UPQRq(JM ) = UPQRq(JB ) and JM = JB . Therefore
+the instance of Manipulation is a yes-instance if and only if the instance of Bribery is a
+yes-instance.
+Combining Lemma 13 with Theorems 4 to 6, we get the following NP-hard results for UPQR-
+Bribery when conclusions have length 2 or 3. Note that all reductions in the proofs for Theo-
+rems 4 to 6 have only three judges.
+Corollary 3. UPQR-Bribery with conclusions being Horn clauses of length ℓ = 2 (resp.
+monotone clauses of length 2 or positive monotone of length ℓ ≥ 3) is NP-hard, even when there
+are only 3 judges and the budget k = 1.
+32
+
+-- 32 of 43 --
+
+Table 9: Instance with only positive monotone clauses of length ℓ = 2 in the proof of Theorem 8.
+Judgment Set x1 . . . xn y1 y2 xi ∨ y1 xi ∨ y2 x1 ∨ xj
+J1
+L
+0 0
+⋆	. . . . . . . . .
+Jm 0 0
+UPQR1/2 0 . . . 0 0 0 ⇒ 0 0 0
+J 0 . . . 0 1 1 1 1 0
+Theorem 7 and Corollary 3 show that when the budget k if a fixed constant, UPQR-Bribery
+and UPQR-HD-Manipulation have the same computational complexity results for many dif-
+ferent clause classes. Next we show that different from UPQR-HD-Manipulation, the com-
+plexity of UPQR-Bribery could also come from the choice of k judges to bribe: When the
+budget k is not fixed, UPQR-Bribery becomes NP-hard even for the most basic case when
+conclusions are positive monotone clauses of length ℓ = 2. We show this result by a reduction
+from Optimal-Lobbying defined as follows, which is NP-hard and W[2]-hard with respect to
+the budget k [12].
+Optimal-Lobbying
+Input: An m × n (0, 1) matrix L and a positive integer k.
+Question: Is there a choice of k rows in L such that by changing the entries of these rows
+each column of the resulting matrix has a strict majority of ones.
+Theorem 8. UPQR-Bribery with conclusions being positive monotone clauses of length ℓ = 2
+is NP-hard and W[2]-hard with respect to the budget k.
+Proof. Let (L, k) be an instance of Optimal-Lobbying. Without loss of generality, we can
+assume that each column of L has a strict majority of zeros and k ≤ ⌊ m
+2 ⌋. We construct an
+instance of UPQR-Bribery with q = 1
+2 as follows (see also Table 9). The agenda contains
+variables xi (1 ≤ i ≤ n), y1, y2 and their negations as the premise set. The conclusion set
+consists of xi ∨ y1, xi ∨ y2 (1 ≤ i ≤ n), x1 ∨ xj (2 ≤ j ≤ n) and their negations. There are m
+judges and their judgment set with respect to xi (1 ≤ i ≤ n) are based on L, i.e., xi ∈ Jj if
+and only if Li,j = 1. Premises y1 and y2 are not contained in any judgment set. The briber’s
+desired set J, which is complete, is shown in the last row of Table 9. Note that since k ≤ ⌊ m
+2 ⌋,
+the briber could only change the values of variables of xi (1 ≤ i ≤ n).
+Now we show that instance (L, k) is a yes-instance of Optimal-Lobbying if and only if the
+constructed instance is a yes-instance of UPQR-Bribery.
+⇒ Assume that instance (L, k) is a yes-instance, then the briber can bribe the correspond-
+ing k judges such that the values of all xi (1 ≤ i ≤ n) become 1. Consequently, all xi ∨ y1, xi ∨ y2
+(1 ≤ i ≤ n) will be included into the outcome, and meanwhile all xi (1 ≤ i ≤ n) and xi ∨ xj
+(2 ≤ j ≤ n) will also be included into the outcome. So the Hamming distance will be decreased
+by 2n − (2n − 1) = 1 and this is successful bribery.
+⇐ Assume that the bribery is feasible. Let S ⊆ {x1, . . . , xn} be the set of changed variables
+in a successful bribery. Our goal is to show that S = {x1, . . . , xn}, which would imply that
+instance (L, k) is a yes-instance. Suppose towards a contradiction that S 6 = {x1, . . . , xn}. Then,
+on one hand, desired conclusions in {xi ∨ y1, xi ∨ y2 | xi ∈ S} are included into the outcome
+and |{xi ∨ y1, xi ∨ y2 | xi ∈ S}| = 2|S|. On the other hand, all variables in S and at least |S|
+conclusions in {x1 ∨ xj | 1 ≤ j ≤ n} (that is, {x1 ∨ xj | xj ∈ S} if x1 6 ∈ S and {x1 ∨ xj | 2 ≤
+j ≤ n} if x1 ∈ S) will also be included into the outcome. Thus, the Hamming distance will be
+33
+
+-- 33 of 43 --
+
+Table 10: Instance of UPQR-Microbribery with three judges and positive monotone clauses
+of length s = 2 in the proof of Theorem 9.
+Judgment Set xi x∗ yi y∗ xi ∨ xj xi ∨ x∗ xi ∨ yi x∗ ∨ y∗
+Ji (1 ≤ i ≤ m + 1) 1 1 0 0 1 1 1 1
+Ji (m + 2 ≤ i ≤ 2m + 1) 0 0 0 0 0 0 0 0
+UPQR1/2 1 1 0 0 ⇒ 1 1 1 1
+J 0 0 1 1 0 0 1 1
+increased by at least 2|S| − 2|S| = 0 after this bribery, which contradicts with that the bribery
+is successful.
+5.2 UPQR-Microbribery
+Finally, we consider UPQR-Microbribery, where the budget k is on the number of changes
+in premises. Different from UPQR-Bribery, if we restrict the budget k to be a fixed constant,
+then UPQR-Microbribery in general is solvable in polynomial time since we can simply try
+all possible k premises to change. When k is not fixed, we show that UPQR-Microbribery
+is NP-hard even for the most basic case when all conclusions are positive monotone clauses of
+length ℓ = 2, which is the same as UPQR-Bribery (see Theorem 8).
+Theorem 9. UPQR-Microbribery with conclusions being positive monotone clauses of length
+ℓ = 2 is NP-hard and W[1]-hard with respect to budget k, even if the desired set is complete.
+Proof. We present a reduction from Clique. Given an instance (G = (V, E), s) of Clique, we
+construct an instance of UPQR-Microbribery with three judges and q = 1
+2 as follows. Denote
+n = |V |. The agenda contains xi (1 ≤ i ≤ n), yi (1 ≤ i ≤ n), x∗, y∗ and their negations as the
+premise set. The conclusion set consists of the following clauses and their negations (Without
+loss of generality we assume s is an even number).
+• xi ∨ xj for every edge {vi, vj } ∈ E.
+• xi ∨ x∗ for each 1 ≤ i ≤ n
+• s
+2 copies of xi ∨ yj for each 1 ≤ i ≤ n.
+• s
+2 − 1 copies of x∗ ∨ y∗.
+Note that the number of copies of x∗ ∨ y∗ is one smaller than the number of copies of xi ∨ yj .
+This will be essential to create a feasible bribery such that the Hamming distance is decreased
+by one. The judgment sets of all 2m + 1 (m = s + 1) judges and the desired set J of the briber
+are shown in Table 10. Finally, we set the budget of the briber to be k = s + 1. Note that the
+briber cannot change the value of yi or y∗, since the briber needs to change m + 1 = s + 2 > k
+entries to change any one of them. To change the value of xi or x∗, the briber needs to change
+1 entry. We show that there is a clique of size s in G if and only if there is a successful bribery
+with at most k = s + 1 microbribes.
+⇒ Assume there is a clique of size s in G, then the manipulator can change the values of the
+corresponding s variables from {x1, . . . , xn} and x∗. One one hand, (s
+2
+) of ¬(xi ∨ xj ) and s of
+¬(xi ∨ x∗) will be included in the outcome. So the number of newly included desired formulas
+in the outcome is
+n1 =
+(s
+2
+)
++ s =
+(s + 1
+2
+)
+.
+34
+
+-- 34 of 43 --
+
+One the other hand, s
+2 s of xi ∨ yj and s
+2 − 1 of x∗ ∨ y∗ will be excluded from the outcome. So
+the number of lost desired formulas in the outcome is
+n2 = s
+2 s + s
+2 − 1 =
+(s + 1
+2
+)
+− 1.
+Since n1 > n2, this is a successful bribery.
+⇐ Assume there is a successful bribery with at most k microbribes. Denote n1 the number
+of newly included desired formulas, and n2 the number of excluded desired formulas after a
+successful bribery. Suppose s′ ≤ k variables from {x1, . . . , xn} are changed after this bribery.
+Then p ≤ (s′
+2
+) of xi ∨ xj are changed.
+If x∗ is not changed, then
+n1 = p ≤
+(s′
+2
+)
+.
+On the other hand, s
+2 s′ of xi ∨ yj are changed. So
+n2 = s
+2 s′.
+Since n1 > n2, we have s′ − 1 > s = k − 1, which contradicts with s′ ≤ k.
+Therefore, x∗ has to be changed and hence s′ ≤ s. Now p ≤ (s′
+2
+) of xi ∨ xj and s′ of xi ∨ x∗
+are changed, so
+n1 = p + s′.
+On the other hand, s
+2 s′ of xi ∨ yj and s
+2 − 1 of x∗ ∨ y∗ are changed. So
+n2 = s
+2 s′ + s
+2 − 1 ≥ s(s′ + 1)
+2 − 1.
+Since n1 > n2, we have
+p > s(s′ + 1)
+2 − s′ − 1 ⇒ p ≥ s(s′ + 1)
+2 − s′.
+Since s′ ≤ s and p ≤ (s′
+2
+), we have s′ = s and p = (s′
+2
+), which means the corresponding s′ = s
+vertices form a clique in G.
+Notice that in both Theorem 8 for UPQR-Bribery and Theorem 9 for UPQR-Microbribery,
+the number of judges in the reductions is not bounded. However, different from Theorem 8,
+where the complexity comes from the choice of k judges to bribe, the complexity in Theorem 9
+comes from the choices of variables to change. In particular, in Theorem 9 the main role of
+the unbounded number of judges is to enforce that some variables (yi, zi) cannot be changed by
+the briber. Then a natural question is what happens if we restrict the number of judges to be
+constant in UPQR-Microbribery.
+Baumeister et al. [4, Theorem 15] claims that UPQR-Microbribery is NP-hard when the
+number of judges is a fixed constant. However, their proof seems to be wrong. In their proof they
+present a reduction from Dominate Set to UPQR-Microbribery with all conclusions being
+positive monotone clauses, and the correctness of this reduction relies on a wrong assumption
+that in the constructed instance of UPQR-Microbribery the budget (corresponding to the
+size of the dominate set) is smaller than the number of judges (which is constant).
+In the remaining part of this section, we consider UPQR-Microbribery with constant
+number of judges. It turns out that the reduction in Theorem 9 can be easily adapted to this
+case if the desired set of the briber is incomplete.
+Theorem 10. UPQR-Microbribery with conclusions being positive monotone clauses of
+length ℓ = 2 is NP-hard and W[1]-hard with respect to budget k, even if there are only three
+judges.
+35
+
+-- 35 of 43 --
+
+Table 11: Instance of UPQR-Microbribery with three judges and positive monotone clauses
+of length s = 2 in the proof of Theorem 10.
+Judgment Set xi x∗ yi y∗ xi ∨ xj xi ∨ x∗ xi ∨ yi x∗ ∨ y∗
+J1 1 1 0 0 1 1 1 1
+J2 1 1 0 0 1 1 1 1
+J3 0 0 0 0 0 0 0 0
+UPQR1/2 1 1 0 0 ⇒ 1 1 1 1
+J 0 0 1 1
+Proof. We present a reduction from Clique. The construction is the same as the proof of
+Theorem 9 except that now we have only three judges and the profile is given in Table 11, where
+J is incomplete and consistent (as it can be satisfied by setting y∗ = 0 and yi = 0). We still set
+the budget of the briber to be k = s + 1. Note that to change the value of x∗ or xi (1 ≤ i ≤ n)
+the briber need to change one entry, while for y∗ or yi (1 ≤ i ≤ n) the briber need to change
+two entries. We show that there is a clique of size s in G if and only if there is a successful
+bribery with at most k = s + 1 changes. The “only if” direction is the same as before and we
+just consider the “if” direction.
+⇐ Assume there is a successful bribery with at most k microbribes. Denote n1 the number
+of newly included desired formulas, and n2 the number of excluded desired formulas after a
+successful bribery. Suppose s′ ≤ k variables from {x1, . . . , xn} are changed after this bribery.
+Then p ≤ (s′
+2
+) of xi ∨ xj are changed. Note that s′ > 0 since changing x∗ alone cannot change
+the outcome of xi ∨ xj or xi ∨ x∗.
+If x∗ is not changed, then
+n1 = p ≤
+(s′
+2
+)
+.
+On the other hand, with the remaining budget k − s′ the briber can change at most ⌊ k−s′
+2 ⌋ of
+yi, then at least s
+2 s′ − ⌊ k−s′
+2 ⌋ of xi ∨ yj are changed. So
+n2 ≥ s
+2 s′ − ⌊ k − s′
+2 ⌋.
+Since n1 > n2, we have (s′
+2
+) > s
+2 s′ − ⌊ k−s′
+2 ⌋. By some computation we get (s′ − s − 1)( s′−1
+2 ) > 0,
+which contradicts with 1 ≤ s′ ≤ k = s + 1.
+Therefore, x∗ has to be changed and hence s′ ≤ s. Now p ≤ (s′
+2
+) of xi ∨ xj and s′ of xi ∨ x∗
+are changed, so
+n1 = p + s′.
+On the other hand, with the remaining budget k − s′ − 1 = s − s′ the briber can change at most
+⌊ s−s′
+2 ⌋ of yi, then at least s
+2 s′ − ⌊ s−s′
+2 ⌋ of xi ∨ yj and s
+2 − 1 of x∗ ∨ y∗ are changed. So
+n2 ≥ s
+2 s′ − ⌊ s − s′
+2 ⌋ + s
+2 − 1 ≥ s′(s + 1)
+2 − 1.
+Since n1 > n2, we have
+p > s′(s + 1)
+2 − s′ − 1 ⇒ p ≥ s′(s − 1)
+2 .
+Since p ≤ (s′
+2
+), we have s = s′ and p = (s′
+2
+), which means the corresponding s′ = s vertices form
+a clique in G.
+36
+
+-- 36 of 43 --
+
+Theorems 9 and 10 show that for positive monotone clauses of length ℓ = 2, UPQR-
+Microbribery is NP-hard even if the desired set is complete or there are only three judges. We
+complement these two results by showing that when the desired set is complete and there are
+only constant number of judges, UPQR-Microbribery becomes solvable in polynomial time
+for positive monotone clauses (of unbounded length).
+Proposition 2. UPQR-Microbribery with conclusions being positive monotone clauses is
+solvable in polynomial time when the number of judges is a fixed constant and the desired set is
+complete.
+Proof. Let m be the number of judges that is fixed a constant. Without loss of generality, we
+can assume k ≥ m, since otherwise we can simply try all possible k premises in polynomial time.
+Consequently, with budget k the briber is able to change the outcome of every variable. Let
+J be the desired set of the briber. Denote J+
+c ⊆ J the set of desired positive conclusions and
+J−
+c ⊆ J the set of desired negative conclusions. If there is a variable x ∈ J that is not in the
+outcome, then changing the value of x from 0 to 1 is a successful bribery since then x will be
+included into the outcome and all conclusions containing x are from J+
+c . Thus, we can assume
+all variables in J are already in the outcome, which then implies that all conclusions in J+
+c are
+already in the outcome. Now if there is a variable x such that ¬x ∈ J and x is in the outcome,
+then changing the value of x from 1 to 0 is a successful bribery since then ¬x will be included
+into the outcome, all conclusions in J+
+c are still in the outcome, and conclusions from J−
+c that
+are in the original outcome are still in the outcome. The remaining case is that all premises
+in J are already included in the outcome, for which there is no feasible bribery, because the
+Hamming distance between the outcome and desired judgement set is already zero.
+6 Conclusion and Discussion
+This paper provides a refined picture in terms of the computational complexity of different
+variants of Manipulation and Bribery in judgment aggregation. Our results for basic vari-
+ants of Manipulation are summarized in Table 12. UPQR-Robustness-Manipulation
+and UPQR-Possible-Manipulation are easy to be manipulated as long as all conclusions
+are clauses, while the computational complexity of UPQR-Necessary-Manipulation and
+UPQR-Exact-Manipulation with conclusions chosen from a standard-form clause set C is
+the same as the computational complexity of the corresponding C-Sat.
+The results for UPQR-HD-Manipulation, UPQR-Bribery and UPQR-Microbribery
+are summarized in Table 13. For UPQR-HD-Manipulation, we show that NP-hardness holds
+even if all conclusions are positive monotone clauses with length ℓ = 3 but that the problem
+becomes solvable in polynomial time when ℓ = 2. For monotone or Horn clauses with ℓ = 2, the
+problem is also NP-hard which is in stark contrast to all basic variants of Manipulation that
+remain polynomial-time solvable for Horn and positive monotone clauses of arbitrary length.
+For Bribery, we show that both UPQR-Bribery and UPQR-Microbribery remain NP-
+hard even when all conclusions are positive monotone clauses of length 2. Specifically, UPQR-
+Bribery with conclusions being positive monotone clauses of length 2 is W[2]-hard with respect
+to the number k of judges that can be bribed, and is solvable in polynomial time when k is fixed.
+All variants of Manipulation and Bribery we considered were known to be generally NP-
+hard, which was seen and sold as “barrier against manipulative behavior” [4]. The main message
+of this work is that several basic variants of Manipulation can be solved efficiently for simple
+but well-motivated restrictions of conclusions (e.g. Horn clauses and generalizations thereof)
+whereas other variants remain computationally intractable for most restrictions. Hence, our
+results question whether there really is a barrier against strategic behavior in case of realistically
+simple formulas.
+37
+
+-- 37 of 43 --
+
+Table 12: Computational complexity of basic variants of Manipulation.
+UPQR-M -Manipulation M = Possible /Robustness Necessary /Exact
+no restriction NP-h [4] NP-h [4]
+standard-form clause set C P (Lem. 3) C-Sat (Thm. 1 & 2)
+clauses with length ℓ ≤ 3 P (Lem. 3) NP-h (Cor. 2 )
+monotone clauses P (Lem. 3) NP-h (Cor. 2 )
+Horn clauses P (Lem. 3) P (Cor. 1)
+positive monotone clauses P (Lem. 3) P (Cor. 1)
+Table 13: Computational complexity of UPQR-HD-Manipulation, UPQR-Bribery and
+UPQR-Microbribery. UPQR-Bribery with unbounded k is NP-hard even for positive mono-
+tone clauses with ℓ = 2.
+Manipulation Bribery (fixed k) Microbribery
+positive monotone with ℓ = 2 P (Thm. 3) P (Thm. 7) NP-h (Thm. 9)
+positive monotone with ℓ = 3 NP-h (Thm. 4) NP-h (Cor. 3) NP-h (Thm. 9)
+Horn or monotone with ℓ = 2 NP-h (Thm. 5 & 6) NP-h (Cor. 3) NP-h (Thm. 9)
+positive monotone NP-h [4] NP-h [4] NP-h [4]
+We see our results as an important step and expect further effects decreasing the compu-
+tational complexity by considering other realistic structural properties. Possible next steps in-
+clude a systematic investigation of the parameterized complexity for both judgment aggregation-
+specific parameters (e.g. “number of judges” or “size of the desired set”) and formula specific
+parameters (e.g. “number of clauses” or “variable frequency”). We note that considering the
+parameter “number of judges” alone, however, will not lead to tractable cases because this
+parameter is fixed to three in most of our reductions.
+Another direction is to extend our polynomial-time solvable results to more expressive for-
+mulas. In this paper, we restrict conclusions to be clauses (disjunctions of literals), under which
+some basic variants of Manipulation become solvable in polynomial time. Recall that all of our
+results can be directly translated to the case where we restrict conclusions to be conjunctions of
+literals (see Section 2.3). Based on these results, one can consider more expressive restrictions,
+like Horn formulas (conjunctions of Horn clauses) or Krom formulas (conjunctions of clauses of
+length 2), to explore the boundary of tractability.
+In this paper we consider the two Hamming distance based variants of Bribery introduced
+by Baumeister et al. [4]. One can also define other variants of Bribery (or Microbribery) simi-
+lar to basic variants of Manipulation, e.g., possible or necessary, and study their computational
+complexity using our approach. Note that the reduction from UPQR-HD-Manipulation to
+UPQR-Bribery in Lemma 13 can be directly generalized to other variants of Manipulation
+and Bribery, thus our hardness results for different variants of Manipulation under different
+clause restrictions can be easily adapted to the corresponding variants of Bribery. On the other
+hand, for clause restrictions under which Manipulation is polynomial-time solvable, Bribery
+could still be NP-hard when the budget is not fixed since the complexity could also come from
+the choice of different judges to bribe, similar to the case in Theorem 8. We leave this for future
+work.
+Finally, it is interesting to apply our refined approach to Control in judgment aggregation
+based on the results of Baumeister et al. [7] or to other judgment aggregation procedures (e.g.,
+38
+
+-- 38 of 43 --
+
+Kemeny procedure [14]). Furthermore, it seems natural to extend the study to strategic behavior
+of groups of judges instead of a single judge [9]. Note that most NP-hard variants of Control
+studied in Baumeister et al. [7] rely on complex formulas, similar to the case in Baumeister
+et al. [4]. We believe many of our NP-hardness results can be extended to different variants of
+Control. While for the Kemeny procedure, under which even the outcome determination is
+usually at least NP-hard, it seems difficult to transfer our results there.
+Acknowledgment
+We are grateful to the anonymous Information and Computation reviewers for their helpful and
+constructive comments. Robert Bredereck was supported by the DFG project “AFFA” (BR
+5207/1;NI 369/15). Junjie Luo was supported by CAS-DAAD Joint Fellowship Program for
+Doctoral Students of UCAS, the DFG project “AFFA” (BR 5207/1;NI 369/15), and the Ministry
+of Education, Singapore, under its Academic Research Fund Tier 2 (MOE2019-T2-1-045).
+References
+[1] J. J. Bartholdi III, C. A. Tovey, and M. A. Trick. The computational difficulty of manipu-
+lating an election. Social Choice and Welfare, 6(3):227–241, 1989.
+[2] J. J. Bartholdi, III, C. A. Tovey, and M. A. Trick. How hard is it to control an election?
+Mathematical and Computer Modeling, 16(8-9):27–40, 1992.
+[3] D. Baumeister, G. Erd´elyi, O. J. Erd´elyi, and J. Rothe. Computational aspects of ma-
+nipulation and control in judgment aggregation. In Proceedings of the 3rd International
+Conference on Algorithmic Decision Theory (ADT’13), pages 71–85. Springer, 2013.
+[4] D. Baumeister, G. Erd´elyi, O. J. Erd´elyi, and J. Rothe. Complexity of manipulation and
+bribery in judgment aggregation for uniform premise-based quota rules. Mathematical Social
+Sciences, 76:19–30, 2015.
+[5] D. Baumeister, G. Erd´elyi, and J. Rothe. Judgment aggregation. In Economics and Com-
+putation, chapter 8, pages 361–391. 2016.
+[6] D. Baumeister, J. Rothe, and A.-K. Selker. Strategic behavior in judgment aggregation. In
+U. Endriss, editor, Trends in Computational Social Choice, chapter 8, pages 145–168. AI
+Access, 2017.
+[7] D. Baumeister, G. Erd´elyi, O. J. Erd´elyi, J. Rothe, and A. Selker. Complexity of control
+in judgment aggregation for uniform premise-based quota rules. Journal of Computer and
+System Sciences, 112:13–33, 2020.
+[8] D. Baumeister, L. Boes, and R. Weishaupt. Complexity of sequential rules in judgment
+aggregation. In Proceedings of the 20th International Conference on Autonomous Agents
+and Multiagent Systems (AAMAS’21), pages 187–195. ACM, 2021.
+[9] S. Botan, A. Novaro, and U. Endriss. Group manipulation in judgment aggregation. In
+Proceedings of the 15th International Conference on Autonomous Agents and Multiagent
+Systems (AAMAS’16), pages 411–419. ACM, 2016.
+[10] R. Bredereck, P. Faliszewski, A. Kaczmarczyk, R. Niedermeier, P. Skowron, and N. Talmon.
+Robustness among multiwinner voting rules. In Proceedings of the 10th International Sym-
+posium on Algorithmic Game Theory (SAGT ’17), volume 10504 of LNCS, pages 80–92.
+Springer, 2017.
+39
+
+-- 39 of 43 --
+
+[11] S. Ceri, G. Gottlob, and L. Tanca. Logic programming and databases. Springer Science &
+Business Media, 2012.
+[12] R. Christian, M. Fellows, F. Rosamond, and A. Slinko. On complexity of lobbying in
+multiple referenda. Review of Economic Design, 11(3):217–224, 2007.
+[13] R. de Haan. Parameterized complexity results for the kemeny rule in judgment aggrega-
+tion. In Proceedings of the 22nd European Conference on Artificial Intelligence (ECAI’16),
+volume 285, pages 1502–1510. IOS Press, 2016.
+[14] R. de Haan. Complexity results for manipulation, bribery and control of the kemeny judg-
+ment aggregation procedure. In Proceedings of the 16th Conference on Autonomous Agents
+and MultiAgent Systems (AAMAS’17), pages 1151–1159. ACM, 2017.
+[15] R. de Haan. Hunting for tractable languages for judgment aggregation. In Principles
+of Knowledge Representation and Reasoning: Proceedings of the Sixteenth International
+Conference (KR’18), pages 194–203. AAAI Press, 2018.
+[16] F. Dietrich and C. List. Strategy-proof judgment aggregation. Economics and Philosophy,
+23(3):269–300, 2007.
+[17] F. Dietrich and C. List. Judgment aggregation by quota rules: Majority voting generalized.
+Journal of Theoretical Politics, 19(4):391–424, 2007.
+[18] E. Elkind, M. Lackner, and D. Peters. Preference restrictions in computational social choice:
+A survey, 2022. URL https://arxiv.org/abs/2205.09092.
+[19] U. Endriss. Judgment aggregation. In F. Brandt, V. Conitzer, U. Endriss, J. Lang, and
+A. D. Procaccia, editors, Handbook of Computational Social Choice, chapter 17. Cambridge
+University Press, 2016.
+[20] U. Endriss, U. Grandi, and D. Porello. Complexity of judgment aggregation. Journal of
+Artificial Intelligence Research, 45:481–514, 2012.
+[21] U. Endriss, R. de Haan, and S. Szeider. Parameterized complexity results for agenda safety
+in judgment aggregation. In G. Weiss, P. Yolum, R. H. Bordini, and E. Elkind, editors,
+Proceedings of the 2015 International Conference on Autonomous Agents and Multiagent
+Systems (AAMAS’15), pages 127–136. ACM, 2015.
+[22] U. Endriss, R. de Haan, J. Lang, and M. Slavkovik. The complexity landscape of outcome
+determination in judgment aggregation. Journal of Artificial Intelligence Research, 69:687–
+731, 2020.
+[23] P. Faliszewski, E. Hemaspaandra, L. A. Hemaspaandra, and J. Rothe. The shield that never
+was: Societies with single-peaked preferences are more open to manipulation and control.
+Information and Computation, 209(2):89–107, 2011.
+[24] A. V. Goldberg. Finding a maximum density subgraph. University of California Berkeley,
+CA, 1984.
+[25] D. Grossi and G. Pigozzi. Judgment Aggregation: A Primer. Morgan & Claypool Publishers,
+2014.
+[26] L. A. Kornhauser and L. G. Sager. Unpacking the court. The Yale Law Journal, 96(1):
+82–117, 1986.
+[27] C. List. The theory of judgment aggregation: an introductory review. Synthese, 187(1):
+179–207, 2012.
+40
+
+-- 40 of 43 --
+
+[28] C. List and C. Puppe. Judgment aggregation: A survey. In C. List and C. Puppe, editors,
+Handbook of Rational and Social Choice, chapter 19. Oxford University Press, 2009.
+[29] J. W. Lloyd. Foundations of Logic Programming. Springer-Verlag, 1987.
+41
+
+-- 41 of 43 --
+
+A Missing Proofs
+Lemma 14. For any k ≥ 3, (M+
+k ∪ M−
+2 )-SAT and (M+
+2 ∪ M−
+k )-SAT are NP-hard.
+Proof. Since (M+
+k ∪ M−
+2 )-SAT and (M+
+2 ∪ M−
+k )-SAT are equivalent under linear-time reduc-
+tions, it suffices to show one of them is NP-hard. We present a polynomial-time reduction
+from k-Coloring to (M+
+k ∪ M−
+2 )-SAT. Given a graph G = (V, E), we construct a formula of
+(M+
+k ∪ M−
+2 )-SAT as follows. For each vertex vi ∈ V , we add vertex clauses x1
+i ∨ · · · ∨ xk
+i and
+¬xs
+i ∨ ¬xt
+i for each pair of s and t with 1 ≤ s < t ≤ k into the formula. In addition, for each
+edge {vi, vj } ∈ E, we add edge clauses ¬xs
+i ∨ ¬xs
+j for every 1 ≤ s ≤ k into the formula.
+Suppose the graph G is k-colorable, then we construct an assignment of variables by setting
+xs
+i = 1 if vertex vi is colored s. This assignment makes all vertex clauses satisfied since for each
+vertex vi exactly one variable from {x1
+i , x2
+i , . . . , xk
+i } is set True. This assignment also makes all
+edge clauses satisfied since for each edge {vi, vj } ∈ E, vi and vj have different colors, which
+means the corresponding two variables xs
+i and xt
+j that are set True must satisfy that s 6 = t.
+Suppose there is a satisfying assignment for the formula. For each vertex vi, since x1
+i ∨· · ·∨xk
+i
+is satisfied, at least one variable from {x1
+i , x2
+i , . . . , xk
+i } is set True. In addition, since all vertex
+clauses ¬xs
+i ∨ ¬xt
+i with 1 ≤ s < t ≤ k are satisfied, exactly one variable xt
+i from {x1
+i , x2
+i , . . . , xk
+i }
+is set True. Accordingly, we color vi by t. Since all edge clauses are satisfied, we have that for
+each edge, its two end points have different colors. Therefore, we get a proper k-coloring for the
+graph G.
+B Symmetric Version of Lemma 7
+Recall that Lemma 1 shows that our hardness reductions can be adapted to work for any
+rational quota q ∈ [0, 1), but from the perspective of parameterized complexity analysis it leaves
+the following two special cases: (1) instances with high quotas and small numbers of judges
+where a variable is accepted if all judges accept it and (2) instances with low quotas and small
+numbers of judges where a variable is accepted if at least one judge accepts it. We now discuss
+how to adapt our hardness reductions for case (1), and the method for case (2) is analogous.
+For case (1), we can still create decision variables with x ∈ Jn ∩ UPQRq(J) or ¬x ∈ Jn ∩
+UPQRq(J) (by setting x ∈ Ji for every i ∈ {1, 2, . . . , n − 1}), while for non-decision variables,
+x ∈ Jn \ UPQRq(J) is possible but x ∈ UPQRq(J) \ Jn is impossible. In other words, the
+only difference is that, in this case, we cannot create variables that are included in the truthful
+outcome and cannot be changed by the manipulator. Therefore, all of our hardness reductions
+that do not use this kind of non-decision variables still work for case (1). The only exceptions
+are Lemma 6 and 8, for which we can rename each variable by its negation such that for non-
+decision variables only x ∈ Jn \ UPQRq(J) is used in the reductions. Note that this negation
+will also change the type of clauses, so after this change we actually show the symmetric versions
+of Lemma 6 and 8. Then to finish the proof of Theorem 1, we also need to show the following
+symmetric version of Lemma 7 for the special case where a variable is accepted if all judges
+accept it.
+Lemma 15. When ⌊qn + 1⌋ = n, UPQR-Necessary-Manipulation with conclusions chosen
+from (M+
+3 ∪ M−
+2 ) is NP-hard.
+Proof. We adapt the original reduction in the proof of Lemma 7 to prove the claimed result.
+The constructed instance is shown in Table 14. We first replace each variable by its negation
+such that all conclusions are from M+
+3 ∪ M−
+2 . In addition, we make all xi, yi, zi, w, v decided by
+the manipulator by making them accepted by all other judges. Note that since ⌊qn + 1⌋ = n, a
+variable is accepted if all judges accept it. Recall that the main idea of the original reduction
+for Lemma 7 is that since variable v is not decided by the manipulator and v is not included
+42
+
+-- 42 of 43 --
+
+Table 14: Instance of UPQR-Necessary-Manipulation with conclusion set C = M+
+3 ∪ M−
+2
+for the proof of Lemma 15.
+Judgment Set xi yi zi w v u1 u2 ¬w ∨ ¬v v ∨ u1 ∨ u2 xi1 ∨ xi2 ∨ xi3
+Ji (i 6 = n) 1 1 1 1 1 0 0 0 1 1
+Jn 1 0 0 1 0 1 1 1 1 1
+UPQR1/2 1 0 0 1 0 0 0 ⇒ 1 0 1
+Judgment Set ¬zi1 ∨ ¬zi2 xi ∨ yi ∨ w yi ∨ zi ∨ w ¬xi ∨ ¬yi ¬yi ∨ ¬zi
+Ji (i 6 = n) 0 1 1 0 0
+Jn 1 1 1 1 1
+UPQR1/2 1 1 1 1 1
+in the truthful outcome, the manipulator has to make w included such that the outcome will
+include conclusion w ∨ v. For the new instance with ⌊qn + 1⌋ = n it is impossible to create a
+variable that is included in the truthful outcome but not decided by the manipulator. However,
+we can achieve a similar effect in the new instance by adding two new variables u1, u2 that are
+not decided by the manipulator and a new conclusion v ∨ u1 ∨ u2 (as shown in Table 14). The
+desired set J of the manipulator consists of all positive conclusions. Now v ∨ u1 ∨ u2 is the
+only positive conclusion in J that is not included into the outcome, and to make v ∨ u1 ∨ u2
+included, the manipulator has to make v included, which then enforces the manipulator to make
+¬w included due to ¬w ∨ ¬v. Once ¬w is included into the outcome, the manipulator has to
+solve an instance of (M+
+3 ∪ M−
+2 )-SAT (which is NP-hard according to Lemma 14), and the
+analysis is analogous to the proof of Lemma 7.
+43
+
+-- 43 of 43 --
+
+

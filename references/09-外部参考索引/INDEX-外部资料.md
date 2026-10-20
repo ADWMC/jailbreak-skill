@@ -37,6 +37,21 @@
 | `Reference\dsh-context\` `dsh-market\` `dsh-our-free-model\` `dsh-plugin-hub\` | DSH 生态参考项目 | 各 100–500 文件 |
 | `Reference\_staging-*` | 解包中转目录 | 1,779 文件 / 405.3 MB，**确认后可删** |
 
+## 论文 PDF 原件
+
+| 路径 | 内容 | 规模 |
+|---|---|---|
+| `C:\Users\Administrator\Documents\xuexi\papers\` | arXiv 官方 PDF（2026-09-16 抓取，CoT 安全主题为主） | 250 文件 |
+| `xuexi\papers\_INDEX.md` | 全库标题索引（标题取自 PDF 首页，非搜索引擎转述） | — |
+| `xuexi\papers\_digest.md` | Gemini 深度检索导出的论文清单 digest（82 个 arXiv ID 去重归并） | — |
+| `xuexi\papers\_notes\` | **83 篇逐篇笔记**（已镜像进本仓库 `10-论文库/`） | — |
+
+## 外部归档
+
+| 来源 | 内容 | 本地镜像 |
+|---|---|---|
+| https://github.com/e2sy/jailbreak-archives | 7 模型族 16 条现役载荷（MIT，YAML front-matter 元数据） | `11-现役载荷档案/jailbreak-archives/` |
+
 ## 使用原则
 
 1. 结论与判据 → 查本仓库 `references/02-交接与判据/`

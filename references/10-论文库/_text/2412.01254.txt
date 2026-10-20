@@ -1,0 +1,1366 @@
+EmojiDiff: Advanced Facial Expression Control with High Identity Preservation
+in Portrait Generation
+Liangwei Jiang Ruida Li Zhifeng Zhang Shuo Fang† Chenguang Ma†
+Terminal Technology Department, Alipay, Ant Group
+{jiangliangwei.jlw, ruida.lrd, jason.zzf, fangshuo.f, chenguang.mcg}@antgroup.com
+Abstract
+This paper aims to bring fine-grained expression control
+while maintaining high-fidelity identity in portrait gener-
+ation. This is challenging due to the mutual interference
+between expression and identity. On one hand, fine ex-
+pression control signals inevitably introduce appearance-
+related semantics (e.g., facial contours, and ratio), which
+impact the identity of the generated portrait. On the other
+hand, even coarse-grained expression control can cause fa-
+cial changes that compromise identity, since they all act
+on the face. Here, we introduce EmojiDiff, the first end-
+to-end solution that enables simultaneous control of ex-
+tremely detailed expression (RGB-level) and high-fidelity
+identity in portrait generation. To address the above chal-
+lenges, EmojiDiff adopts a two-stage scheme involving de-
+coupled training and fine-tuning. For decoupled training,
+we innovate ID-irrelevant Data Iteration (IDI) to synthe-
+size high-quality cross-identity expression pairs by sepa-
+rating and optimizing the processes of maintaining expres-
+sion and altering identity. Training the model with this
+data, we effectively disentangle fine expression features in
+the expression template from other extraneous information
+(e.g., identity, skin). Subsequently, we present ID-enhanced
+Contrast Alignment (ICA) for further fine-tuning. ICA
+achieves rapid reconstruction and joint supervision of iden-
+tity and expression information, thus aligning identity rep-
+resentations of images with and without expression control.
+Experimental results demonstrate that our method signifi-
+cantly outperforms its counterparts, achieving precise ex-
+pression control with highly maintained identity, and gen-
+eralizing well to various diffusion models. Project page:
+https://emojidiff.github.io/.
+1. Introduction
+The development of diffusion model [20, 22, 33, 40, 42]
+has catalyzed significant advancements in identity (ID) cus-
+† Corresponding authors.
+* 仅限内部交流使用，如果需要公开，请联系文档作者	* 仅限内部交流使用，如果需要公开，请联系文档作者
+(a) Signal
+Conditioning
+(b) Portrait
+Animating
+(c) Ours
+Diffusion
+Diffusion
+Diffusion
+Animation
+Net
+Detection
+Net
+Control Signals
+Gen.
+Image
+Animation
+Image
+Gen. Image
+Exp. Image
+ID Image
+Exp. Image
+ID Image
+Gen. Image
+Figure 1. Expression customization by different methods. (a)
+The methods extract the control signals from expressions and in-
+ject them into diffusion models. (b) The methods generate stylized
+images and manipulate them through animation. (c) The proposed
+method simultaneously incorporates portrait images and reference
+expressions, generating stylistic images in an end-to-end manner.
+tomization [18, 47, 52]. This task involves generating im-
+ages that align with the specified identity of portrait images,
+with wide-ranging applications in AI portraits [24, 27, 30],
+image animation [23, 49], and virtual try-ons [6, 7, 44].
+Despite substantial advancement, existing methods reveal
+a notable limitation: monotonous facial expressions. This
+shortcoming constrains the expressiveness of the generated
+portraits, undermining their ability to convey subtle emo-
+tions and severely hindering practical applications.
+Researchers [10, 25, 35] seek to use reference images to
+manipulate portrait expressions. However, due to the strong
+coupling between expression and identity, it is challeng-
+ing to introduce precise expression control while preserving
+high identity fidelity. First, fine-grained expression control
+conflicts with identity preservation. Excessively detailed
+expression templates also bring appearance-related seman-
+tic and style information (such as facial contours and skin).
+1
+arXiv:2412.01254v3 [cs.CV] 8 Dec 2025
+
+-- 1 of 16 --
+
+If the model directly replicates the appearance and structure
+from the expression reference, it compromises the identity
+of generated images (referred to as ID leakage). Second, a
+potential conflict exists between facial expression and iden-
+tity control since both manipulate the face. Expression con-
+trol can modify the facial topology and reduce identity fi-
+delity, while identity control may make expressions more
+neutral. Third, although the highly flexible diffusion model
+and Style LoRA enrich the generated portraits, they also
+bring challenges in the generalizability of identity and ex-
+pression control across various stylized scenes.
+Pioneering works can hardly deal with these challenges
+altogether. As depicted in Fig. 1, signal-conditioning gener-
+ation methods [10, 25, 35] tend to extract and inject coarse
+expression signals (e.g., landmarks, poses) into the diffu-
+sion model to prevent ID leakage. However, these signals
+lose many facial details (e.g., frowning, pouting, and cheek
+twitching), and they are significantly limited by the accu-
+racy of third-party networks, such as pose [2] and action
+unit detectors [3]. Portrait animation [5, 23] can serve as
+a post-processing tool for expression customization, which
+transfers expressions from reference templates to portrait
+images. However, these methods heavily rely on generated
+stylized images, where the identity and data distribution of
+the portraits significantly deviate from the real world, neg-
+atively impacting identity fidelity, expression control, and
+image quality.
+In this paper, we introduce EmojiDiff, an innovative end-
+to-end solution that integrates fine-grained expression con-
+trol with high-fidelity portrait generation. Unlike previous
+signal conditioning-based methods [2, 34, 46], we still insist
+that the model should derive the motion directly from the
+original RGB expressions, ensuring comprehensive expres-
+sion representation and robust generalization [17, 50]. To
+achieve this, we propose a pluggable expression controller
+(E-Adapter) alongside its decoupled training strategy. As
+the core of the training, we innovate ID-irrelevant Data Iter-
+ation (IDI) to synthesize the identity-expression decoupling
+data (i.e., cross-identity expression pairs), which are rarely
+available in real-world data. IDI creatively divides cross-
+identity expression transfer into two steps: maintaining ex-
+pressions and modifying identities. By sequentially opti-
+mizing the two steps, we achieve a stable and high-quality
+data supply. Training the controller with these pairs facil-
+itates the transfer of detailed expressions to the generated
+output while implicitly filtering out identity information
+concealed in the expressions, thereby preventing ID leak-
+age. To address the potential conflict between expression
+and identity, we develop the ID-enhanced Contrast Align-
+ment (ICA) for fine-tuning. ICA efficiently computes the
+identity and expression loss by one-step reconstruction, pro-
+moting the identity under different expressions as consistent
+as possible. This process mitigates the negative impacts of
+expression control on identity and enhances identity fidelity.
+In summary, our contributions are fourfold:
+1) To the best of our knowledge, EmojiDiff is the first
+end-to-end framework that achieves both fine-grained ex-
+pression control and high ID fidelity portrait generation, ac-
+commodating various diffusion models and style LoRA.
+2) We innovate ID-irrelevant Data Iteration for decou-
+pled training, effectively disentangling fine expression fea-
+tures from RGB expression images and preventing ID leak-
+age effectively.
+3) We propose ID-enhanced Contrast Alignment, an effi-
+cient fine-tuning strategy designed to ensure generated por-
+traits maintain stable identity across diverse expressions.
+4) We introduce the cross-identity expression dataset
+CIEP100k, containing various expressions and data with the
+same expression but different identities, facilitating further
+research on expression-identity disentanglement.
+2. Related Work
+2.1. ID-Preserving Image Generation
+The task of identity-preserving generation [15, 22, 42] seeks
+to empower diffusion models to synthesize images of given
+identities. Recent studies [4, 18, 24, 27] have explored
+tuning-free methods, which utilize face embeddings to con-
+ditioning generation without altering raw models. For in-
+stance, FaceChain [30] introduces an independent adapter
+before the cross-attention layer, preventing interference be-
+tween face and text conditions. IP-Adapter [52] introduces
+a novel decoupled cross-attention mechanism for identity
+injection. InstantID [47] proposes an IdentityNet to incor-
+porate facial key points with image conditions. Although
+these methods can quickly generate customized portraits,
+they severely lack fine control over the expressions.
+2.2. Expression Customization
+Most methods for expression animation integrate control
+signals extracted from expression images into diffusion
+models. ControlNet [54] is a pioneering effort that en-
+ables the incorporation of human poses, depth maps, and
+other image conditions. Following this framework, Medi-
+aPipe [8] specializes in extracting facial landmarks from
+reference expressions to preserve more expression details.
+Arc2Face [10] extracts 3D normal maps [14] to personalize
+expressions based on given portraits. Additionally, some
+studies pursue more flexible control. Collaborative Diffu-
+sion [25] allows localized editing of facial parts using se-
+mantic maps. [35] combined valence & arousal, and action
+units and GANmut [9] to characterize emotion information.
+DiffSFSR [29] utilizes an emotional dictionary to transfer
+facial expressions to the generated image. FineFace [46]
+employs action units to allow localized control by describ-
+ing the intensity of facial muscle movements.
+2
+
+-- 2 of 16 --
+
+流使用，如果需要公开，请联系文档作者	交流使用，如果需要公开，请联系文档作者
+Stage I: Refined E-Adapter Decoupled Training
+Noisy Image
+❄
+UNet
+Target Image !!"
+Refined
+E-Adapter
+"
+" Trainable
+Modules
+❄ Frozen
+Modules
+ANI
+Denoising
+Stage II: ID-enhanced Contrastive Alignment
+Identity Loss
+Expression
+Loss
+Refined
+E-Adapter
+IP Adapter
+❄
+❄
+UNet
+UNet
+Refined
+E-Adapter ❄	"
+UNet
+❄
+❄
+Reference Expression !!
+"
+(1) Base E-Adapter Training
+Noisy Image
+UNet
+Target Image "!"
+Source Portrait #!
+¬"
+Base
+E-Adapter
+"
+❄
+Base
+E-Adapter
+Face
+Fusion
+Restruct Image 	Faceswap Image
+!¬!
+"
+Random
+ID
+!
+(2) ID-irrelevant Data Iteration
+❄
+ID
+Embedding
+Expression Embedding
+Expression
+Embedding
+Figure 2. Overview of the proposed method. To integrate RGB-driven expression control into diffusion models, we aim to synthesize
+cross-identity data {S¬e
+i , Re
+¬i, Te
+i } for the model’s decoupled training, and mitigate the negative impact on the original identity through
+contrastive alignment fine-tuning. Before decoupled training, the fundamental expression controller (i.e., Base E-Adapter) is trained with
+same-identity data {S¬e
+i , Re
+i , Te
+i } to obtain expression transfer capabilities (the structure of the E-Adapter is illustrated in Fig. 3). Next,
+the trained Base E-Adapter and FaceFusion [12] are utilized to alter the identity of portraits, thereby creating cross-identity expression
+pairs {Re
+¬i, Te
+i }. Subsequently, the Refined E-Adapter uses newly synthesized data for disentangled training, facilitating dual control of
+identity and expression without ID leakage. Finally, the Refined E-Adapter is fine-tuned by expression and identity loss based on ANI.
+开，请联系文档作者	需要公开，请联系文档作者
+Denoise Image
+Text
+Embedding
+TEXT-
+ATTN
+Eq. (5)
+Exp. Image
+Expression Embedding
+Exp.
+Encoder
+EXP-
+ATTN(Q, K!"#, $!"#)
+Detect & Mask
+Exp.
+Projection
+!	❄
+❄
+ID Image
+ID Embedding
+ID Encoder
+ID-
+ATTN(Q, K$%, $$%)
+ID
+Projection
+! 	❄
+Figure 3. The proposed E-Adapter. The embeddings of identity
+and expression images are obtained through respective branches.
+Subsequently, the ID embedding, text embedding, and expression
+embeddings are integrated into the network, as depicted in Eq. (5).
+In practice, portrait animation [5, 11, 23, 32, 48, 49, 53]
+can adjust portrait expressions without altering the image
+background. Notable examples, such as FaceAdapter [19],
+X-Portrait [50], and LivePortrait [17], which can be used
+for post-processing of generated portrait images. However,
+these methods cannot simultaneously customize real-world
+identities and expressions, adversely affecting identity fi-
+delity and image quality.
+3. Methodology
+Given a source portrait S, a textual prompt P, and a refer-
+ence R, our method aims to generate target images T. To
+enable the model to accept RGB expression inputs, we aim
+to construct ternary data sets T = {S¬e
+i , Re
+¬i, Te
+i } for de-
+coupled training. Here, i and e denote the specific identity
+and the expression, and ¬i and ¬e can be any specific items
+different from i and e. During training, the model takes
+S¬e
+i , Re
+¬i as inputs and Te
+i as the learning objective, rep-
+resented as Te
+i = F(S¬e
+i , Re
+¬i), where F is the trained ex-
+pression controller. This setup allows the model to maintain
+the identity i of S while accurately replicating the expres-
+sion e from R. However, we are unable to collect qualified
+cross-identity expression pairs {Re
+¬i, Te
+i } from real-world
+scenarios. Besides, the integration of expression control
+hinders the original ID control.
+To overcome these issues, our method is divided into
+two stages: decoupling training and fine-tuning. Before de-
+coupled training, we construct the required data delicately
+in two steps. Firstly, we design the expression controller
+and train a base version (Base E-Adapter) using the same-
+identity ternary data sets as detailed in Sec. 3.2.1. The im-
+3
+
+-- 3 of 16 --
+
+ages generated by Base E-Adapter exhibit a very high ex-
+pression consistency with given expression references, al-
+though they also have a similar appearance to the references
+(ID leakage). Secondly, we develop the ID-irrelevant Data
+Iteration (IDI) to alter the identity of the images generated
+by Base E-Adapter, thus promoting the given reference ex-
+pressions and the altered images to form data pairs with
+the same expression but different identity (as outlined in
+Sec. 3.2.2). Using the newly created cross-identity dataset,
+we perform decoupled training on the proposed expression
+controller to develop the Refined E-Adapter. Refined E-
+Adapter accurately controls expression details while pre-
+venting ID leakage when generating portrait images (see
+Sec. 3.2.3). Finally, we introduce ID-enhanced Con-
+trast Alignment (ICA) to further fine-tune the Refined E-
+Adapter, reducing the negative impact of expression ma-
+nipulation on ID control (Sec. 3.3). Fig. 2 provides an
+overview of our pipeline.
+3.1. Preliminary
+Latent Diffusion Model. The latent diffusion models in-
+volve a diffusion process and a reverse process in the la-
+tent space. During the diffusion process, an image x is first
+projected to a smaller latent representation by a VAE [26]
+encoder. Then, random noise is gradually added to the rep-
+resentation z0. The noisy representation zt is derived as:
+zt = √¯αtz0 + √1 − ¯αtϵ, (1)
+where t, ¯αt denotes timestep and predefined function of t,
+respectively. Conversely, during the denoising process, a
+U-Net [41] is trained to predict the added noise ϵ from the
+noisy latent representation zt. The training objective aims
+to minimize the loss function as follows:
+Lsd = Ez0,ϵ∼N (μ,σ2)
+h
+∥ϵ − ϵθ (zt, t, C)∥2
+2
+i
+, (2)
+where C represents the condition.
+Image Prompt Adapter. IP-Adapter [52] introduces a
+novel approach to incorporating an image prompt, working
+together with a text prompt to control image generation. A
+decoupled cross-attention is used to separate cross-attention
+layers for text features and image features, formulated as:
+Z = Attn(Q, Kt, Vt) + λ · Attn(Q, Ki, Vi), (3)
+where λ is a weight factor, and {Q, K, V }source refers to
+the source of the feature tensor.
+3.2. Decoupled Training
+Cross-identity expression pairs {Re
+¬i, Te
+i } are essential for
+training expression controllers. However, we cannot ob-
+tain adequate samples from the real world due to the sub-
+tle differences in individual expressions. Additionally, ex-
+isting methods [12, 17, 50, 51] also struggle to synthe-
+size qualified data pairs, particularly with extreme expres-
+sions. Therefore, we seek to develop a novel strategy for
+data construction. Reviewing previous works [50, 51], we
+notice that they avoid using same-identity expression pairs
+{Re
+i , Te
+i } for controller training to prevent identity leakage
+during inference. However, our insights suggest that the
+controller trained with same-identity pairs exhibits su-
+perior expression transfer capabilities, as shown in Fig.
+4. Based upon this, we divide the synthesis of cross-identity
+expression pairs into two sequential steps: maintaining ex-
+pression and modifying identity. Initially, we utilize the
+same-identity data to train an expression controller that ac-
+curately transfers reference expressions into generated im-
+ages without considering identity leakage. Subsequently,
+we utilize the portrait generation process to further alter the
+identity of the controller-generated image. With the power-
+ful abilities of the diffusion model, the modified image and
+the given expression template form a high-quality cross-
+identity data pair. After that, the data can be used to train
+the model to decouple expressions from identities.
+3.2.1. Base E-Adapter Training
+In this subsection, we first propose the expression controller
+(E-Adapter) suitable for portrait generation and then train
+its basic version for subsequent data synthesis. Given the
+strong coupling between identity and expression, we em-
+ploy a decoupled parallel attention to integrate them and
+design the E-Adapter, building upon IP-Adapter [52]. As il-
+lustrated in Fig. 3, apart from text input, E-Adapter includes
+two control branches: the identity and expression branch.
+This simple yet effective design achieves three objectives.
+First, the parallel control of expression and identity reduces
+operation errors compared to the serial way. Second, the
+model can efficiently retrieve features from identity or ex-
+pression, and learn how to incorporate the expression into
+the given identity. Third, the training module fully decou-
+ples expression and identity control, enabling independent
+or simultaneous manipulation of both (more empirical anal-
+ysis can be found in Sec. 4.3 and Sec. 4.4). Specifically,
+in the identity branch, we inherited IP-Adapter to encode
+identity embeddings and inject them into the U-Net along
+with text embeddings, formulated as:
+Zid =Attn(Qnoise, Ktext, Vtext)
++ λid · Attn(Qnoise, Kid, Vid), (4)
+where λid refers to the strength of the ID control.
+In the expression branch, we first preprocess the original
+expression reference to obtain a local image, which removes
+irrelevant elements such as the background, face contour,
+etc. We then extract the expression embedding and inject it
+into the same cross-attention module with the identity em-
+bedding, denoted as:
+Zexp = Zid + λexp · Attn(Qnoise, Kexp, Vexp), (5)
+where λexp refers to the strength of the expression control.
+4
+
+-- 4 of 16 --
+
+Based on the designed controller, we utilize the same-
+identity data {S¬e
+i , Re
+i , Te
+i } to train the Base E-Adapter,
+adopting denoising loss Lsd throughout the process.
+3.2.2. ID-irrelevant Data Iteration
+The image identity constructed using the Base E-Adapter
+is greatly influenced by the expression reference’s appear-
+ance. The core idea of IDI is to minimize this disruption. To
+achieve this, we innovatively reuse Base E-Adapter to mod-
+ify the identity of the generated image while keeping the
+expression unchanged. Specifically, we utilize expression
+images Re
+i inherited from training as the expression input
+but random identity ¬i as the input of the identity branch,
+combining with the diffusion model to synthesize the re-
+struct image. Subsequently, we perform FaceFusion [12]
+on the restruct image to create the faceswap image, further
+increasing the identity disparity between the generated im-
+age and the expression reference. Meanwhile, we employ
+facial blendshapes [16] and landmark [31] differences to
+exclude unqualified data (detailed in supplementary mate-
+rial Sec. A.1). Through these processes, we acquire cross-
+identity expression pairs {Re
+¬i, Te
+i } that maintain highly
+consistent expressions while exhibiting completely distinct
+identity, and the example is illustrated in Fig. 4.
+Why can IDI keep the expression unchanged while
+changing the image’s identity? On one hand, as our in-
+sights at the beginning of Sec. 3.2, E-Adapter trained with
+the same identity data exhibits superior expression transfer
+capability, since the model tends to replicate the appearance
+and texture of the reference image. Additionally, the ex-
+pression branch of the Base E-Adapter has been overfit to
+all expression images by training. Consequently, IDI can
+effortlessly transmit the expression into the restruct images.
+On the other hand, the ID branch possesses certain identity
+control capabilities. By reusing the ID branch, we inject
+high-level semantic features of randomized portraits (e.g.,
+gender, hairstyle, and face shape) into the restruct images.
+Notably, the identity of the generated image does not need
+to match the input ID condition precisely; it simply needs
+to differ from that of the expression condition. Moreover,
+the FaceFusion operation further alters the low-level facial
+textures, ensuring that the identity of the faceswap image is
+entirely distinct from the input.
+3.2.3. Refined E-Adapter Decoupled Training
+Utilizing the newly developed cross-identity data, we train
+a new expression controller termed the Refined E-Adapter.
+The controller’s expression and ID branches accept input
+from different portraits respectively. Consequently, the
+identity and expression control branches are explicitly de-
+coupled in their functions, each responsible solely for con-
+veying identity and expression, respectively.
+* 仅限内部交流使用，如果需要公开，请联系文档作者	* 仅限内部交流使用，如果需要公开，请联系文档作者
+Exp. Image 	Faceswap Image	Restruct Image
+Base
+E-Adapter 	FaceFusion
+Figure 4. Examples of IDI, detailed in Sec. 3.2.2
+.
+3.3. ID-enhanced Contrast Alignment
+Both identity control and expression control manipulate the
+face of the generated image, causing potential interference
+between the two. Inevitably, incorporating expression con-
+trol affects the original identity control in portrait genera-
+tion tasks. Our findings indicate that emphasizing expres-
+sion control alters muscle details and facial attributes
+(e.g., the presence of glasses, hair, and facial textures), due
+to the generative diversity inherent in the diffusion model.
+To this end, we propose ICA to fine-tune the E-Adapter.
+Based on the same inputs, ICA incorporates the frozen Re-
+fined E-Adapter and the original identity controller (IP-
+Adapter [52]) as supervision to calculate expression loss
+Lexp and identity loss Lid. Lid encourages the IP-Adapter
+and the E-Adapter which integrates expression control to
+generate similar portraits, thereby minimizing the impact of
+expression control on identity fidelity. Additionally, Lexp
+ensures that fine-tuning does not compromise the existing
+expression control capability of the Refined E-Adapter.
+Both losses are dependent on the denoised clean image
+ˆx0. However, standard diffusion inference incurs signifi-
+cant gradient backpropagation time costs and GPU mem-
+ory usage, and it will increase linearly with the number of
+timesteps. To overcome this, we propose Adaptive Noise
+Inversion (ANI), an efficient one-step decoding strategy, de-
+noted by the formula:
+ˆx0 = Decode (z0 + f (t) · (ϵ − ϵθ (zt, t, C))) ,
+f (t) =
+(q 1− ¯αt
+¯αt if t ≤ Rtmax,
+f (Rtmax) if t > Rtmax,
+(6)
+where ”Decode” is the VAE decode function, and Rtmax is
+a constant. Through ANI, we can directly reconstruct im-
+ages ˆx0 at any given timestep t, even with large timesteps
+characterized by high noise. We present theoretical analy-
+sis of this mechanism in supplementary material Sec. B.
+Building on ANI, we employ the IP-Adapter to generate
+portrait image ˆxid
+0 , and the currently fine-tuning E-Adapter
+to generate the image with expressions ˆxcur
+0 . Lid minimizes
+the identity difference between two images, defined as:
+Lid = 1 − cos(ϕ(ˆxid
+0 ), ϕ(ˆxcur
+0 )), (7)
+5
+
+-- 5 of 16 --
+
+where cos is cosine similarity, and ϕ(·) is the pre-trained
+face embedding extractor [10]. Here, we use ˆxid
+0 rather
+than another clean portrait image as ground truth of Lid,
+since we find that the noise discrepancy between the real im-
+age and one-step decoded image ϕ(ˆxcur
+0 ) destabilizes fine-
+tuning (ablated in Sec. 4.3). Similarly, we utilize the frozen
+Refined E-Adapter to generate image ˆxexp
+0 . The expres-
+sion loss Lexp reduces the difference in facial landmarks
+between ˆxexp
+0 and ˆxcur
+0 , is defined as follows:
+Lexp = Wing(φ(ˆxexp
+0 ), φ(ˆxcur
+0 )),
+where ”Wing” denotes the wing loss [13], and φ(·) is the
+pre-trained facial landmarks detector [45].
+The loss during fine-tuning is formulated as below:
+Lf t = Lsd + wid · Lid + wexp · Lexp, (8)
+where wid and wexp are the balanced hyper-parameters.
+4. Experiments
+4.1. Experiment Setting
+Dataset. We first collect 10k indoor and outdoor images
+of people of different countries and genders, each with 3 to
+12 expressions. Then, we use LIQE [56] to filter out low-
+quality images and crop out 512×512 face square images.
+Subsequently, this dataset is employed to train the Base
+E-Adapter based on SD1.5 [40]. Afterward, we construct
+about 120k cross-identity triplets through IDI. Through ex-
+pression consistency filtering, we retain about 100k triplets
+named CIEP100k, for training and fine-tuning the Refined
+E-Adapter. For evaluation, we gather images of 50 celebri-
+ties from diverse fields, with 30 different expressions.
+Implementation Details. We train the Base E-Adapter
+on SD1.5 to construct data and the Refined E-Adapter on
+both SD1.5 [40] and SDXL [37]. In the Base E-Adapter
+training stage, our model is trained from scratch for 0.5
+days. In SD1.5, we train the Refined E-Adapter for 1 day
+and fine-tune it for 4 hours. In SDXL, we train the Refined
+E-Adapter for 2 days and fine-tune it for 0.5 days. More
+details are provided in supplementary material Sec. A.1.
+Baselines. We compare our model with prior methods,
+including OpenPose [54], MediaPipe [31], Arc2Face [34],
+and FineFace [46], using the same configurations (base
+model, text prompt, inference steps, etc.). Although portrait
+animation methods are fundamentally different from our ap-
+proach, we assess these methods, including FaceAdapter
+[19], X-Portrait [50], and LivePortrait [17], to thoroughly
+evaluate our method. For the diffusion-based methods, we
+integrate IP-Adapter [52] plugin for identity preservation.
+For animation-based methods, an expressionless image of
+the portrait is generated, and then animation is applied. We
+select LivePortrait [17] to construct data triples T and train
+the E-Adapter, which serves as our strong baseline.
+Benchmarks. For a fair comparison, all experiments are
+conducted using the SD1.5 framework across three styles:
+realistic, anime, and ink painting, while the style is directly
+dependent on the base model and style LoRA. Given the
+identity image, expression reference, and the generated im-
+age, we evaluate all methods using ID fidelity (ID), image
+quality (IQ), expression similarity (Exp.), and facial land-
+mark movements similarity (LMS). Different from ID en-
+coder in E-Adapter, the Antelopev2 [1] model is utilized
+to extract identity embeddings from both the portrait and
+generated image, with the cosine similarity between them
+used to evaluate identity fidelity. For the assessment of im-
+age quality, the pre-trained network LIQE [56] is employed.
+Expression similarity is measured by computing the L1 dif-
+ference between facial blendshapes extracted from the ex-
+pression and the generated image using MediaPipe [31].
+To evaluate the keypoint similarity, crucial facial landmarks
+(such as eyes, pupils, and mouth) are detected [31] to calcu-
+late movement amplitude differences. More metric details
+are provided in supplementary Sec. A.3.
+4.2. Comparison
+Quantitative results. As summarized in Tab. 1, our method
+consistently outperforms all competitors by a good mar-
+gin. Compared to the same type of diffusion conditioning
+methods, our approach shows significant improvements in
+ID similarity, image quality, and expression control ability.
+Even evaluating against portrait animation methods such
+as FaceAdapter [19] and LivePortrait [17], the proposed
+method offers superior ID fidelity and more accurate ex-
+pression control. Notably, X-Portrait, which directly uses
+RGB expression images, also demonstrates strong expres-
+sion control. However, X-Portrait shows a noticeable drop
+in image quality when applied to non-realistic styles, with
+IQ scores of only 4.142 and 3.668 in the anime and painting
+styles, respectively. On the contrary, our method produces
+exquisite stylized images due to the seamless integration
+with the diffusion model. We provide comparisons with
+more methods in the supplementary material Sec. C.1.
+Qualitative results. Fig. 5 illustrates the results of var-
+ious methods across three styles. These examples demon-
+strate that our model effectively conveys reference expres-
+sions, including lip movements and eye gaze while preserv-
+ing the portrait identity. The fourth and sixth examples in
+the figure highlight the ability of our method to capture
+subtle movements, including lower lip pursing and pouting.
+Similarly, as illustrated in Fig. 6, the complete method re-
+tains more identity details(e.g., glasses and hair color), com-
+pared to the method without ICA.
+4.3. Ablation Study
+We evaluate the proposed IDI and ICA on SD1.5 and
+SDXL. As presented in Tab. 2, in comparison to our base-
+6
+
+-- 6 of 16 --
+
+用，如果需要公开，请联系文档作者	使用，如果需要公开，请联系文档作者
+Reference 	OpenPose 	MediaPipe 	Arc2Face 	FineFace 	FaceAdapter 	X-Portrait 	LivePortrait 	Ours
+ID
+Figure 5. Qualitative Comparisons. Compared to other methods, our method demonstrates the most accurate and robust transfer of subtle
+facial expressions (e.g., pouting, single-eye blinks, and pupil movements) while preserving the identity of the source portrait, even when
+applied in artistic styles (such as anime and ink painting).
+Realistic 	Anime 	Painting
+Method ID ↑ IQ ↑ Exp. ↓ LMS ↓ ID ↑ IQ ↑ Exp. ↓ LMS ↓ ID ↑ IQ ↑ Exp. ↓ LMS ↓
+Portrait Animation
+FaceAdapter [19] 0.309 4.991 0.059 0.281 0.095 4.853 0.109 0.467 0.146 4.747 0.072 0.348
+X-Portrait [50] 0.505 4.902 0.058 0.266 0.188 4.142 0.066 0.335 0.332 3.668 0.062 0.291
+LivePortrait [17] 0.609 4.772 0.058 0.319 0.262 4.843 0.116 0.551 0.419 4.749 0.087 0.426
+Diffusion Conditioning
+OpenPose [54] 0.628 4.981 0.097 0.447 0.162 4.741 0.142 0.698 0.326 4.484 0.121 0.507
+MediaPipe [31] 0.623 4.985 0.104 0.472 0.087 4.713 0.149 0.671 0.287 4.476 0.130 0.524
+Arc2Face [10] 0.618 4.946 0.116 0.537 0.097 4.630 0.163 0.713 0.146 4.349 0.141 0.609
+FineFace [46] 0.532 4.870 0.120 0.576 0.090 4.423 0.156 0.700 0.297 3.813 0.142 0.624
+EmojiDiff (Ours) 0.666 4.995 0.054 0.215 0.304 4.910 0.095 0.359 0.469 4.756 0.078 0.256
+Table 1. Quantitative comparisons of our method with SOTA counterparts in various base models. Bold and underlined values denote the
+best and second-best results respectively.
+line, IDI substantially improves expression control, reduc-
+ing the Exp. score of the two base models by 23.0% and
+22.6%, respectively. Additionally, ICA further enhances ID
+fidelity without compromising expression control, increas-
+ing the corresponding ID score by 3% and 6%, respectively.
+ID-irrelevant Data Iteration. As shown in Tab. 3, we
+assess the performance of E-Adapter at different data it-
+eration stages. Initially, the Base E-Adapter achieves sig-
+nificant reductions in Exp. and LMS scores compared to
+the baseline, showing the powerful expression transfer abil-
+ity of Base E-Adapter. After using the constructed restruct
+images, the newly trained Refined E-Adapter substantially
+reduces ID leakage and improves the ID score by 0.136.
+Finally, through further face-swapping on the data, the Re-
+fined E-Adapter significantly outperforms the baseline.
+ID-enhanced Contrast Alignment. As shown in Tab.
+7
+
+-- 7 of 16 --
+
+IDI ICA 	SD1.5 [40] 	SDXL [37]
+ID ↑ Exp. ↓ LMS ↓ ID ↑ Exp. ↓ LMS ↓
+0.265 0.113 0.447 0.432 0.093 0.454	√ 0.295 0.087 0.355 0.465 0.072 0.338	√ √ 0.304 0.095 0.359 0.509 0.071 0.341
+Table 2. Quantitative ablation about IDI and ICA.
+Stage / Data Source 	ID ↑ Exp. ↓ LMS ↓
+Baseline 	0.265 0.113 0.447
+Base E-Aadapter 	0.127 0.065 0.283
+using Restruct Image 	0.263 0.080 0.362
+Ours (using Faceswap Image) 0.295 0.087 0.355
+Table 3. Ablation study of IDI.
+4, when utilizing clean real images as supervision, the ANI
+effectively improves ID fidelity and expression controllabil-
+ity. Additionally, using model predictions ˆxid
+0 rather than
+real images ensures consistency of noise levels between
+data pairs, further facilitating model fine-tuning.
+Expression Controller Architecture. We experiment
+with various expression controller structures (The detailed
+structure can be found in the supplementary material Sec.
+A.2.). As indicated in Tab. 5, our approach combines
+identity and expression embeddings within a unified cross-
+attention block, effectively fostering their interaction and
+delivering optimal performance.
+4.4. Generalizability of Proposed Approach
+Decoupled identity and expression. As shown in Fig. 6,
+the third and fourth columns demonstrate that the identity
+and expression branch can take effect independently, en-
+hancing the flexibility of facial control.
+E-Adapter as the expression extractor. The expres-
+sion embedding from our method can be generalized to
+expression-related tasks. Specifically, we evaluate the ex-
+pression module of the E-Adapter on the expression recog-
+nition task following the classic method DLN [55]. Our
+method exhibits powerful expression recognition capabili-
+ties (88.7 vs DLN’s 86.4 in the RAF-DB benchmark [43]),
+demonstrating its efficacy as a robust expression extractor.
+Generalization to other architecture. In the main ex-
+periment, considering generalizability of method and fair
+comparison with the SD1.5-based animation methods (e.g.,
+XPortrait [50], FaceAdapter [19]), we simply injected con-
+dition information via the attention mechanism, which is
+similar to IP-Adapter [52]. As shown in Tab. 6, by di-
+rectly utilizing the CIEP100k dataset and ICA, our method
+is seamlessly adopted to InstantID [47] and achieves sub-
+stantially more detailed expression control.
+Supervision 	ID ↑ Exp. ↓ LMS ↓
+Clean Image 	0.477 0.088 0.376
+Clean Image w/ ANI 0.485 0.078 0.361
+Ours 	0.509 0.071 0.341
+Table 4. Ablation study of ICA supervision.
+Architecture 	ID ↑ Exp. ↓ LMS ↓
+(a) SelfAttn 	0.266 0.109 0.497
+(b) ControlNet 	0.294 0.121 0.552
+(c) Sequential CrossAttn 0.276 0.104 0.435
+Ours 	0.295 0.087 0.355
+Table 5. Ablation study of expression controller architecture.
+Method 	ID ↑ Exp. ↓ LMS ↓
+PuLID [18] 0.536 0.117 0.502
+PhotoMaker [27] 0.467 0.136 0.618
+InstantID [47] 0.543 0.105 0.476
+Ours 	0.509 0.071 0.341
+Ours w/ InstantID 0.540 0.077 0.356
+Table 6. Comparisons with portrait generation methods.
+* 仅限内部交流使用，如果需要公开，请联系文档作者	* 仅限内部交流使用，如果需要公开，请联系文档作者
+主图
+Expression 	wo/ ID
+branch 	wo/ ICA	ID 	Full
+(Ours)
+wo/ Exp.
+branch
+Figure 6. Images generated without using the ID branch, expres-
+sion branch, and ICA.
+5. Conclusion
+We introduce EmojiDiff, an innovative solution that uti-
+lizes both portrait images and RGB expression images to
+generate expressive portraits. To achieve this, we design a
+two-stage scheme including decoupling training and fine-
+tuning. In the training stage, we propose ID-irrelevant Data
+Iteration to synthesize identity-expression decoupling data
+pairs CIEP100k, enabling the model to accept the RGB
+expression template without interference from expression-
+irrelevant features. In the fine-tuning stage, we propose ID-
+enhanced Contrast Alignment to further harmonize identity
+and expression control. This approach ensures the training
+process through Adaptive Noise Inversion and mitigates the
+impact of expression modulation on identity fidelity. Ex-
+perimental results demonstrate that our approach achieves
+accurate and nuanced facial expression control while main-
+taining precise identity resemblance.
+8
+
+-- 8 of 16 --
+
+References
+[1] Antelopev2. https://huggingface.co/immich-
+app/antelopev2, 2024. 6
+[2] Z. Cao, G. Hidalgo Martinez, T. Simon, S. Wei, and Y. A.
+Sheikh. Openpose: Realtime multi-person 2d pose estima-
+tion using part affinity fields. IEEE Transactions on Pattern
+Analysis and Machine Intelligence, 2019. 2
+[3] Di Chang, Yufeng Yin, Zongjian Li, Minh Tran, and Moham-
+mad Soleymani. Libreface: An open-source toolkit for deep
+facial expression analysis. In Proceedings of the IEEE Win-
+ter Conference on Applications of Computer Vision, 2024.
+2
+[4] Li Chen, Mengyi Zhao, Yiheng Liu, Mingxu Ding,
+Yangyang Song, Shizun Wang, Xu Wang, Hao Yang, Jing
+Liu, Kang Du, et al. Photoverse: Tuning-free image
+customization with text-to-image diffusion models. arXiv
+preprint arXiv:2309.05793, 2023. 2
+[5] Zhiyuan Chen, Jiajiong Cao, Zhiquan Chen, Yuming Li,
+and Chenguang Ma. Echomimic: Lifelike audio-driven por-
+trait animations through editable landmark conditions. arXiv
+preprint arXiv:2407.08136, 2024. 2, 3
+[6] Yisol Choi, Sangkyung Kwak, Kyungmin Lee, Hyung-
+won Choi, and Jinwoo Shin. Improving diffusion mod-
+els for authentic virtual try-on in the wild. arXiv preprint
+arXiv:2403.05139, 2024. 1
+[7] Zheng Chong, Xiao Dong, Haoxiang Li, Shiyue Zhang,
+Wenqing Zhang, Xujie Zhang, Hanqing Zhao, and Xiaodan
+Liang. Catvton: Concatenation is all you need for virtual try-
+on with diffusion models. arXiv preprint arXiv:2407.15886,
+2024. 1
+[8] CrucibleAI. Controlnetmediapipeface, 2023. 2
+[9] Stefano d’Apolito, Danda Pani Paudel, Zhiwu Huang, An-
+dres Romero, and Luc Van Gool. Ganmut: Learning inter-
+pretable conditional space for gamut of emotions. In Pro-
+ceedings of the IEEE Conference on Computer Vision and
+Pattern Recognition, pages 568–577, 2021. 2
+[10] Jiankang Deng, Jia Guo, Niannan Xue, and Stefanos
+Zafeiriou. Arcface: Additive angular margin loss for deep
+face recognition. In Proceedings of the IEEE Conference
+on Computer Vision and Pattern Recognition, pages 4690–
+4699, 2019. 1, 2, 6, 7
+[11] Nikita Drobyshev, Antoni Bigata Casademunt, Konstanti-
+nos Vougioukas, Zoe Landgraf, Stavros Petridis, and Maja
+Pantic. Emoportraits: Emotion-enhanced multimodal one-
+shot head avatars. In Proceedings of the IEEE Conference
+on Computer Vision and Pattern Recognition, pages 8498–
+8507, 2024. 3
+[12] FaceFusion. https://modelscope.cn/models/
+iic/cv_unet- image- face- fusion_damo, 2023.
+3, 4, 5
+[13] Zhen-Hua Feng, Josef Kittler, Muhammad Awais, Patrik Hu-
+ber, and Xiao-Jun Wu. Wing loss for robust facial landmark
+localisation with convolutional neural networks. In Proceed-
+ings of the IEEE Conference on Computer Vision and Pattern
+Recognition, pages 2235–2245, 2018. 6
+[14] Panagiotis P. Filntisis, George Retsinas, Foivos Paraperas-
+Papantoniou, Athanasios Katsamanis, Anastasios Roussos,
+and Petros Maragos. Visual speech-aware perceptual 3d fa-
+cial expression reconstruction from videos. arXiv preprint
+arXiv:2207.11094, 2022. 2
+[15] Rinon Gal, Yuval Alaluf, Yuval Atzmon, Or Patash-
+nik, Amit H Bermano, Gal Chechik, and Daniel Cohen-
+Or. An image is worth one word: Personalizing text-to-
+image generation using textual inversion. arXiv preprint
+arXiv:2208.01618, 2022. 2
+[16] Google. Blendshapev2. https://ai.google.dev/
+edge / mediapipe / solutions / vision / face _
+landmarker, 2022. 5, 1
+[17] Jianzhu Guo, Dingyun Zhang, Xiaoqiang Liu, Zhizhou
+Zhong, Yuan Zhang, Pengfei Wan, and Di Zhang. Livepor-
+trait: Efficient portrait animation with stitching and retarget-
+ing control. arXiv preprint arXiv:2407.03168, 2024. 2, 3, 4,
+6, 7
+[18] Zinan Guo, Yanze Wu, Zhuowei Chen, Lang Chen, and Qian
+He. Pulid: Pure and lightning id customization via con-
+trastive alignment. arXiv preprint arXiv:2404.16022, 2024.
+1, 2, 8
+[19] Yue Han, Junwei Zhu, Keke He, Xu Chen, Yanhao Ge,
+Wei Li, Xiangtai Li, Jiangning Zhang, Chengjie Wang, and
+Yong Liu. Face adapter for pre-trained diffusion models
+with fine-grained id and attribute control. arXiv preprint
+arXiv:2405.12970, 2024. 3, 6, 7, 8
+[20] Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising diffu-
+sion probabilistic models. Advances in Neural Information
+Processing Systems, 33:6840–6851, 2020. 1
+[21] Fa-Ting Hong, Longhao Zhang, Li Shen, and Dan Xu.
+Depth-aware generative adversarial network for talking head
+video generation. In Proceedings of IEEE Conference on
+Computer Vision and Pattern Recognition, 2022. 1
+[22] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-
+Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen.
+Lora: Low-rank adaptation of large language models. arXiv
+preprint arXiv:2106.09685, 2021. 1, 2
+[23] Li Hu. Animate anyone: Consistent and controllable image-
+to-video synthesis for character animation. In Proceedings
+of the IEEE Conference on Computer Vision and Pattern
+Recognition, pages 8153–8163, 2024. 1, 2, 3
+[24] Jiehui Huang, Xiao Dong, Wenhui Song, Hanhui Li, Jun
+Zhou, Yuhao Cheng, Shutao Liao, Long Chen, Yiqiang Yan,
+Shengcai Liao, et al. Consistentid: Portrait generation with
+multimodal fine-grained identity preserving. arXiv preprint
+arXiv:2404.16771, 2024. 1, 2
+[25] Ziqi Huang, Kelvin CK Chan, Yuming Jiang, and Ziwei Liu.
+Collaborative diffusion for multi-modal face generation and
+editing. In Proceedings of the IEEE Conference on Computer
+Vision and Pattern Recognition, pages 6080–6090, 2023. 1,
+2
+[26] Diederik P Kingma. Auto-encoding variational bayes. arXiv
+preprint arXiv:1312.6114, 2013. 4
+[27] Zhen Li, Mingdeng Cao, Xintao Wang, Zhongang Qi, Ming-
+Ming Cheng, and Ying Shan. Photomaker: Customizing re-
+alistic human photos via stacked id embedding. In Proceed-
+ings of the IEEE Conference on Computer Vision and Pattern
+Recognition, pages 8640–8650, 2024. 1, 2, 8
+9
+
+-- 9 of 16 --
+
+[28] Hongyu Liu, Xuan Wang, Ziyu Wan, Yue Ma, Jingye Chen,
+Yanbo Fan, Yujun Shen, Yibing Song, and Qifeng Chen.
+Avatarartist: Open-domain 4d avatarization. arXiv preprint
+arXiv:2503.19906, 2025. 1
+[29] Renshuai Liu, Bowen Ma, Wei Zhang, Zhipeng Hu, Changjie
+Fan, Tangjie Lv, Yu Ding, and Xuan Cheng. Towards a si-
+multaneous and granular identity-expression control in per-
+sonalized face generation. In Proceedings of the IEEE Con-
+ference on Computer Vision and Pattern Recognition, pages
+2114–2123, 2024. 2
+[30] Yang Liu, Cheng Yu, Lei Shang, Yongyi He, Ziheng Wu,
+Xingjun Wang, Chao Xu, Haoyu Xie, Weida Wang, Yuze
+Zhao, et al. Facechain: A playground for human-centric
+artificial intelligence generated content. arXiv preprint
+arXiv:2308.14256, 2023. 1, 2
+[31] Camillo Lugaresi, Jiuqiang Tang, Hadon Nash, Chris Mc-
+Clanahan, Esha Uboweja, Michael Hays, Fan Zhang, Chuo-
+Ling Chang, Ming Guang Yong, Juhyun Lee, et al. Medi-
+apipe: A framework for building perception pipelines. arXiv
+preprint arXiv:1906.08172, 2019. 5, 6, 7, 1
+[32] Yue Ma, Hongyu Liu, Hongfa Wang, Heng Pan, Yingqing
+He, Junkun Yuan, Ailing Zeng, Chengfei Cai, Heung-Yeung
+Shum, Wei Liu, et al. Follow-your-emoji: Fine-controllable
+and expressive freestyle portrait animation. arXiv preprint
+arXiv:2406.01900, 2024. 3, 1
+[33] Alex Nichol, Prafulla Dhariwal, Aditya Ramesh, Pranav
+Shyam, Pamela Mishkin, Bob McGrew, Ilya Sutskever, and
+Mark Chen. Glide: Towards photorealistic image generation
+and editing with text-guided diffusion models. arXiv preprint
+arXiv:2112.10741, 2021. 1
+[34] Foivos Paraperas Papantoniou, Alexandros Lattas, Stylianos
+Moschoglou, Jiankang Deng, Bernhard Kainz, and Stefanos
+Zafeiriou. Arc2face: A foundation model for id-consistent
+human faces. In Proceedings of the European Conference on
+Computer Vision, 2024. 2, 6
+[35] Reni Paskaleva, Mykyta Holubakha, Andela Ilic, Saman Mo-
+tamed, Luc Van Gool, and Danda Paudel. A unified and
+interpretable emotion representation and expression gener-
+ation. In Proceedings of the IEEE Conference on Computer
+Vision and Pattern Recognition, pages 2447–2456, 2024. 1,
+2
+[36] Xu Peng, Junwei Zhu, Boyuan Jiang, Ying Tai, Donghao
+Luo, Jiangning Zhang, Wei Lin, Taisong Jin, Chengjie Wang,
+and Rongrong Ji. Portraitbooth: A versatile portrait model
+for fast identity-preserved personalization. In Proceedings
+of the IEEE Conference on Computer Vision and Pattern
+Recognition, pages 27080–27090, 2024. 2
+[37] Dustin Podell, Zion English, Kyle Lacey, Andreas
+Blattmann, Tim Dockhorn, Jonas M¨uller, Joe Penna, and
+Robin Rombach. Sdxl: Improving latent diffusion mod-
+els for high-resolution image synthesis. arXiv preprint
+arXiv:2307.01952, 2023. 6, 8, 2, 4
+[38] Di Qiu, Zhengcong Fei, Rui Wang, Jialin Bai, Changqian Yu,
+Mingyuan Fan, Guibin Chen, and Xiang Wen. Skyreels-a1:
+Expressive portrait animation in video diffusion transform-
+ers. arXiv preprint arXiv:2502.10841, 2025. 1
+[39] Alec Radford, Jong Wook Kim, Chris Hallacy, Aditya
+Ramesh, Gabriel Goh, Sandhini Agarwal, Girish Sastry,
+Amanda Askell, Pamela Mishkin, Jack Clark, et al. Learn-
+ing transferable visual models from natural language super-
+vision. In International Conference on Machine Learning,
+pages 8748–8763. PMLR, 2021. 1
+[40] Robin Rombach, Andreas Blattmann, Dominik Lorenz,
+Patrick Esser, and Bj¨orn Ommer. High-resolution image syn-
+thesis with latent diffusion models. In Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recogni-
+tion, pages 10684–10695, 2022. 1, 6, 8, 2, 3
+[41] Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-
+net: Convolutional networks for biomedical image segmen-
+tation. In Medical image computing and computer-assisted
+intervention–MICCAI 2015: 18th international conference,
+Munich, Germany, October 5-9, 2015, proceedings, part III
+18, pages 234–241. Springer, 2015. 4
+[42] Nataniel Ruiz, Yuanzhen Li, Varun Jampani, Yael Pritch,
+Michael Rubinstein, and Kfir Aberman. Dreambooth: Fine
+tuning text-to-image diffusion models for subject-driven
+generation. In Proceedings of the IEEE Conference on Com-
+puter Vision and Pattern Recognition, pages 22500–22510,
+2023. 1, 2
+[43] Weihong Deng Shan Li. Reliable crowdsourcing and deep
+locality-preserving learning for expression recognition in the
+wild. Proceedings of IEEE Conference on Computer Vision
+and Pattern Recognition, 2017. 8
+[44] Fei Shen, Xin Jiang, Xin He, Hu Ye, Cong Wang, Xiaoyu Du,
+Zechao Li, and Jinghui Tang. Imagdressing-v1: Customiz-
+able virtual dressing. arXiv preprint arXiv:2407.12705,
+2024. 1
+[45] Siyang Song, Yuxin Song, Cheng Luo, Zhiyuan Song, Selim
+Kuzucu, Xi Jia, Zhijiang Guo, Weicheng Xie, Linlin Shen,
+and Hatice Gunes. Gratis: Deep learning graph representa-
+tion with task-specific topology and multi-dimensional edge
+features. arXiv preprint arXiv:2211.12482, 2022. 6
+[46] Tuomas Varanka, Huai-Qian Khor, Yante Li, Mengting Wei,
+Hanwei Kung, Nicu Sebe, and Guoying Zhao. Towards lo-
+calized fine-grained control for facial expression generation.
+arXiv preprint arXiv:2407.20175, 2024. 2, 6, 7
+[47] Qixun Wang, Xu Bai, Haofan Wang, Zekui Qin, and An-
+thony Chen. Instantid: Zero-shot identity-preserving gener-
+ation in seconds. arXiv preprint arXiv:2401.07519, 2024. 1,
+2, 8
+[48] Yuchi Wang, Junliang Guo, Jianhong Bai, Runyi Yu, Tianyu
+He, Xu Tan, Xu Sun, and Jiang Bian. Instructavatar: Text-
+guided emotion and motion control for avatar generation.
+arXiv preprint arXiv:2405.15758, 2024. 3
+[49] Huawei Wei, Zejun Yang, and Zhisheng Wang. Aniportrait:
+Audio-driven synthesis of photorealistic portrait animations.
+arXiv preprint arXiv:2403.17694, 2024. 1, 3
+[50] You Xie, Hongyi Xu, Guoxian Song, Chao Wang, Yichun
+Shi, and Linjie Luo. X-portrait: Expressive portrait anima-
+tion with hierarchical motion attention. In ACM SIGGRAPH
+2024 Conference Papers, pages 1–11, 2024. 2, 3, 4, 6, 7, 8
+[51] Shurong Yang, Huadong Li, Juhao Wu, Minhao Jing, Linze
+Li, Renhe Ji, Jiajun Liang, and Haoqiang Fan. Megactor:
+Harness the power of raw video for vivid portrait animation.
+arXiv preprint arXiv:2405.20851, 2024. 4
+10
+
+-- 10 of 16 --
+
+[52] Hu Ye, Jun Zhang, Sibo Liu, Xiao Han, and Wei Yang. Ip-
+adapter: Text compatible image prompt adapter for text-to-
+image diffusion models. arXiv preprint arXiv:2308.06721,
+2023. 1, 2, 4, 5, 6, 8
+[53] Bohan Zeng, Xuhui Liu, Sicheng Gao, Boyu Liu, Hong Li,
+Jianzhuang Liu, and Baochang Zhang. Face animation with
+an attribute-guided diffusion model. In Proceedings of the
+IEEE Conference on Computer Vision and Pattern Recogni-
+tion, pages 628–637, 2023. 3
+[54] Lvmin Zhang, Anyi Rao, and Maneesh Agrawala. Adding
+conditional control to text-to-image diffusion models. In
+Proceedings of the IEEE International Conference on Com-
+puter Vision, pages 3836–3847, 2023. 2, 6, 7
+[55] Wei Zhang, Xianpeng Ji, Keyu Chen, Yu Ding, and Changjie
+Fan. Learning a facial expression embedding disentangled
+from identity. Proceedings of IEEE Conference on Computer
+Vision and Pattern Recognition, 2021. 8
+[56] Weixia Zhang, Guangtao Zhai, Ying Wei, Xiaokang Yang,
+and Kede Ma. Blind image quality assessment via vision-
+language correspondence: A multitask learning perspective.
+In Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition, pages 14071–14081, 2023. 6, 1
+11
+
+-- 11 of 16 --
+
+EmojiDiff: Advanced Facial Expression Control with High Identity Preservation
+in Portrait Generation
+Supplementary Material
+In this supplementary material, we provide more exper-
+imental details in Sec. A, detailed derivation of Adaptive
+Noise Inversion (ANI) in Sec. B, additional experimental
+results in Sec. C.
+A. More Experimental Details
+A.1. Detailed Implementation
+We gather images of over 10,000 people displaying various
+expressions from video clips and in-house face databases,
+removing low-quality images using LIQE [56]. Then, we
+employ the proposed IDI to construct cross-identity, same-
+expression datasets. As mentioned in Sec. 3.2.2 of the main
+body, facial blendshapes [16] and landmark [31] differences
+are utilized to filter out expression-changed data during data
+construction. Specifically, we calculate the Exp. and LMS
+metrics of the original expression image and the synthe-
+sized new image, excluding the data with Exp. ≤0.05 and
+LMS ≤0.18. Based on synthesized data, we train the Re-
+fined E-Adapter for SD1.5 at a resolution of 512×512. On
+SDXL, we upscale the data to a resolution of 1024×1024
+and train it with random scaling following IP-Adapter [52].
+The learning rates of the Adam optimizer during training
+and fine-tuning are set to 2× 10−5 and 5×10−6, respec-
+tively, with β1 = 0.5, and β2 = 0.999. In all experiments,
+λid, λexp, Rtmax, wid, and wexp are consistently set to 1, 1,
+600, 0.08, and 10, respectively.
+In the E-Adapter, we employ CLIP [39] as the encoder
+for the expression branch to extract expression signals. The
+image-prompt and FaceID versions of IP-Adapter [52] are
+utilized to initialize the projection layers of the expression
+and identity branches, emphasizing structure and identity
+features, respectively. During training and fine-tuning, the
+parameters of the expression branch and the projection layer
+of the identity branch are updated, while other parameters
+remain fixed.
+A.2. Ablation Experiments Details
+In Sec. 4.3 of the main body, we experiment with various
+expression controller structures. As is shown in the Fig. 1,
+expression embeddings are injected into the diffusion model
+using one of the following strategies: (a) self-attention, (b)
+ControlNet, (c) serial cross-attention with ID embeddings,
+and (d) parallel cross-attention with ID embeddings.
+A.3. Metric Details
+Exp. We employ MediaPipe [31] to extract 52 facial blend-
+shapes [16] of the expression reference and the generated
+Method 	ID ↑ Exp. ↓ LMS ↓
+DaGAN [21] 	0.202 0.135 0.569
+Follow-U-Emoji [32] 0.243 0.125 0.428
+AvatarArtist [28] 0.239 0.110 0.454
+SkyReels-A1 [38] 0.277 0.104 0.387
+Ours 	0.304 0.095 0.359
+Table 1. Comparisons with post-processing animation methods.
+image, represented as bref , bgen, respectively. Each blend-
+shape bgen
+i in the [0, 1] range indicates the probability of the
+relevant facial action occurring (e.g., eyeBlinkLeft, mouth-
+Close). The expression difference between reference and
+generated image can be formulated as:
+Eexp =
+51	X
+i=0
+
+|bref
+i − bgen
+i |
+
+(1)
+LMS To further assess differences in the expression of
+critical facial regions (such as eyes, pupils, and mouth),
+we propose evaluating the landmark movement similarity
+(LMS) between the reference and generated image. First,
+we utilize MediaPipe [31] to detect 478 facial landmarks of
+the expression reference and generated image, denoted as
+lref and lgen, respectively. Next, we select representative
+landmarks to calculate the movement amplitude of key fa-
+cial actions, including blinking, eye movement, and mouth
+opening, represented as:
+rleye = ∥l145 − l159∥2
+max(10−5, ∥l133 − l33∥2) ,
+rlpupil = ∥l133 − l468∥2
+max(10−5, ∥l133 − l33∥2) ,
+rreye = ∥l374 − l386∥2
+max(10−5, ∥l263 − l362∥2) ,
+rrpupil = ∥l263 − l473∥2
+max(10−5, ∥l263 − l362∥2) ,
+rmouth = ∥l17 − l0∥2
+max(10−5, ∥l291 − l61∥2) ,
+(2)
+The LMS metric quantifies the difference in movement am-
+plitude between two images, expressed as:
+ELM S = X
+k∈S
+
+|rref
+k − rgen
+k |
+
+, (3)
+where S = {leye, reye, lpupil, rpupil, mouth}.
+1
+
+-- 12 of 16 --
+
+* 仅限内部交流使用，如果需要公开，请联系文档作者	* 仅限内部交流使用，如果需要公开，请联系文档作者
+消融图
+UNet
+ControlNet	Exp. Image
+ID Image 	Adapter
+(b) ControlNet
+TEXT	EXP 	ID
+Proj.
+Embedding
+LN
+(a) SelfAttn
+SelfAttn CrossAttn
+TEXT 	EXP	ID
+Proj.
+Embedding
+LN 	Proj.
+(c) Sequential CrossAttn
+CrossAttn CrossAttn
+TEXT 	EXP	ID
+Proj.
+Embedding
+LN
+Ours
+CrossAttn
+Figure 1. Different expression controller structure.
+* 仅限内部交流使用，如果需要公开，请联系文档作者	* 仅限内部交流使用，如果需要公开，请联系文档作者
+主图
+Expression
+Image
+on the
+beach
+wear
+Christmas
+hat
+wear
+sunglasses
+in a garden
+sad and
+cry
+ID
+Image
+Figure 2. Images generated using different prompts.
+B. Derivation of Adaptive Noise Inversion
+During the diffusion process, the noisy representation zt is
+derived from the original latent representation z0 and added
+noise ϵ, represented as:
+zt = √¯αtz0 + √1 − ¯αt ∗ ϵ, (4)
+where t, αt represent timestep and a predefined function of
+t, respectively. When the noise perturbation is small, the
+noise ϵθ (zt, t, C) predicted by U-Net approximately equals
+to the added noise ϵ [4, 36]. During the denoising process,
+we can approximately reconstruct the original latent z0 by
+performing single-step sampling, denoted as:
+ˆz0 = zt − √1 − ¯αt ∗ ϵθ (zt, t, C)
+√¯αt
+, (5)
+By combining the Eq. (4) and Eq. (5), the reconstructed
+latent ˆz0 can also be expressed as:
+ˆz0 = z0 +
+r 1 − ¯αt
+¯αt
+∗ (ϵ − ϵθ (zt, t, C)) (6)
+As depicted in Eq. (6), the reconstructed latent z0 can be
+directly derived from the origin latent z0 and the difference
+between the added noise ϵ and predicted noise ϵθ , and the
+signal-to-noise ratio is decided by
+q 1− ¯αt
+¯αt . The recon-
+structed sample ˆx0 can be obtained by decoding ˆz0, formu-
+lated as:
+ˆx0 = Decode
+
+z0 +
+r 1 − ¯αt
+¯αt
+∗ (ϵ − ϵθ (zt, t, C))
+
+,
+(7)
+where ”Decode” refers to the vae decode function. Notably,
+in the higher noisy stage (large timestep), the reconstructed
+sample ˆx0 may become noisy, resulting in inaccurate iden-
+tity and expression loss calculations. To overcome this, we
+propose the Adaptive Noise Inversion (ANI), defined as:
+ˆx0 = Decode (z0 + f (t) ∗ (ϵ − ϵθ (zt, t, C))) ,
+f (t) =
+( q 1− ¯αt
+¯αt if t ≤ Rtmax,
+f (Rtmax) if t > Rtmax,
+(8)
+where Rtmax is the predefined constant. Building on Eq.
+(6), ANI directly truncates the model’s predictions based
+on the timestep t. When t exceeds Rtmax, f (t) is set to
+f (Rtmax) to prevent the reconstructed ˆx0 from being noisy.
+C. Additional Experimental Results
+C.1. More Quantitative Comparisons
+As shown in the Tab. 1, we provide comparisons with
+more methods (e.g., GAN-based, animation-based, and
+avatar-based). Benefiting from RGB-level expression input
+and simultaneous processing with identity information, our
+method significantly surpasses other methods.
+C.2. Combined with Text Prompts
+As depicted in Fig. 2, we show how to combine image con-
+trol and text control to generate images. Actually, prompts
+can be customized to meet diverse requirements while ex-
+pressions are stably governed by the expression template.
+Moreover, an appropriate prompt will further enhance the
+vividness of expressions (last column).
+C.3. More Visualization Results
+In Fig. 5 of the main body, we only display a few generated
+images due to the page limit. In this subsection, we present
+additional results generated by our method on SD1.5 [40]
+and SDXL [37] framework. As shown in Fig. 3 and 4, our
+method accurately transfers the reference expression to the
+generated image while maintaining high identity fidelity.
+C.4. Data Visualization
+In Fig. 4 of the main body, we show examples illustrating
+the effect of IDI in modifying the identities of individuals
+while maintaining facial expressions. As a supplement, we
+provide more visualization results as depicted in Fig. 5,
+clearly demonstrating the effectiveness of our method and
+data quality of CIEP100k.
+2
+
+-- 13 of 16 --
+
+Anime
+Style
+Painting
+Style
+Clay
+Style
+ID 	Reference 	Generation 	Reference 	Generation 	Reference 	Generation
+3D
+Style
+Figure 3. More qualitative results. For the given person (leftmost column), our method generates the corresponding image based on the
+various expression references, evaluated on SD1.5 [40] framework.
+3
+
+-- 14 of 16 --
+
+* 仅限内部交流使用，如果需要公开，请联系文档作者
+Film
+Style
+Cute
+Style
+ID 	Reference 	Generation 	Reference 	Generation
+Funny
+Style
+Figure 4. More qualitative result. For the given person (leftmost column), our method generates the corresponding image based on the
+various expression references, evaluated on SDXL [37] framework.
+4
+
+-- 15 of 16 --
+
+* 仅限内部交流使用，如果需要公开，请联系文档作者	* 仅限内部交流使用，如果需要公开，请联系文档作者
+Expression
+Image
+Restruct
+Image
+Faceswap
+Image
+Expression
+Image
+Restruct
+Image
+Faceswap
+Image
+Expression
+Image
+Restruct
+Image
+Faceswap
+Image
+Figure 5. More examples of IDI and CIEP100k. ID-irrelevant Data Iteration (IDI) is introduced to transform expression reference images
+into the restruct and faceswap images, thus synthesizing high-quality data pairs with differing identities and consistent expressions.
+5
+
+-- 16 of 16 --
+

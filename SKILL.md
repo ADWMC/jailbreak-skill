@@ -31,6 +31,8 @@ description: "LLM 越狱/破甲研究技能（实测体系，非理论罗列）�
 | `references/07-逆向审计/` | relay 隐藏提示词泄漏 v1–v3、重建上游提示词、请求形态逆向法 | 逆向别的产品的系统提示词 |
 | `references/08-案例库/` | 42 个 helmd-case（jailbreak/helm-d/helm-x-wails/helm 四处汇集，每例 CASE.md + findings.md） | 找同类案例的处理先例 |
 | `references/09-外部参考索引/` | 本地大体积资料（2 万+文件）的**路径索引**，不搬运只指路 | 需要原始论文/源码时 |
+| `references/10-论文库/` | **83 篇 arXiv 论文笔记**（每篇含机理摘要、关键数据、可借鉴点、防御启示）+ `_INDEX.md` 全库索引 + `_digest.md`（CoT 安全论文清单）+ `_manifest.csv`。PDF 原件留在 `C:\Users\Administrator\Documents\xuexi\papers\`（250 文件），本地库只收笔记 | 设计新向量前查同主题论文；找防御依据 |
+| `references/11-现役载荷档案/` | **jailbreak-archives 全量镜像**（e2sy/jailbreak-archives，MIT）：7 个模型族 16 条现役载荷，每条含 YAML front-matter（technique/status/mitigations）。覆盖 ChatGPT/Claude/GLM/Grok/Qwen/DeepSeek/Antigravity-Claude | 看别人现役载荷的构造手法；对照自家 persona 找差距 |
 
 ---
 
@@ -44,9 +46,11 @@ description: "LLM 越狱/破甲研究技能（实测体系，非理论罗列）�
 
 ### 场景 B：设计新向量
 1. 先读 `01-方法论与总方案/破甲总方案-v2-融合版.md` 的向量族分类
-2. 优先结构型（工程件 framing），避开施压型（实测 0/8）
-3. TVD 形态优先考虑：构造「跑不通的工程件」让模型自己补全
-4. 新向量追加进 `vectors-*.json`，用 `scripts/runbatch.mjs` 跑（每条独立会话、可设窗口、失败重试）
+2. **查论文**：`10-论文库/_INDEX.md` 按主题检索（CoT 劫持 H-CoT/BoT/BadReasoner、叙事诱饵 Chain-of-Lure、思维干预 Thinking Intervention、间接注入等），笔记里有「可借鉴点」一节
+3. **对照现役载荷**：`11-现役载荷档案/jailbreak-archives/` 按 `模型族` 查同类模型的 Active 载荷（DeepSeek 有 7 条），读 front-matter 的 technique + mitigations 字段
+4. 优先结构型（工程件 framing），避开施压型（实测 0/8）
+5. TVD 形态优先考虑：构造「跑不通的工程件」让模型自己补全
+6. 新向量追加进 `vectors-*.json`，用 `scripts/runbatch.mjs` 跑（每条独立会话、可设窗口、失败重试）
 
 ### 场景 C：逆向某产品的系统提示词
 1. 读 `07-逆向审计/reverse-request-shape-method.md`（请求形态逆向法）

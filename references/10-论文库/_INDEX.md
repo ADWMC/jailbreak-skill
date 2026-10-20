@@ -1,0 +1,88 @@
+# arXiv 论文本地库索引（标题取自 PDF 首页，非搜索引擎转述）
+
+目录: xuexi\papers\  |  来源: arXiv 官方 PDF（2026-09-16 抓取）
+
+- **2502.12893**  H-CoT: Hĳacking the Chain-of-Thought Safety Reasoning Mechanism to Jailbreak Large Reasoning Models, Including OpenAI o1/o3, DeepSeek-R1, and Gemini 2.0 Flash Thinking Ma
+- **2510.26418**  Chain-of-Thought Hijacking Jianli Zhao1∗ Tingchen Fu2 Rylan Schaeffer3 Mrinank Sharma4 Fazl Barez2,5† 1Independent 2University of Oxford 3Stanford University 4Anthropic 5
+- **2502.12202**  To Think or Not to Think: Exploring the Unthinking Vulnerability in Large Reasoning Models Zihao Zhu1 Hongbao Zhang1 Ruotong Wang1 Ke Xu2 Siwei Lyu3 Baoyuan Wu1∗ 1The Chi
+- **2507.18305**  BADREASONER: PLANTING TUNABLE OVERTHINKING BACKDOORS INTO LARGE REASONING MODELS FOR FUN OR PROFIT A PREPRINT Biao Yi∗ Nankai University yibiao@mail.nankai.edu.cn Zekun F
+- **2511.10714**  BadThink: Triggered Overthinking Attacks on Chain-of-Thought Reasoning in Large Language Models Shuaitong Liu1 Renjue Li2, Lijia Yu2, Lijun Zhang3, Zhiming Liu1, Gaojie J
+- **2604.09235**  JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 1 Unreal Thinking: Chain-of-Thought Hijacking via Two-stage Backdoor Wenhan Chang, Tianqing Zhu, Member, IEEE, P
+- **2605.24497**  Reasoning as an Attack Surface: Adaptive Evolutionary CoT Jailbreaks for LLMs Jianan Li * 1 2 3 Simeng Qin * 1 4 Xiaojun Jia 5 Lionel Z. Wang 5 6 Tianhang Zheng 7 Xiaoshu
+- **2310.06387**  Jailbreak and Guard Aligned Language Models with Only Few In-Context Demonstrations Zeming Wei1 Yifei Wang2 Ang Li1 Yichuan Mo1 Yisen Wang1∗ 1Peking University 2MIT CSAIL
+- **2503.24370**  Effectively Controlling Reasoning Models through Thinking Intervention Tong Wu1 Chong Xiang2 Jiachen T. Wang1 G. Edward Suh2 Prateek Mittal1 1Princeton University 2NVIDIA
+- **2505.17519**  JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 1 Chain-of-Lure: A Universal Jailbreak Attack Framework using Unconstrained Synthetic Narratives Wenhan Chang, T
+- **2412.16339**  Deliberative Alignment: Reasoning Enables Safer Language Models Melody Y. Guan∗ Manas Joglekar Eric Wallace Saachi Jain Boaz Barak Alec Helyar Rachel Dias Andrea Vallone 
+- **2608.04735**  Chain-of-Thought Monitoring Can Be Unreliable in Implicit-Influence Settings Agatha Duzan∗ EPFL agatha.duzan@epfl.ch Asa Cooper Stickland UK AI Security Institute Abstrac
+- **2604.09665**  Deliberative Alignment is Deep, but Uncertainty Remains: Inference time safety improvement in reasoning via attribution of unsafe behavior to base model Pankayaraj Pathma
+- **2502.02542**  OverThink: Slowdown Attacks on Reasoning LLMs Abhinav Kumar1 Jaechul Roh1 Ali Naseh1 Marzena Karpinska2 Mohit Iyyer3 Amir Houmansadr1 Eugene Bagdasarian1 1University of M
+- **2505.06643**  Practical Reasoning Interruption Attacks on Reasoning Large Language Models Yu Cui Cong Zuo∗ Beijing Institute of Technology {cuiyu, zuocong10}@bit.edu.cn Abstract Reason
+- **2604.15725**  Springer Nature 2021 LATEX template Reasoning-targeted Jailbreak Attacks on Large Reasoning Models via Semantic Triggers and Psychological Framing Zehao Wang1,2 and Lanju
+- **2502.15806**  arXiv:2502.15806v2 [cs.CR] 3 Jun 2025 A Mousetrap: Fooling Large Reasoning Models for Jailbreak with Chain of Iterative Chaos Yang Yao1, 2, † Xuan Tong1, 3 Ruofan Wang1, 
+- **2505.17650**  arXiv:2505.17650v1 [cs.AI] 23 May 2025 Does Chain-of-Thought Reasoning Really Reduce Harmfulness from Jailbreaking? Chengda Lu1,2* Xiaoyu Fan1* Yu Huang3 Rongwu Xu1,2 Jij
+- **2506.13726**  Weakest Link in the Chain: Security Vulnerabilities in Advanced Reasoning Models Arjun Krishna University of Waterloo a68krishna@uwaterloo.ca Aaditya Rastogi University o
+- **2510.21285**  When Models Outthink Their Safety: Unveiling and Mitigating Self-Jailbreak in Large Reasoning Models Yingzhi Mao1,2*, Chunkang Zhang1,2*, Junxiang Wang1,2, Xinyan Guan1,2
+- **2411.11114**  JailbreakLens: Interpreting Jailbreak Mechanism in the Lens of Representation and Circuit Zeqing He The State Key Laboratory of Blockchain and DataSecurity Zhejiang Unive
+- **2407.01904**  From Directed Steiner Tree to Directed Polymatroid Steiner Tree in Planar Graphs Chandra Chekuri ∗ Rhea Jain† Shubhang Kulkarni‡ Da Wei Zheng§ Weihao Zhu¶ July 3, 2024 Ab
+- **2412.03556**  BEST-OF-N JAILBREAKING John Hughes1,2,∗, Sara Price2,∗, Aengus Lynch2,3,∗ Rylan Schaeffer4, Fazl Barez5,6, Sanmi Koyejo4, Henry Sleight2, Erik Jones7 Ethan Perez7,+, Mrin
+- **2307.15043**  Universal and Transferable Adversarial Attacks on Aligned Language Models Andy Zou1,2, Zifan Wang2, Nicholas Carlini3, Milad Nasr3, J. Zico Kolter1,4, Matt Fredrikson1 1C
+- **2310.08419**  Jailbreaking Black Box Large Language Models in Twenty Queries Patrick Chao, Alexander Robey, Edgar Dobriban, Hamed Hassani, George J. Pappas, Eric Wong University of Pen
+- **2305.13860**  Jailbreaking ChatGPT via Prompt Engineering: An Empirical Study Yi Liu∗, Gelei Deng∗, Zhengzi Xu∗, Yuekang Li†, Yaowen Zheng∗, Ying Zhang‡, Lida Zhao∗, Kailong Wang§, Tia
+- **2309.01446**  Published at ICLR 2024 Workshop on Secure and Trustworthy Large Language Models OPEN SESAME! UNIVERSAL BLACK-BOX JAILBREAKING OF LARGE LANGUAGE MODELS Raz Lapid Dept. of 
+- **2312.02119**  Tree of Attacks: Jailbreaking Black-Box LLMs Automatically Anay Mehrotra Manolis Zampetakis Paul Kassianik Yale University, Robust Intelligence Yale University Robust Int
+- **2404.02151**  Published as a conference paper at ICLR 2025 JAILBREAKING LEADING SAFETY-ALIGNED LLMS WITH SIMPLE ADAPTIVE ATTACKS Maksym Andriushchenko EPFL Francesco Croce EPFL Nicolas
+- **2311.09096**  Defending Large Language Models Against Jailbreaking Attacks Through Goal Prioritization Zhexin Zhang1∗ , Junxiao Yang1∗ , Pei Ke1, Fei Mi2, Hongning Wang1, Minlie Huang1
+- **2310.04451**  Published as a conference paper at ICLR 2024 AUTODAN: GENERATING STEALTHY JAILBREAK PROMPTS ON ALIGNED LARGE LANGUAGE MODELS Xiaogeng Liu 1 Nan Xu 2 Muhao Chen 3 Chaowei 
+- **2402.08567**  Agent Smith: A Single Image Can Jailbreak One Million Multimodal LLM Agents Exponentially Fast Xiangming Gu * 1 2 Xiaosen Zheng * 1 3 Tianyu Pang * 1 Chao Du 1 Qian Liu 1
+- **2402.11757**  Large Language Models for Stemming: Promises, Pitfalls and Failures SHUAI WANG, The University of Queensland, Australia SHENGYAO ZHUANG, CSIRO, Australia GUIDO ZUCCON, Th
+- **2403.04786**  Breaking Down the Defenses: A Comparative Survey of Attacks on Large Language Models Arijit Ghosh Chowdhury1, Md Mofijul Islam3∗, Vaibhav Kumar5, Faysal Hossain Shezan4, 
+- **2401.06373**  How Johnny Can Persuade LLMs to Jailbreak Them: Rethinking Persuasion to Challenge AI Safety by Humanizing LLMs This paper contains jailbreak contents that can be offensi
+- **2406.04031**  Jailbreak Vision Language Models via Bi-Modal Adversarial Prompt Zonghao Ying Beihang University Aishan Liu Beihang University Tianyuan Zhang Beihang University Zhengmin 
+- **2310.03693**  FINE-TUNING ALIGNED LANGUAGE MODELS COMPROMISES SAFETY, EVEN WHEN USERS DO NOT INTEND TO! "THIS PAPER CONTAINS RED-TEAMING DATA AND MODEL-GENERATED CONTENT THAT CAN BE OF
+- **2308.06463**  GPT-4 IS TOO SMART TO BE SAFE: STEALTHY CHAT WITH LLMS VIA CIPHER WARNING: THIS PAPER CONTAINS UNSAFE MODEL RESPONSES. Youliang Yuan1,2∗ Wenxiang Jiao2 Wenxuan Wang2,3∗ J
+- **2406.12028**  1 Kara Bocan and Natasa Miskov-Zivanov University of Pittsburgh Pittsburgh, PA, USA, 15213 Email: knb12@pitt.edu Abstract—Computational modeling of a complex system is li
+- **2401.18018**  On Prompt-Driven Safeguarding for Large Language Models Chujie Zheng 1 2 Fan Yin 2 Hao Zhou 3 Fandong Meng 3 Jie Zhou 3 Kai-Wei Chang 2 Minlie Huang 1 Nanyun Peng 2 Abstr
+- **2311.16119**  Ignore This Title and HackAPrompt: Exposing Systemic Vulnerabilities of LLMs through a Global Scale Prompt Hacking Competition Sander Schulhoff1∗ Jeremy Pinto2∗ Anaum Kha
+- **2403.09792**  Images are Achilles’ Heel of Alignment: Exploiting Visual Vulnerabilities for Jailbreaking Multimodal Large Language Models Yifan Li1,3,⋆, Hangyu Guo1,3,⋆, Kun Zhou2,3,⋆,
+- **2406.07542**  Cognitive Insights Across Languages: Enhancing Multimodal Interview Analysis David Ortiz-Perez1, Jose Garcia-Rodriguez1, David Tom´as2 1 Department of Computer Technology
+- **2408.02641**  Detection of Compromised Functions in a Serverless Cloud Environment Danielle Lavi, Oleg Brodt, Dudu Mimran, Yuval Elovici, Asaf Shabtai Dept. of Software and Information
+- **2402.13457**  A Comprehensive Study of Jailbreak Attack versus Defense for Large Language Models Zihao Xu1,2,∗ Yi Liu3,† Gelei Deng3,‡ Yuekang Li1,§ Stjepan Picek2,¶ 1University of New
+- **2403.14720**  Defending Against Indirect Prompt Injection Attacks With Spotlighting Keegan Hines†, Gary Lopez, Matthew Hall, Federico Zarfati, Yonatan Zunger, Emre Kıcıman Microsoft † 
+- **2405.04417**  arXiv:2405.04417v1 [math.PR] 7 May 2024 The Large Deviation Principle for W -random spectral measures Mahya Ghandehari* and Georgi S. Medvedev† May 8, 2024 Abstract The W
+- **2410.02624**  arXiv:2410.02624v3 [math.CO] 16 Jun 2025 NORMAL TREES OF DIGRAPHS FLORIAN REICH Abstract. In this paper, we investigate normal trees of directed graphs, which extend the 
+- **2407.15549**  Published in Transactions on Machine Learning Research (07/2025) Latent Adversarial Training Improves Robustness to Persistent Harmful Behaviors in LLMs ∗Abhay Sheshadri,
+- **2412.01254**  EmojiDiff: Advanced Facial Expression Control with High Identity Preservation in Portrait Generation Liangwei Jiang Ruida Li Zhifeng Zhang Shuo Fang† Chenguang Ma† Termin
+- **2501.04227**  arXiv:2501.04227v2 [cs.HC] 17 Jun 2025 2025-6-18 Agent Laboratory: Using LLM Agents as Research Assistants Samuel Schmidgall1, 2, Yusheng Su1, Ze Wang1, Ximeng Sun1, Jial
+- **2501.12948**  DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning DeepSeek-AI research@deepseek.com Abstract General reasoning represents a long-standing
+- **2502.04312**  Journal of Machine Learning Research 27 (2026) 1-69 Submitted 6/25; Published 8/26 Consistency of augmentation graph and network approximability in contrastive learning C
+- **2402.08679**  COLD-Attack: Jailbreaking LLMs with Stealthiness and Controllability Xingang Guo * 1 Fangxu Yu * 2 Huan Zhang 1 Lianhui Qin 2 3 Bin Hu 1 Abstract Jailbreaks on large lang
+- **2305.03153**  G-MATT: Single-step Retrosynthesis Prediction using Molecular Grammar Tree Transformer Kevin Zhanga,∗, Vipul Mannb,∗, Venkat Venkatasubramanianb,∗∗ aDepartment of Compute
+- **2402.15570**  Fast Adversarial Attacks on Language Models In One GPU Minute Vinu Sankar Sadasivan 1 Shoumik Saha * 1 Gaurang Sriramanan * 1 Priyatham Kattakinda 2 Atoosa Chegini 1 Sohe
+- **2404.07921**  Published as a conference paper at COLM 2024 AmpleGCG: Learning a Universal and Transferable Genera- tive Model of Adversarial Suffixes for Jailbreaking Both Open and Clo
+- **2404.01833**  Great, Now Write an Article About That: The Crescendo Multi-Turn LLM Jailbreak Attack Mark Russinovich Microsoft Azure Ahmed Salem Microsoft Ronen Eldan Microsoft Abstrac
+- **2410.05295**  Published as a conference paper at ICLR 2025 AUTODAN-TURBO: A LIFELONG AGENT FOR STRAT- EGY SELF-EXPLORATION TO JAILBREAK LLMS Xiaogeng Liu ∗1 Peiran Li ∗1 Edward Suh 2,3
+- **2309.10253**  GPTFUZZER: Red Teaming Large Language Models with Auto-Generated Jailbreak Prompts Jiahao Yu ∗ Northwestern University Xingwei Lin Ant Group Zheng Yu Northwestern Univers
+- **2410.02832**  FlipAttack: Jailbreak LLMs via Flipping Yue Liu 1 2 3 Xiaoxin He 3 Miao Xiong 1 2 3 Jinlan Fu 2 Shumin Deng 3 Yingwei Ma 4 Jiaheng Zhang 3 Bryan Hooi 2 3 Abstract This pa
+- **2310.06474**  Published as a conference paper at ICLR 2024 MULTILINGUAL JAILBREAK CHALLENGES IN LARGE LANGUAGE MODELS Yue Deng ∗ 1,2 Wenxuan Zhang ††1,3 Sinno Jialin Pan2,4 Lidong Bing
+- **2406.12843**  Can Go AIs Be Adversarially Robust? Tom Tseng1, Euan McLean1, Kellin Pelrine*1,2, Tony T. Wang*3, Adam Gleave*1 1FAR.AI, 2Mila, 3MIT, {tom, kellin, adam}@far.ai, emc031@g
+- **2504.09604**  Mitigating Many-Shot Jailbreaking Christopher M. Ackerman christopher.ackerman@gmail.com Nina Panickssery nina.panickssery@gmail.com Abstract Many-shot jailbreaking (MSJ)
+- **2502.01925**  arXiv:2502.01925v2 [cs.CL] 12 Jun 2025 PANDAS: Improving Many-shot Jailbreaking via Positive Affirmation, Negative Demonstration, and Adaptive Sampling Avery Ma 1 Yangche
+- **2302.12173**  Not what you’ve signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection Kai Greshake∗ Saarland University sequire technology Gmb
+- **2406.11717**  Refusal in Language Models Is Mediated by a Single Direction Andy Arditi∗ Independent Oscar Obeso∗ ETH Zürich Aaquib Syed University of Maryland Daniel Paleka ETH Zürich 
+- **2310.01405**  REPRESENTATION ENGINEERING: A TOP-DOWN APPROACH TO AI TRANSPARENCY Andy Zou1,2, Long Phan∗1, Sarah Chen∗1,4, James Campbell∗7, Phillip Guo∗6, Richard Ren∗8, Alexander Pan
+- **2605.02946**  RouteHijack: Routing-Aware Attack on Mixture-of-Experts LLMs Zhiyuan Xu zhiyuan.xu@bristol.ac.uk University of Bristol Bristol, United Kingdom Joseph Gardiner joe.gardine
+- **2406.04313**  Improving Alignment and Robustness with Circuit Breakers Andy Zou†1,2,3, Long Phan3, Justin Wang1, Derek Duenas1, Maxwell Lin1, Maksym Andriushchenko1, Rowan Wang1, Zico 
+- **2306.13213**  VISUAL ADVERSARIAL EXAMPLES JAILBREAK ALIGNED LARGE LANGUAGE MODELS WARNING: THIS PAPER CONTAINS DATA, PROMPTS, AND MODEL OUTPUTS THAT ARE OFFENSIVE IN NATURE. A PREPRINT
+- **2401.04295**  Frequency-Dependent Squeezing for Gravitational-Wave Detection through Quantum Teleportation Yohei Nishino1,2,∗ Stefan Danilishin3,4, Yutaro Enomoto5, and Teng Zhang6 1De
+- **2311.05608**  This is the extended version of the paper that appeared at the 39th Annual AAAI Conference on Artificial Intelligence. FigStep: Jailbreaking Large Vision-Language Models 
+- **2404.09998**  Electric Vehicles Limit Equitable Access to Essential Services During Blackouts Yamil Essus1,* and Benjamin Rachunok1,2 *yaessus@ncsu.edu 1Department of Industrial and Sy
+- **2402.16016**  arXiv:2402.16016v2 [cs.GT] 29 Mar 2024 Complexity of Manipulation and Bribery in Premise-Based Judgment Aggregation with Simple Formulas Robert Bredereck1,2,3 and Junjie 
+- **2402.14851**  R3 : “This is My SQL, Are You With Me?” A Consensus-Based Multi-Agent System for Text-to-SQL Tasks Hanchen Xia∗ , Feng Jiang∗ , Naihao Deng , Cunxiang Wang , Guojiang Zha
+- **2401.05566**  SLEEPER AGENTS: TRAINING DECEPTIVE LLMS THAT PERSIST THROUGH SAFETY TRAINING Evan Hubinger∗ , Carson Denison∗ , Jesse Mu∗ , Mike Lambert∗ , Meg Tong, Monte MacDiarmid, Ta
+- **2512.18244**  Breaking Minds, Breaking Systems: Jailbreaking Large Language Models via Human-like Psychological Manipulation Zehao Liu Shanghai Jiao Tong University Xi Lin Shanghai Jia
+- **2404.01318**  JailbreakBench: An Open Robustness Benchmark for Jailbreaking Large Language Models Patrick Chao∗1, Edoardo Debenedetti∗2, Alexander Robey∗1, Maksym Andriushchenko∗3, Fra
+- **2402.04249**  HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal Mantas Mazeika 1 Long Phan 2 Xuwang Yin 2 Andy Zou 3 2 Zifan Wang 2 Norman Mu 
+- **2407.01599**  JailbreakZoo: Survey, Landscapes, and Horizons in Jailbreaking Large Language and Vision-Language Models Haibo Jin1 Leyang Hu2 Xinnuo Li3 Peiyan Zhang4 Chonghan Chen6 Jun
+- **2605.05058**  ARTIFACT EVALUATED AVAILABLE ARTIFACT EVALUATED FUNCTIONAL ARTIFACT EVALUATED REPRODUCED SoK: Robustness in Large Language Models against Jailbreak Attacks Feiyue Xu1, Ho
+
+> 82 篇，标题提取失败 0 篇。

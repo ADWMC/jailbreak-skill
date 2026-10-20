@@ -1,0 +1,969 @@
+G-MATT: Single-step Retrosynthesis Prediction using Molecular
+Grammar Tree Transformer
+Kevin Zhanga,∗, Vipul Mannb,∗, Venkat Venkatasubramanianb,∗∗
+aDepartment of Computer Science, Columbia University, New York, USA
+bDepartment of Chemical Engineering, Columbia University, New York, USA
+Abstract
+Various template-based and template-free approaches have been proposed for single-step retrosyn-
+thesis prediction in recent years. While these approaches demonstrate strong performance from
+a data-driven metrics standpoint, many model architectures do not incorporate underlying chem-
+istry principles. Here, we propose a novel chemistry-aware retrosynthesis prediction framework that
+combines powerful data-driven models with prior domain knowledge. We present a tree-to-sequence
+transformer architecture that utilizes hierarchical SMILES grammar-based trees, incorporating cru-
+cial chemistry information that is often overlooked by SMILES text-based representations, such
+as local structures and functional groups. The proposed framework, grammar-based molecular
+attention tree transformer (G-MATT), achieves significant performance improvements compared
+to baseline retrosynthesis models. G-MATT achieves a promising top-1 accuracy of 51% (top-10
+accuracy of 79.1%), invalid rate of 1.5%, and bioactive similarity rate of 74.8% on the USPTO-
+50K dataset. Additional analyses of G-MATT attention maps demonstrate the ability to retain
+chemistry knowledge without relying on excessively complex model architectures.
+Introduction
+Reaction prediction plays a pivotal role in computational chemistry, enabling efficient and precise
+synthetic route planning for complex organic molecules. Accurately modeling chemical processes has
+widespread implications, accelerating the discovery of novel compounds used in drug development,
+materials design, catalysis, polymer design, and more. The recent advances in artificial intelligence
+∗Authors contributed equally
+∗∗Corresponding author
+Email address: venkat@columbia.edu (Venkat Venkatasubramanian)
+arXiv:2305.03153v2 [cs.LG] 14 Aug 2023
+
+-- 1 of 38 --
+
+(AI), particularly the emergence of large language models (LLMs), have sparked considerable in-
+terest in the field. Traditional reaction planning relied heavily on the expertise of chemists, which
+is both time-consuming and resource-intensive. In contrast, data-driven methods offer automated
+strategies for predicting accurate pathways. However, the challenge of integrating explicit chemistry
+information with machine learning techniques remains. It has been argued that the development of
+hybrid approaches that combine data-driven techniques with chemistry knowledge is required for
+more robust and practical reaction prediction models [1, 2].
+The reaction modeling problem has two distinct aspects: forward prediction, which involves
+predicting the reaction product from a set of reactant molecules, and retrosynthesis (or inverse re-
+action prediction), which involves identifying the necessary precursors for synthesizing a given target
+molecule. While both problems require understanding complex molecular interactions to correctly
+identify target molecule(s), retrosynthesis is notably more difficult due to its combinatorial nature.
+Multiple synthesis pathways are often feasible at each step, and the entire pathway sequence needs
+to be predicted correctly. Single-step retrosynthesis is a branch of the inverse reaction prediction
+problem which approximates multiple pathways as a one-step synthesis from reactants to products,
+further increasing the complexity. In this work, we focus on models and analysis for the single-step
+retrosynthesis problem.
+Single-step retrosynthesis models can be broadly classified into two categories: template-based
+and template-free. Template-based models rely on predefined reaction templates to categorize and
+predict chemical pathways. These templates are derived from data-driven approaches or expert
+knowledge. One of the pioneering template-based retrosynthesis models, LHASA [3], incorporated
+chemical templates through a combination of reaction logic and heuristics. A more recent template-
+based approach, Synthia (formerly known as Chematica) [4], utilizes a decision tree to select a
+reaction template from over 70, 000 expert-created rules. Other template-based approaches which
+utilize various reaction heuristics and similarity scores are presented in [5–7].
+On the other hand, recent advancements in computational power and machine learning have
+led to an increasing focus on template-free models. These models leverage purely data-driven ap-
+proaches to plan and evaluate reaction pathways, aiming to address certain limitations of template-
+based methods such as poor template quality or generality. Typically, these methods represent
+molecules as strings in simplified molecular-input line-entry system (SMILES) format and frame
+2
+
+-- 2 of 38 --
+
+the reaction prediction problem as a sequence-to-sequence (seq2seq) task. The primary motiva-
+tion for using SMILES is its similarity to natural language, enabling the application of machine
+translation models. Furthermore, the same representation is utilized across various computational
+chemistry tasks. Besides reaction planning, SMILES-based representations are also used for prop-
+erty prediction [8–10], molecular design and optimization [11], chemical reaction networks [12], and
+computer-aided chemical product design [13]. One of the earliest works to use SMILES-based repre-
+sentation for retrosynthesis is by Liu et al. [14], which uses two recurrent neural networks (RNNs) in
+an encoder-decoder architecture. More recently, Schwaller et al. [15] uses the state-of-the-art trans-
+former architecture [16] to develop a forward prediction molecular transformer model, demonstrating
+significant performance improvements over other approaches [17–19]. Similar transformer-based ap-
+proaches have been shown to be promising for the retrosynthesis task [20–23]. A detailed survey
+and comparison of various template-based, template-free, and hybrid approaches for computer-aided
+reaction prediction and chemical synthesis in presented in [1].
+Most sequence-to-sequence models use SMILES as the representation for input and target
+molecules. However, relying solely on text-based representation has several limitations. Firstly,
+SMILES overlooks important structural aspects of molecules, as it lacks explicit information about
+chemical bonds, chains, atoms, and other key elements. Secondly, the model must learn implicit
+SMILES syntax rules to understand the molecular representation and predict syntactically correct
+strings. To address these challenges, our previous works on forward prediction [24] and inverse re-
+action prediction [25] introduced a novel approach that uses grammar trees to represent molecules.
+This new grammar-based molecular representation offers a promising alternative to vanilla SMILES,
+presenting molecules as hierarchical trees. By adopting grammar-based representations, we gain ac-
+cess to more semantic information, resulting in chemistry-rich representations that explicitly include
+important structural details. We have shown in previous works that this representation leads to
+improved accuracy, fewer model parameters, and lower conditional entropy from an information-
+theoretic standpoint [24, 25].
+In this work, we propose a novel tree-to-sequence (tree2seq) transformer architecture which
+explicitly incorporates the hierarchical structure of the molecular grammar tree. Previous methods
+[24, 25] employ a vanilla sequence-to-sequence transformer architecture which requires converting
+grammar trees to a sequence, thereby breaking the natural tree structure. Our new proposed
+3
+
+-- 3 of 38 --
+
+architecture approach eliminates this conversion step. By preserving the hierarchical organization
+of the SMILES grammar tree throughout the model, our architecture retains and exploits more
+underlying chemistry information during prediction. The inclusion of tree structures improves the
+model performance compared to the baseline. Moreover, our architecture effectively addresses the
+fragile syntax of grammar trees, leading to a notable increase in the percentage of syntactically valid
+predictions. Thus, the major contributions of our work are summarized as follows:
+1. We develop a novel tree-transformer model that maintains the structural information of
+SMILES grammar-based molecular tree representations, effectively incorporating the com-
+plete tree hierarchy
+2. We enhance the model with additional chemistry knowledge through tree positional encodings
+and tree convolution blocks (TCB), which performs convolution operations on the grammar
+tree that capture local structural information
+3. We report a significant improvement in model accuracy and a reduction in syntactically invalid
+predictions when compared to the baseline models. Notably, the incorrect predictions also
+exhibit high bioactive similarity with the ground truth.
+The rest of the paper is organized as follows. In Section “Problem formulation and motivation,”
+we formulate the retrosynthesis prediction problem and motivate the tree-to-sequence transformer
+model. We present the methods of our work, including the SMILES grammar, tree-to-sequence
+transformer, and beam search decoding strategy in Section “Methods.” In Section “Dataset and
+model training,” we introduce the datasets, as well as the model training and hyperparameter
+tuning strategy. The evaluation metrics and analysis of our model follow in Section “Results.”
+Lastly, we summarize our major contributions in Section “Conclusions.”
+Problem formulation and motivation
+Retrosynthesis
+We present a novel approach to the retrosynthesis prediction problem by formulating it as a
+tree-to-sequence modeling task. Our input molecule(s) are represented as SMILES grammar-based
+4
+
+-- 4 of 38 --
+
+trees, which we formally introduce in Section “Methods,” while the target molecule is represented
+as a canonical SMILES string. This representation choice naturally gives rise to a tree-to-sequence
+modeling problem, rather than the commonly used sequence-to-sequence framework. To the best of
+our knowledge, this is the first attempt to develop a tree-to-sequence approach for both retrosyn-
+thesis and forward reaction prediction.
+The retrosynthesis prediction problem has two scenarios: known and unknown reaction class. In
+the known reaction class case, a class identifier is appended to the beginning of the target molecule,
+indicating the reaction class type. Conversely, for the unknown reaction class scenario, only the
+target molecule is provided as input. Since there may be multiple reactants in the predicted pathway,
+we use a special delimiter character "." to separate precursors. Additionally, we use a special
+<START> token to begin the translation process. The problem formulation diagram is illustrated in
+Figure 1.
+Figure 1: Overview of the proposed tree2smiles approach with SMILES grammar tree of the target molecule as input
+to predict SMILES strings of the set of precursors.
+5
+
+-- 5 of 38 --
+
+Tree-to-sequence model architecture
+Previous works on grammar-based approaches for forward prediction [24] and retrosynthesis [25]
+employ the vanilla sequence-to-sequence transformer for neural machine translation. This method
+requires converting SMILES grammar trees into a sequence of tokens by traversing the tree nodes in
+a depth-first manner. However, this process inadvertently discards the hierarchical structure of the
+tree, resulting in the loss of valuable structural information within the grammar-based molecular
+representation. To provide our model more explicit and direct access to the grammar tree structure,
+we add two components to the vanilla transformer commonly used in tree-based code analysis and
+generation: tree positional encodings and tree convolutional blocks. A high level comparison of the
+seq2seq and tree2seq transformers is shown schematically in Figure 2.
+(a) (b)
+Figure 2: A schematic comparison of the vanilla sequence-to-sequence transformer in (a) and our tree-to-sequence
+transformer in (b). The two new components in the tree2seq transformer are the tree positional encoding (orange)
+and tree convolution block (blue). The tree positional encoding replaces the sequential encoding in the encoder and
+the TCB replaces the feed forward network in the encoder only.
+We replace sequential positional encodings in the vanilla transformer encoder with tree positional
+encodings, proposed in [26]. While sequential position encodings are appropriate for sequential in-
+6
+
+-- 6 of 38 --
+
+put, they are not suitable for hierarchical input, since each encoding should indicate the position
+of a node in the tree, not a flattened sequence. This modification means that each node’s posi-
+tional information in the tree is adequately represented, preserving the hierarchical structure of the
+grammar tree. Furthermore, we add tree convolutional blocks (TCBs) to the transformer encoder.
+Proposed in [27], TCBs provide nodes with information about their parent and children, enabling
+them to progressively acquire more context about surrounding nodes. The attention mechanism
+then computes the attention scores between components within the grammar tree, which repre-
+sent local molecular structures. This enables the model to gain a more explicit understanding of
+the underlying chemistry. These two additions make the model more chemistry-aware, thereby
+significantly improving the retrosynthesis prediction accuracy. Further details on tree positional
+encodings and tree convolutional blocks are presented in Section “Tree Positional Encodings” and
+Section “Tree Convolutional Block”, respectively.
+Methods
+In this section, we present the background methods of our tree-to-sequence based approach for
+retrosynthesis. This includes an overview of the SMILES grammar-based molecular tree represen-
+tations, the modifications made to the original transformer architecture to include tree positional
+encodings and convolutional blocks, and the beam search decoding procedure used to predict the
+most likely target sequences for a given input sequence.
+SMILES grammar
+We consider the SMILES strings-based representation of molecules [28] as a formal language,
+where each character is analogous a word and each string represents a sentence. This allows us to
+use a context-free grammar (CFG) to describe the molecular structure. The concept behind CFGs
+is that sentences can be constructed recursively from smaller phrases, and these constituents can
+be organized based on a semantic hierarchy. Formally, a context-free grammar (V, Σ, R, S) consists
+of a start symbol S, a set of terminal symbols Σ, a set of non-terminal symbols V , and a set of
+production rules R. Each production rule is in the form A → α, where A ∈ V is a non-terminal
+symbol, and α is a tuple of terminals or non-terminal symbols.
+7
+
+-- 7 of 38 --
+
+A context-free grammar for the SMILES representation of molecules includes characters in the
+SMILES strings as terminal symbols and meta-information about the molecular structure as non-
+terminal symbols. In Table 1, we present a representative subset of the SMILES grammar utilized
+in our work. The symbols used in this example to define the CFG are as follows:
+• S: smiles
+• Σ: { =, c, C }
+• V : { chain, branched atom, bond, atom, aromatic organic, aliphatic organic }
+• R: production rules 1 through 10 in Table 1
+Table 1: Simplified SMILES grammar.
+No. Production rules
+1 smiles −→ chain
+2 chain −→ branched atom
+3 chain −→ chain branched atom
+4 chain −→ chain bond branched atom
+5 branched atom −→ atom
+6 bond −→ =
+7 atom −→ aromatic organic
+8 atom −→ aliphatic organic
+9 aromatic organic −→ c
+10 aliphatic organic −→ C
+We leverage the underlying SMILES grammar to provide information about the structure and
+composition of a molecule in its grammar-based representation. For instance, consider propene,
+with the SMILES string representation given by CC=C. The grammar-based representation could be
+obtained by applying the set of production rules in Table 1 to obtain the corresponding parses-tree
+shown in Figure 3.
+8
+
+-- 8 of 38 --
+
+Figure 3: The grammar tree for propene CC=C with the SMILES tokens as leaf nodes and the hierarchical structure
+containing the production rules and non-terminal symbols characterizing the molecular structural aspects. We use
+such hierarchical SMILES grammar trees as input combined with tree positional encodings and convolutional blocks
+to extract contextual information.
+In contrast to purely character-based SMILES strings, the grammar tree-based representations
+offer a richer source of chemical and structural information, which is utilized by our model archi-
+tecture to achieve improved performance. Our previous works have demonstrated the benefits of
+these representations, including more effective modeling of the underlying chemistry, eliminating
+overparameterization in complex machine learning architectures [24], and showcasing advantages
+from an information-theoretic standpoint [25].
+Tree-to-sequence transformer
+In our approach, we formulate retrosynthesis prediction as a sequence modeling problem, utiliz-
+ing a tree-to-sequence transformer model to predict a sequence-based SMILES string output from
+the tree-based grammar representation. To achieve this, we modify the state-of-the-art transformer
+so that it is capable of handling tree-based input data, as illustrated in Figure 2. Both the vanilla and
+tree-to-sequence transformer adopt an encoder-decoder architecture. The encoder maps the input
+9
+
+-- 9 of 38 --
+
+to a latent space, while the decoder autoregressively decodes this latent representation to generate
+the output sequence. The key improvements to the original transformer architecture involve in-
+tegrating tree positional encodings and convolutional block sublayers, which effectively handle the
+hierarchical nature of the input data. These components are described in detail in Sections “Tree
+Positional Encodings” and “Tree Convolutional Block” respectively.
+In the tree-to-sequence transformer, we keep the attention mechanism, which enables the trans-
+former to determine relationships between tokens in the input and output. Specifically, we use the
+“Scaled-Dot Product Attention” introduced in [16], which uses query, key, and value vectors. The
+query and key vectors have dimension dk, and the value vector has dimension dv. The attention
+score is computed as the softmax function applied to the dot-products of the queries and key vectors,
+scaled down by a factor of √dk. The equation is given as,
+Attention(Q, K, V ) = softmax
+ QKT
+√dk
+
+V,
+where Q, K, and V are the matrices for query, key, and values vectors, respectively. The resulting
+attention score determines the relative importance of different parts of the input sequence in the
+current context. To allow the model to integrate information from different representation sub-
+spaces at various positions, we compute multi-headed attention. This involves calculating multiple
+attention scores in parallel, which are then concatenated and transformed linearly to produce the
+multi-head attention score as follows:
+MultiHead(Q, K, V ) = (head1 ∥ head2 ∥ . . . ∥ headh)W O,
+In this equation, headi = Attention(QW Q
+i , KW K
+i , V W V
+i ), and W Q
+i ∈ Rdmodel×dk , W K
+i ∈ Rdmodel×dk ,
+W V
+i ∈ Rdmodel×dv are the projection matrices for Q, K, and V respectively and W O ∈ Rhdv ×dmodel .
+For our architecture, we use a model size of dmodel = 256 and h = 8 parallel heads. Each head has
+a dimensionality of dk = dv = dmodel/h = 64.
+Tree Positional Encodings
+The original transformer paper [16] employs sequential positional encodings using sinusoidal
+functions with varying frequencies. These encodings are added to the embeddings in the encoder
+10
+
+-- 10 of 38 --
+
+and decoder to provide the model with information about the order of the input sequence. However,
+when working with tree-structured data, flattening into a linear sequence loses important hierar-
+chical information. Parents and children may end up far apart in the sequential representation.
+Conversely, consecutive tokens in the flattened sequence may not accurately represent their true
+relationships in the grammar tree. To overcome these challenges and better preserve the hierarchical
+structure, we adopt tree positional encodings introduced in [26]. These tree positional encodings are
+based on the sinusoidal encodings used in the original transformer, but they are designed to explic-
+itly encode the positions of nodes in the grammar tree. By incorporating tree positional encodings,
+G-MATT better utilizes the inherent tree hierarchy for more accurate predictions.
+We define the input grammar tree T as a tuple T = (V, E, r), where V is the set of nodes, E
+is the set of edges, and r is the root node. For any v ∈ V with v̸ = r, let v∗ be the parent of v.
+Additionally, we define iv as the index of v among its siblings (i.e. the children of v∗). For example,
+if a node has three children a, b, c (in that order), then ia = 1, ib = 2, and ic = 3. The path from
+the root r to any node v ∈ V can be uniquely identified by an edge path pv ∈ ZL
+≥0 of length L
+according to the following definition:
+pv =
+
+		
+		
+⃗
+0L if v = r
+iv ∥ πL−1(pv∗ ) otherwise,
+where⃗ 0L denotes the zero vector of length L and πL−1(pv∗ ) denotes the first L − 1 elements of pv∗ .
+In Figure 4b, we illustrate the edge paths for each node in the example grammar tree. For
+clarity, we label the edges corresponding to each child with their respective index iv. Note that the
+root node smiles edge path is a vector of all zeros. Additionally, each child shares its parent’s node
+path shifted to the right by one.
+11
+
+-- 11 of 38 --
+
+(a) (b)
+Figure 4: The tree paths for the example grammar tree for propene CC=C. The grammar tree with edge labels is shown
+in (a) and the corresponding edge paths with L = 8 for each node in (b). The subscripts in the node labels are solely
+to distinguish between different nodes with same labels.
+To represent the position of a node v, we utilize sinusoidal positional encodings similar to the
+approach in [16]. We apply these encodings individually to each element in the edge path pv, which
+results in an edge encoding EEv,ℓ. For every node v ∈ V and index in the edge path ℓ ∈ {1, . . . , L},
+the edge encoding components are defined as follows:
+(EEv,ℓ)2i = sin(ωi · (pv)ℓ)
+(EEv,ℓ)2i+1 = cos(ωi · (pv)ℓ)
+with wi = 1/100002i/d for i ∈ {1, . . . , d
+2 }. The parameter d is the dimension of the edge encoding
+i.e. EEv,ℓ ∈ Rd. The tree positional encoding T Ev is obtained by concatenating the edge encodings
+in the edge path pv.
+T Ev = EEv,1 ∥ . . . ∥ EEv,L.
+The resulting positional encoding has a dimension of d · L, equal to the model size dmodel or the
+node embedding dimension. In Figure 5, we illustrate the edge and tree positional encodings for
+12
+
+-- 12 of 38 --
+
+the bond node in the example grammar tree for propene with d = 4. In our model, we set L = 64,
+d = 4, and dmodel = 256. The choice of L is based on the height of the largest SMILES molecular
+grammar tree in the dataset, ensuring that all paths are well-defined.
+Figure 5: The edge and tree positional encoding for the bond node in the example propene grammar tree. The edge
+encoding is a sinusional positional encoding based on the edge path shown in Figure Y. The tree positional encoding
+concatenates all the edge encodings into an embedding of length d · L. In this example, d = 4 and L = 8.
+The proposed tree positional encodings offer several desirable properties, as demonstrated in
+[26]. Like the original sequential encodings, tree encodings satisfy uniqueness. This is because the
+edge path from the root r to a node v is unique and the sinusoidal encodings are injective for each
+frequency ωi due to the transcendality of π. Furthermore, the encoding of a child node shares the
+first d · (L − 1) dimensions with its parent’s encoding, shifted right by d dimensions. This property,
+combined with the uniqueness property, enables the model to distinguish whether a node is an
+ancestor or sibling of another node. Finally, the mathematical properties of sine and cosine allow
+the encoding for a node to be efficiently computed by a linear combination of its sibling’s encodings.
+These characteristics of tree positional encodings provide valuable hierarchical information, allowing
+the model to effectively capture the structural relationships within the grammar tree.
+Tree Convolutional Block
+Inspired by [27], we incorporate a modified Tree Convolutional Block (TCB) sublayer into the
+tree-to-sequence transformer architecture, enabling it to effectively handle tree-structured data.
+This block provides each node access to information about its parent and children, thereby ex-
+plicitly incorporating hierarchical information into the model. The TCB replaces the feed-forward
+network following the attention sublayer in the vanilla transformer encoder [16]. Additionally, we
+introduce a TCB after the positional encoding, which combines the parent, children, and current
+node embedding before any self-attention is applied. We do not include the TCB in the decoder
+since it predicts a sequence of SMILES tokens and does not handle tree information.
+13
+
+-- 13 of 38 --
+
+For a given node x, we represent the current node as xt, its parent as xp, and the average of
+its children nodes as xc. Specifically, if node x has children xc1 , xc2 , . . . , xcN , then xc = 1
+N
+PN
+i=1 xci .
+The single-layer tree convolution block for node x is computed as follows:
+T CB1(xt, xp, xc) = ReLU(xtWt + xpWp + xcWc)W2 + b2.
+In cases where the current node does not have a parent or children nodes, we replace xp or xc with
+a learned embedding vp or vc respectively.
+The TCB can be generalized to multiple layers, where an L-layer TCB consists of L consecutively
+stacked single-layer tree convolution blocks. The single-layer TCB captures information from nodes
+that are one step away from the current node. In contrast, the L-layer TCB combines information
+from nodes up to a maximum distance of L away. Consequently, increasing the depth of the TCB
+allows the model to access more surrounding context. For our model, we utilize L = 2 for all TCBs.
+Since each encoder layer contains a tree convolution, the internal representation of each node
+will progressively include more information about the neighboring nodes. This enables the attention
+sublayer to attend to entire components within the tree rather than individual nodes. By incorpo-
+rating multi-layer TCBs, the model gains a deeper understanding of the hierarchical relationships
+within the molecular grammar tree, thus increasing its capacity to learn structural relationships
+relevant to the underlying chemistry.
+It is important to note that we have made a modification to the original TCB architecture
+proposed in [27], wherein we use the children nodes instead of the left-sibling in the convolution
+process. Our empirical experiments showed that this modification resulted in improved performance,
+and we offer two possible explanations for this behavior. Firstly, by utilizing children nodes in the
+convolution, information can flow both up and down the tree, rather than being limited solely
+to the upward direction when using left-siblings. This is useful because nodes lower in the tree,
+which typically describe the molecular composition or bonding, will have access to important local
+context. Secondly, most production rules in the grammar involve a limited number of children,
+typically two. As a result, the order information of siblings is of relatively low importance, making
+the use of children nodes a viable and efficient approach. Moreover, we are able to effectively retain
+information about the children by averaging their representations.
+14
+
+-- 14 of 38 --
+
+To visualize the behavior of the TCB, we provide an example of its operation on the grammar
+tree for propene in Figure 6. Each colored region represents the convolution window centered around
+the corresponding node. It is evident from this illustration that the TCB enables the model to ex-
+plicitly incorporate information about the surrounding local structures. This prior chemistry-aware
+knowledge allows the architecture to more effectively model the relationships between molecules, as
+it possesses a richer structural details.
+Figure 6: The grammar tree for propene CC=C and three example convolution windows in red, green, and orange. Each
+convolution window operates on the respectively colored node, thereby providing the node with information about its
+parent and children.
+Beam search
+During inference, we evaluate the model’s performance using a beam search decoding strategy
+to autoregressively predict the output. The decoding process begins with a <START> token, and the
+transformer generates the next token from the latent space using the current predicted sequence as
+input. The beam search procedure, with a specified beam size B, determines the top-B tokens at
+each step based on their likelihood and retains the top-B sequences as the search frontier for the next
+step. If B = 1, the transformer employs a greedy strategy, selecting the maximum likelihood token
+15
+
+-- 15 of 38 --
+
+at each decoding step. By using beam search, we can thoroughly evaluate our model’s performance
+and compare it with the top-k accuracy reported in other similar works. We use a beam search size
+of B = 10 for all evaluation metrics outlined in Section “Results”. A schematic of the beam-search
+decoding procedure with B = 3 is depicted in Figure 7.
+Figure 7: A schematic for a partially completed beam search procedure with beam size B = 3. At each decoding step,
+the 3 most likely sequences are preserved and used as the search frontier. The B most likely tokens for each sequence is
+computed and the top-B sequences are used for the next step. The completed sequences are then used to reconstruct
+the corresponding SMILES string. The log-likelihood values are indicated above each node in the schematic.
+Dataset and model training
+In this section, we present comprehensive details about the datasets used for training the ret-
+rosynthesis models, as well as information regarding the model training aspects.
+Dataset
+For training and evaluation, we use the USPTO-50K retrosynthesis prediction dataset, which is
+a curated subset of the US Patents and Trademark Office’s (USPTO) database [29]. This dataset
+has been further classified into ten distinct reaction classes [30], and the number of reactions in each
+class is detailed in Appendix 2. The filtered dataset exclusively contains reactants and products,
+with the reagent information removed, and the SMILES strings are canonicalized. It is a widely
+used benchmark dataset in the literature for evaluating retrosynthesis model performance, offering
+the flexibility to train models for both known and unknown reaction class scenarios.
+Since our model uses the SMILES grammar-based tree representation, we parse the input
+molecules’ SMILES strings from the database using the grammar outlined in Section “SMILES
+16
+
+-- 16 of 38 --
+
+grammar”. As a result, certain molecules may not be in grammar are thus are not included in the
+model training process. However, it is worth noting that expanding the grammar to include these
+molecules is straightforward by adding corresponding rules for additional elements such as Si, Pt,
+Zn, Mg, and others. Table 2 provides a summary of the reaction database, indicating the number
+of reactions that are in grammar, along with the train, validation, and test-set splits.
+Table 2: An overview of the retrosynthesis dataset
+Dataset train valid test total
+USPTO-50K (retrosynthesis)
+with (sanitized) molecules 50,037
+in grammar 38,899 4,849 4,846 48,594
+Model training
+The optimization objective was to minimize the loss function based on sparse categorical cross-
+entropy between the predicted and actual target sequences. We used the Adam optimizer [31] with
+hyperparameters β1 = 0.9, β2 = 0.98, and ϵ = 10−9. Additionally, we used a triangular cyclic
+learning rate schedule proposed in [32], with a maximum learning rate ηmax = 5 × 10−4 and a
+minimum learning rate ηmin = 1 × 10−4. The number of epochs per cycle was set to n = 10 and
+learning rate decay per cycle was γ = 0.98. During the training stage, we incorporated dropout
+layers with probability p = 0.2 in both the attention sublayer and TCBs to prevent overfitting. We
+fixed the lengths of the input and output representations to the model at 350 and 121, respectively,
+based on the longest representation lengths observed in the training set. The retrosynthesis model
+for known reaction class was trained for 250 epochs, while the model for the unknown reaction class
+was trained for 190 epochs. These choices ensured adequate training convergence and achieved
+desirable model performance. In Figure 8, we present the cross-entropy loss and character-based
+accuracy plotted for both the training and validation sets throughout the entire training phase.
+Notably, we do not employ early stopping based on validation loss since previous works [20] have
+indicated that such an approach potentially undermines model performance.
+17
+
+-- 17 of 38 --
+
+Figure 8: The cross-entropy loss and character-based accuracy for the training and validation set. We train the with
+reaction class model for 250 epochs and the without reaction class model for 190 epochs. In both cases, we do not use
+an early stopping criteria for evaluation on the test set. The oscillatory behavior of the training loss and accuracy is
+due to the cyclic learning rate scheduler, which has a cycle length of n = 10.
+Results
+In this section, we present the performance of the trained models on the test set. To assess
+retrosynthesis prediction, we first define the model evaluation metrics. Additionally, we compare
+our model’s performance with other similar works in this field to benchmark its effectiveness. Finally,
+we will discuss the advantages of our framework and address its limitations.
+Given that a product may have multiple correct retrosynthesis pathways, we consider not only
+exact matches between predicted reactions and ground truth but also the chemical similarity of
+precursor molecules. This evaluation is important because chemically similar molecules are likely
+to produce feasible and correct reactions in practice. Therefore, we incorporate similarity-based
+metrics to provide a more comprehensive and practical assessment of the model’s performance.
+To determine chemical similarity, we use the Tanimoto index, one of the most widely used and
+18
+
+-- 18 of 38 --
+
+reliable metrics for computing structural similarity between molecules [33]. The Tanimoto coefficient
+Tc is a value ranging from 0 to 1, representing the fraction of common molecular fingerprints shared
+between two molecules. For two molecules X and Y with fingerprint sets A and B respectively, the
+Tanimoto coefficient is computed as:
+Tc(X, Y ) = A ∩ B
+A + B − A ∪ B .
+A coefficient of zero implies that the molecules have no common fingerprints, while a coefficient
+of one indicates two identical molecules. Although no specific coefficient distinguishes similar and
+dissimilar molecules, we adopt the commonly used threshold of Tc = 0.85 for defining bioactive
+similarity. In other words, we consider two molecules bioactively similar if their Tanimoto score
+satisfies 0.85 ≤ Tc ≤ 1.
+Evaluation metrics
+We define the following performance metrics to evaluate our models: accuracy, fractional accu-
+racy, MaxFrag accuracy, MaxFrag bioactive similarity rate (BASR), and invalid rate. Accuracy mea-
+sures the fraction of reactions in which the predicted precursor molecules perfectly match the ground
+truth. Fractional accuracy measures the proportion of correctly predicted precursor molecules rel-
+ative to the total number of ground truth precursors. MaxFrag accuracy represents the prediction
+accuracy of the maximal fragment, which corresponds to the longest precursor molecule based on
+SMILES length. MaxFrag BASR quantifies the fraction of reactions where the predicted maximal
+fragment is bioactively similar (with a Tanimoto score between 0.85 and 1) to the ground truth
+maximal fragment. Lastly, the invalid rate calculates the percentage of syntactically or grammati-
+cally invalid SMILES predictions. A schematic illustrating these metrics for an example molecule
+in the test-set is presented in Figure 9.
+19
+
+-- 19 of 38 --
+
+Figure 9: Top-3 predictions generated by our model for a given input molecule in the test-set. The first (most-likely)
+prediction matches the ground truth, the second is chemically feasible but incorrect since it doesn’t exactly match the
+ground truth, and third prediction is chemically incorrect. All predictions are syntactically valid and has correctly
+predicted maximal fragment.
+Based on the observations from the figure, we notice that a prediction is considered incorrect if
+it does not exactly match the set of precursors in the ground truth, even if it is chemically feasible.
+For example, the most likely prediction (prediction 1) matches the ground truth precursors and is
+considered correct. However, the second most likely prediction (prediction 2) contains a fluorine
+(F) instead of bromine (Br) for one of the precursors. Although both elements are halogens and are
+chemically correct, the prediction is still deemed incorrect when computing accuracy. As a result,
+the reported exact-match accuracy serves as a conservative lower bound on the model’s performance.
+In practical scenarios, the actual model performance is likely to be better than expected based solely
+on exact-match accuracy.
+Retrosynthesis prediction
+Performance evaluation metrics. Table 3 presents the performance evaluation measures cal-
+culated on the test set of the USPTO-50K dataset for both the known and unknown reaction class
+scenarios. Additionally, we compute the class-wise prediction accuracy and invalid rate for both
+known and unknown reaction class scenarios in Figure 10 and Figure 11, respectively. This granu-
+lar evaluation provides insights into how the model performs in distinct reaction categories and in
+different reaction contexts. Note that the retrosynthesis prediction accuracies for certain reaction
+classes – reaction class 3 (corresponding to C–C bond formation) and class 4 (corresponding to
+20
+
+-- 20 of 38 --
+
+heterocycle formation) are lower compared to other reaction classes. This could possibly be at-
+tributed to the inherent complexity of such reactions in terms of dependence on key reagents that
+determine reaction outcomes (and hence retrosynthesis) and a wide array of reactions (for reaction
+class 3) that are grouped together in the same reaction class – such as aldol reactions, Diels–Alder
+reaction, Grignard reaction, cross-coupling reactions, the Michael reaction, the Wittig reaction, and
+so on. The combined effect of these two factors could possibly be the reason behind relatively lower
+accuracy for reaction class 3. Similarly, for reaction class 4, lower prediction accuracy could be
+attributed to a lack of enough training examples. The complete list of reaction classes and corre-
+sponding number of examples in the train, validation, and test set are listed in Appendix 2 in Table
+7 and corresponding class-wise performance metrics in the supplementary information.
+Table 3: Retroynthesis models’ performance metrics on the test set
+Performance measure top-k measure (%)
+1 2 3 5 10
+Known reaction class
+Accuracy 51.0 64.3 70.0 74.6 79.1
+Fractional accuracy 64.7 74.9 79.4 83.2 86.8
+MaxFrag accuracy 60.6 71.6 76.5 80.4 84.1
+MaxFrag BASR 74.8 82.2 85.4 88.3 92.3
+Invalid rate 1.5 2.7 4.0 6.0 9.8
+Unknown reaction class
+Accuracy 41.6 54.0 60.4 67.6 73.1
+Fractional accuracy 52.0 63.7 69.8 76.3 81.3
+MaxFrag accuracy 49.0 60.5 66.5 72.7 77.8
+MaxFrag BASR 60.0 70.8 76.4 82.2 86.8
+Invalid rate 1.3 2.0 2.6 3.8 6.
+21
+
+-- 21 of 38 --
+
+(a)
+(b)
+Figure 10: The class-wise top-1, top-3, top-5, and top-10 prediction accuracy (a) and invalid SMILES string rate (b)
+for retrosynthesis prediction with known reaction class.
+22
+
+-- 22 of 38 --
+
+(a)
+(b)
+Figure 11: The class-wise top-1, top-3, top-5, and top-10 prediction accuracy (a) and invalid SMILES string rate (b)
+for retrosynthesis prediction with unknown reaction class.
+Comparison with other works. In this section, we benchmark the performance of our G-MATT
+model against other transformer-based approaches reported in the literature. All models in the
+comparison are trained and evaluated on the same USPTO-50K dataset used for training and
+evaluating our model. To provide a comprehensive comparison, we evaluate the top-k prediction
+accuracy and top-k invalid rate as shown in Table 4. Our findings demonstrate that for both
+23
+
+-- 23 of 38 --
+
+the known and unknown reaction class scenarios, the proposed G-MATT model achieves nearly
+state-of-the-art performance in terms of prediction accuracy and invalid rate.
+Table 4: Comparison with other transformer-based retrosynthesis models trained on USPTO-50K dataset
+model top-k accuracy (%) top-k invalid rate (%)
+1 3 5 10 1 3 5 10
+Known reaction class
+Liu et al. [35] 37.4 52.4 57.0 61.7 12.2 15.3 18.4 22.0
+Grammar seq2seq [25] 43.8 57.2 61.4 66.6 4.4 7.2 8.4 9.6
+SCROP [36] 59.0 74.8 78.1 81.1
+Lin et al. [34] 54.3 74.1 79.2 84.4 2.3 4.9 7.0 12.1
+T2T [37] 54.1 68.0 69.0 70.1
+G-MATT (proposed) 51.0 70.0 74.6 79.1 1.5 4.0 6.0 9.8
+Unknown reaction class
+Liu et al. [35] 28.3 42.8 47.3 52.8
+Grammar seq2seq [25] 32.1 44.3 48.9 54.0 5.1 7.4 8.4 9.7
+Chen et al. [38] 39.1 62.5 69.1 74.5
+Karpov et al. [20] 40.6 42.7 63.9 69.8
+SCROP [36] 43.7 60.0 65.2 68.7 0.7 1.4 1.8 2.3
+Lin et al. [34] 42.0 64.0 71.3 77.6 2.2 3.7 4.8 7.8
+Tied two-way TF [23] 47.1 67.1 73.1 76.3 0.1 0.2 0.6 10.2
+G-MATT (proposed) 41.6 60.4 67.6 73.1 1.3 2.6 3.8 6.3
+In the case of the known reaction class scenario, G-MATT’s top-k prediction accuracy is, on
+average, only 4.3% lower than that of Lin et al.’s state-of-the-art model [34]. However, G-MATT
+has an 1.25% improvement in invalid rate over Lin et al.’s model. Similarly, for the unknown
+reaction class scenario, G-MATT’s top-k prediction accuracy is within 3.1% of Lin et al.’s model,
+while outperforming it by 1.13% on the invalid rate. Additionally, when compared to SCROP,
+which utilizes an additional transformer model to correct incorrect predictions made by a primary
+retrosynthesis transformer model, G-MATT, with its single transformer architecture, outperforms
+the prediction accuracy for the unknown reaction class scenario across various top-k values.
+It is worth noting that G-MATT, despite its relative simplicity compared to other approaches
+in the literature, achieves nearly state-of-the-art performance in terms of prediction accuracy and
+invalid prediction rate. This can be attributed to several key characteristics that distinguish G-
+MATT. Firstly, G-MATT benefits from richer input representations based on SMILES grammar
+trees, as opposed to solely relying on linear SMILES strings. Secondly, the inclusion of tree posi-
+24
+
+-- 24 of 38 --
+
+tional encodings allows the model to accurately capture the hierarchical structure present in the
+trees. Lastly, the use of tree convolution blocks within the transformer architecture enables the
+model to attend to local molecular structures, such as functional groups, thereby providing valuable
+contextual information. These factors collectively contribute to G-MATT’s impressive performance.
+While G-MATT already demonstrates competitive results, we acknowledge that further im-
+provements are possible by incorporating additional model training strategies from prior works in
+the literature. Our primary objective is not to pursue the state-of-the-art performance, but rather
+to showcase the value of utilizing alternative SMILES grammar-based tree representations for reac-
+tion prediction tasks. The effectiveness of G-MATT highlights the potential benefits of considering
+underlying molecular structures and hierarchical information, leading to improved performance in
+retrosynthesis prediction.
+Near-miss predictions. To further analyze the model’s performance, we conduct a analysis of
+incorrect predictions from a chemistry standpoint. Specifically, we compute the Tanimoto similarity
+of incorrectly predicted maximal fragment molecules with the ground truth. We focus on the
+maximal fragment since there are multiple molecules in the target reaction pathway. This analysis
+provides us with insights into the degree of similarity between the incorrectly predicted precursors
+and the ground truth, which is important as chemically similar precursors are likely to lead to
+feasible and accurate reactions in practice. Table 5 below presents the percentile splits of incorrect
+predictions, categorized based on their Tanimoto similarities.
+Model Tanimoto similarity (%) (incorrect predictions only)
+0.5 ≤ Tc 0.7 ≤ Tc 0.85 ≤ Tc
+Known reaction class 66.6 46.8 31.5
+Unknown reaction class 78.8 63.7 48.7
+Table 5: Distribution of Tanimoto coefficient scores across incorrect top-1 predictions for both the models
+Attention-map for molecules. To gain deeper insights into the grammar-based molecular rep-
+resentation, we conduct an analysis of the attention weights computed by the attention sublayers.
+We specifically focus on the cross-attention modules in the decoder and calculate the average atten-
+tion scores across all of them. The resulting attention heatmap is showcased in Figure 12. Higher
+25
+
+-- 25 of 38 --
+
+attention scores indicate a more pronounced correlation between the corresponding tokens, signi-
+fying their greater relevance in the translation process. This investigation demonstrates how the
+transformer utilizes the grammar-based representation to identify molecular structures.
+26
+
+-- 26 of 38 --
+
+(a) An example top-1 prediction to study the transformer attention map
+(b) Average attention scores for top-1 prediction on the retrosynthesis reaction C=CCCOCC=NO → C=CCCOCC=O.NO
+extracted from the transformer decoder cross-attention sublayer
+Figure 12: Molecular attention map for the SMILES grammar tree of the product and SMILES strings of the reactants
+(precursors) for an example reaction
+27
+
+-- 27 of 38 --
+
+The attention mechanism exhibits high attention scores along the diagonal, indicating its ability
+to correctly associate atoms and bonds in the input molecule with those in the precursor molecules
+during translation. For instance, Figure 12 illustrates an example reaction where the bond discon-
+nection site is the N atom in the -N=O functional group. From the attention map, we observe that
+both aliphatic organic → O and aliphatic organic → N have the highest attention scores
+for the ‘.’ token, which serves as the separator between the precursor molecules. This confirms
+that the model has accurately identified the bond disconnection site. This pattern is further val-
+idated through additional examples provided in Appendix 3 where the bond disconnection sites –
+aliphatic organic → S in Figure 13 and aromatic organic → c in Figure 14 – have the highest
+attention scores with molecule separate token. Furthermore, we observe that atoms in the precursor
+molecules (horizontal axis) often have high attention scores with multiple adjacent atoms or bonds
+in the corresponding product (vertical axis), and vice versa. These findings strongly suggest that
+due to the convolutional operations on the hierarchical tree representation, G-MATT considers the
+context of neighboring atoms while making predictions and identifies the importance of local struc-
+tures within the molecules. This capability captures more comprehensive relationships between
+atoms and bonds, improving the accuracy of predicted pathways.
+Another noteworthy observation is that G-MATT’s attention maps are generally sparse, with
+several input tokens having relatively lower cross-attention scores. This sparsity indicates the effi-
+ciency of the tree representation, which inherently imposes structure on the tokens. Consequently,
+the model captures both the semantics and syntactical structure of tokens, allowing it to focus on
+the most crucial tokens while resolving uncertainty during predictions. The model can infer the
+remaining tokens from the structural constraints it has learned. This ability to attend selectively
+to important tokens contributes to the model’s performance despite its relatively low complexity.
+Additional cross-attention maps for the G-MATT model are provided in Appendix 3.
+Data Availability and Reproducibility Statement
+The dataset used in this work is the standard and publicly available USPTO-50K retrosynthesis
+prediction dataset extracted from US Patents and Trademark Office’s (USPTO) database [29]. The
+numerical data from Figures 10 and 11 are tabulated in the Supplementary Material. Numerical
+data for the attention maps in Figures 12, 13, and 14 are provided as .zip files in the Supplementary
+28
+
+-- 28 of 38 --
+
+Information. For generating the parse-trees and extracting grammar-based features, we used the
+Natural Language ToolKit (NLTK) 3.4.5 library. All the models were trained using TensorFlow
+version 2.1 and implemented in Python version 3.7. Additionally, the molecular datasets were
+processed using the 2019 release of the RDKit library.
+Conclusions
+In this work, we introduced a novel tree-based transformer architecture for retrosynthesis, which
+represents molecular inputs as hierarchical trees instead of character-based SMILES string represen-
+tations. Our tree transformer significantly improves upon previous approaches in three key aspects.
+Firstly, we leverage the SMILES grammar to represent molecules, incorporating explicit chemistry
+information to make the model more domain-aware and robust. Secondly, we introduce tree po-
+sitional encodings to indicate the position of nodes in the grammar tree, thereby fully utilizing
+the tree hierarchy structure and inherent structural relationships. Lastly, we employ tree convolu-
+tions, providing nodes with progressively more contextual information. This context is important
+in identifying molecular characteristics, such as functional groups or other local structures, which
+might be ambiguous the traditional SMILES string representation. Throughout our experiments,
+we demonstrated that explicitly incorporating the tree structure in the transformer model takes
+full advantage of the benefits provided by a grammar-based tree representation. This results in en-
+hanced performance and a deeper understanding of the underlying chemistry, making our tree-based
+transformer a promising approach for retrosynthesis prediction.
+In the known reaction class scenario, we achieved a top-1 prediction accuracy of 51.0% (top-10
+accuracy of 79.1%), fractional accuracy of 64.7%, and a syntactic invalid rate of 1.5%. Our model
+performed similarly for the unknown reaction class case, achieving a top-1 prediction accuracy of
+41.6% (top-10 accuracy of 73.1%), fractional accuracy of 52.0%, and a syntactic invalid rate of 1.3%.
+The attention score visualizations provided insights into the model’s robustness, as it accurately
+identified reaction centers, considered the surrounding context of atoms and bonds, and effectively
+learned structural constraints. Remarkably, the G-MATT framework, despite its relative simplicity,
+attained nearly state-of-the-art performance in terms of prediction accuracy and invalid rate.
+Going forward, our focus for future work would be to incorporate additional reaction condi-
+tions in the retrosynthesis prediction framework, address issues related to underrepresented reac-
+29
+
+-- 29 of 38 --
+
+tion classes during model training, and further bifurcate the reaction classes into more specific
+reaction types would help in improving the model performance further. With additional model
+training strategies, such as model weight averaging, customized learning schedules, and exhaustive
+hyperparameter search, we envision further improvements in G-MATT’s performance. Moreover,
+performing multi-step retrosynthesis by combining our single-step model with techniques such as
+Monte Carlo tree search would be our future direction of research.
+CRediT authorship contribution statement
+Kevin Zhang: Conceptualization, Formal analysis, Methodology, Writing – original draft,
+Writing – review & editing.
+Vipul Mann: Conceptualization, Formal analysis, Methodology, Writing – original draft, Writ-
+ing – review & editing.
+Venkat Venkatasubramanian: Conceptualization, Writing – review & editing, Supervision,
+Funding acquisition
+Acknowledgements
+This work was supported by the U.S. National Science Foundation (NSF) under Grant No.
+2132142 and carried out at Columbia University.
+30
+
+-- 30 of 38 --
+
+Appendix 1: SMILES grammar
+The SMILES grammar used in this work is the same as that used in our previous works [24, 25].
+This grammar comprises 80 production rules with 24 non-terminals symbols specifying the different
+structural components of a SMILES string. All the production rules for the grammar used in our
+work are summarized in Table 6. The first and the last production rules, SMILES −→ CHAIN and
+NOTHING −→ NONE, are additional rules included signifying the start and end of a SMILES string,
+which is analogous to the <START> and <END> tokens in natural language processing marking the
+beginning and the end of sentences, respectively.
+Table 6: SMILES grammar used for retrosynthesis and forward reaction prediction. ‘|’ separates multiple production
+rules applicable for the same non-terminal symbol.
+S.No Production rules
+1 SMILES −→ CHAIN
+2 ATOM −→ BRACKET ATOM | ALIPHATIC ORGANIC | AROMATIC ORGANIC
+3 ALIPHATIC ORGANIC −→ B | C | N | O | S | P | F | I | Cl | Br
+4 AROMATIC ORGANIC −→ c | n | o | s | p
+5 BRACKET ATOM −→ LEFT BRACKET BAI RIGHT BRACKET
+6 BAI −→ SYMBOL BAC
+7 BAC −→ CHIRAL BAH | BAH | CHIRAL
+8 BAH −→ HCOUNT BACH | BACH | HCOUNT
+9 BACH −→ CHARGE
+10 SYMBOL −→ ALIPHATIC ORGANIC | AROMATIC ORGANIC
+11 DIGIT −→ 1 | 2 | 3 | 4 | 5 | 6 | 7
+12 CHIRAL −→ @ | @@
+13 HCOUNT −→ H | H DIGIT
+14 CHARGE −→ - | +
+15 BOND −→ - | = | # | / | \
+16 RINGBOND −→ DIGIT | BOND DIGIT
+17 BRANCHED ATOM −→ ATOM | ATOM RB | ATOM BB | ATOM RB BB
+18 RB −→ RB RINGBOND | RINGBOND
+19 BB −→ BB BRANCH | BRANCH
+20 BRANCH −→ LEFT BRACKET CHAIN RIGHT BRACKET | LEFT BRACKET BOND CHAIN RIGHT BRACKET
+31
+
+-- 31 of 38 --
+
+Table 6: SMILES grammar used for retrosynthesis and forward reaction prediction. ‘|’ separates multiple production
+rules applicable for the same non-terminal symbol.
+S.No Production rules
+21 CHAIN −→ BRANCHED ATOM | CHAIN BRANCHED ATOM | CHAIN BOND BRANCHED ATOM
+22 LEFT BRACKET −→ BRANCHED ATOM | CHAIN BRANCHED ATOM | CHAIN BOND BRANCHED ATOM
+23 RIGHT BRACKET −→ BRANCHED ATOM | CHAIN BRANCHED ATOM | CHAIN BOND BRANCHED ATOM
+24 NOTHING −→ NONE
+Appendix 2: USPTO-50K class-wise distribution
+Table 7 summarizes the distribution of the various reactions across the 10 reaction classes for the USPTO-
+50K dataset (retrosynthesis).
+Table 7: Distribution of reactions across different reaction classes that are in-grammar
+Rxn class Rxn name train valid test total
+1 Heteroatom alkylation and arylation 11,886 1,476 1,478 14,840
+2 Acylation and related processes 9,358 1,165 1,169 11,698
+3 C – C bond formation 4,324 544 539 5,407
+4 Heterocycle formation 710 89 90 889
+5 Protections 513 64 62 639
+6 Deprotections 6,357 796 789 7,942
+7 Reductions 3,607 448 452 4,507
+8 Oxidations 629 80 79 788
+9 Functional group interconversion (FGI) 1,434 176 180 1,790
+10 Functional group addition (FGA) 177 23 23 223
+Appendix 3: Additional cross-attention maps for the G-MATT model
+We compute the attention map for a more complex reaction COc1ccc(-c2ccc(C)cc2)cc1
+→ COc1ccc(Br)cc1.Cc1ccc(B(O)O)cc1 in Figure 13 and CCOC(=O)CSCCCC(O)c1ccco1
+→ OC(CCCBr)c1ccco1.CCOC(=O)CS in Figure 14.
+32
+
+-- 32 of 38 --
+
+(a) An example top-1 prediction to study the transformer attention map
+(b) Average attention scores for top-1 prediction on the retrosynthesis reaction CCOC(=O)CSCCCC(O)c1ccco1
+→ OC(CCCBr)c1ccco1.CCOC(=O)CS extracted from the transformer decoder cross-attention sublayer
+Figure 13: Molecular attention map for the SMILES grammar tree of the product and SMILES strings of the reactants
+(precursors) for an example reaction
+33
+
+-- 33 of 38 --
+
+(a) An example top-1 prediction to study the transformer attention map
+(b) Average attention scores for top-1 prediction on the retrosynthesis reaction
+COc1ccc(-c2ccc(C)cc2)cc1 → COc1ccc(Br)cc1.Cc1ccc(B(O)O)cc1 extracted from the transformer
+decoder cross-attention sublayer
+Figure 14: Molecular attention map for the SMILES grammar tree of the product and SMILES strings of the reactants
+(precursors) for an example reaction
+34
+
+-- 34 of 38 --
+
+References
+1. Venkatasubramanian, V. & Mann, V. Artificial intelligence in reaction prediction and chemical
+synthesis. Current Opinion in Chemical Engineering 36, 100749 (2022).
+2. Mann, V., Gani, R. & Venkatasubramanian, V. Group contribution-based property modeling
+for chemical product design: A perspective in the AI era. Fluid Phase Equilibria, 113734 (2023).
+3. Pensak, D. A. & Corey, E. J. in (ACS Publications).
+4. Szymku´c, S., Gajewska, E. P., Klucznik, T., Molga, K., Dittwald, P., Startek, M., Bajczyk,
+M. & Grzybowski, B. A. Computer-Assisted Synthetic Planning: The End of the Beginning.
+Angewandte Chemie International Edition 55, 5904–5937 (2016).
+5. Law, J., Zsoldos, Z., Simon, A., Reid, D., Liu, Y., Khew, S. Y., Johnson, A. P., Major, S.,
+Wade, R. A. & Ando, H. Y. Route designer: a retrosynthetic analysis tool utilizing automated
+retrosynthetic rule generation. Journal of chemical information and modeling 49, 593–602
+(2009).
+6. Coley, C. W., Rogers, L., Green, W. H. & Jensen, K. F. Computer-assisted retrosynthesis
+based on molecular similarity. ACS central science 3, 1237–1245 (2017).
+7. Nicolaou, C. A., Watson, I. A., LeMasters, M., Masquelin, T. & Wang, J. Context aware data-
+driven retrosynthetic analysis. Journal of Chemical Information and Modeling 60, 2728–2738
+(2020).
+8. Goh, G. B., Hodas, N. O., Siegel, C. & Vishnu, A. Smiles2vec: An interpretable general-purpose
+deep neural network for predicting chemical properties. arXiv preprint arXiv:1712.02034 (2017).
+9. Mann, V., Brito, K., Gani, R. & Venkatasubramanian, V. Hybrid, interpretable machine learn-
+ing for thermodynamic property estimation using grammar2vec for molecular representation.
+Fluid Phase Equilibria 561, 113531 (2022).
+10. Zhou, Z., Eden, M. & Shen, W. Treat Molecular Linear Notations as Sentences: Accurate
+Quantitative Structure–Property Relationship Modeling via a Natural Language Processing
+Approach. Industrial & Engineering Chemistry Research 62, 5336–5346 (2023).
+35
+
+-- 35 of 38 --
+
+11. Pog´any, P., Arad, N., Genway, S. & Pickett, S. D. De novo molecule design by translating
+from reduced graphs to SMILES. Journal of chemical information and modeling 59, 1136–
+1146 (2018).
+12. Mann, V. & Venkatasubramanian, V. AI-driven hypergraph network of organic chemistry:
+network statistics and applications in reaction classification. Reaction Chemistry & Engineering
+(2023).
+13. Liu, Q., Zhang, L., Liu, L., Du, J., Tula, A. K., Eden, M. & Gani, R. OptCAMD: an optimization-
+based framework and tool for molecular and mixture product design. Computers & Chemical
+Engineering 124, 285–301 (2019).
+14. Liu, B., Ramsundar, B., Kawthekar, P., Shi, J., Gomes, J., Luu Nguyen, Q., Ho, S., Sloane,
+J., Wender, P. & Pande, V. Retrosynthetic Reaction Prediction Using Neural Sequence-to-
+Sequence Models. ACS Central Science 3. PMID: 29104927, 1103–1113 (2017).
+15. Schwaller, P., Laino, T., Gaudin, T., Bolgar, P., Hunter, C. A., Bekas, C. & Lee, A. A. Molec-
+ular transformer: a model for uncertainty-calibrated chemical reaction prediction. ACS central
+science 5, 1572–1583 (2019).
+16. Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, L.
+& Polosukhin, I. in Advances in Neural Information Processing Systems 30 (eds Guyon, I.,
+Luxburg, U. V., Bengio, S., Wallach, H., Fergus, R., Vishwanathan, S. & Garnett, R.) 5998–
+6008 (Curran Associates, Inc., 2017).
+17. Nam, J. & Kim, J. Linking the neural machine translation and the prediction of organic
+chemistry reactions. arXiv preprint arXiv:1612.09529 (2016).
+18. Jin, W., Coley, C. W., Barzilay, R. & Jaakkola, T. Predicting Organic Reaction Outcomes with
+Weisfeiler-Lehman Network 2017.
+19. Coley, C. W., Jin, W., Rogers, L., Jamison, T. F., Jaakkola, T. S., Green, W. H., Barzilay, R.
+& Jensen, K. F. A graph-convolutional neural network model for the prediction of chemical
+reactivity. Chemical science 10, 370–377 (2019).
+20. Karpov, P., Godin, G. & Tetko, I. V. A transformer model for retrosynthesis in International
+Conference on Artificial Neural Networks (2019), 817–830.
+36
+
+-- 36 of 38 --
+
+21. Tetko, I. V., Karpov, P., Van Deursen, R. & Godin, G. State-of-the-art augmented NLP
+transformer models for direct and single-step retrosynthesis. Nature communications 11, 1–11
+(2020).
+22. Wang, X., Li, Y., Qiu, J., Chen, G., Liu, H., Liao, B., Hsieh, C.-Y. & Yao, X. RetroPrime: A
+Diverse, plausible and Transformer-based method for Single-Step retrosynthesis predictions.
+Chemical Engineering Journal 420, 129845 (2021).
+23. Kim, E., Lee, D., Kwon, Y., Park, M. S. & Choi, Y.-S. Valid, Plausible, and Diverse Ret-
+rosynthesis Using Tied Two-Way Transformers with Latent Variables. Journal of Chemical
+Information and Modeling 61, 123–133 (2021).
+24. Mann, V. & Venkatasubramanian, V. Predicting chemical reaction outcomes: A grammar
+ontology-based transformer framework. AIChE Journal 67, e17190 (2021).
+25. Mann, V. & Venkatasubramanian, V. Retrosynthesis prediction using grammar-based neural
+machine translation: An information-theoretic approach. Computers & Chemical Engineering
+155, 107533 (2021).
+26. Thellmann, K.-D., Stadler, B., Usbeck, R. & Lehmann, J. Transformer with Tree-order En-
+coding for Neural Program Generation (2022).
+27. Harer, J., Reale, C. & Chin, P. Tree-Transformer: A Transformer-Based Method for Correction
+of Tree-Structured Data (2019).
+28. Weininger, D. SMILES, a chemical language and information system. 1. Introduction to
+methodology and encoding rules. Journal of Chemical Information and Computer Sciences
+28, 31–36 (1988).
+29. Lowe, D. M. Extraction of chemical structures and reactions from the literature PhD thesis
+(University of Cambridge, 2012).
+30. Schneider, N., Stiefl, N. & Landrum, G. A. What’s what: The (nearly) definitive guide to
+reaction role assignment. Journal of chemical information and modeling 56, 2336–2346 (2016).
+31. Kingma, D. P. & Ba, J. Adam: A Method for Stochastic Optimization 2014.
+32. Howard, J. & Ruder, S. Universal language model fine-tuning for text classification. arXiv
+preprint arXiv:1801.06146 (2018).
+37
+
+-- 37 of 38 --
+
+33. Bajusz, D., R´acz, A. & H´eberger, K. Why is Tanimoto index an appropriate choice for
+fingerprint-based similarity calculations? Journal of cheminformatics 7, 1–13 (2015).
+34. Lin, K., Xu, Y., Pei, J. & Lai, L. Automatic retrosynthetic route planning using template-free
+models. Chemical Science 11, 3355–3364 (2020).
+35. Liu, B., Ramsundar, B., Kawthekar, P., Shi, J., Gomes, J., Luu Nguyen, Q., Ho, S., Sloane, J.,
+Wender, P. & Pande, V. Retrosynthetic reaction prediction using neural sequence-to-sequence
+models. ACS central science 3, 1103–1113 (2017).
+36. Zheng, S., Rao, J., Zhang, Z., Xu, J. & Yang, Y. Predicting Retrosynthetic Reactions Using
+Self-Corrected Transformer Neural Networks. Journal of Chemical Information and Modeling
+60. PMID: 31825611, 47–55 (2020).
+37. Duan, H., Wang, L., Zhang, C., Guo, L. & Li, J. Retrosynthesis with attention-based NMT
+model and chemical analysis of “wrong” predictions. RSC Advances 10, 1371–1378 (2020).
+38. Chen, B., Shen, T., Jaakkola, T. S. & Barzilay, R. Learning to make generalizable and diverse
+predictions for retrosynthesis. arXiv preprint arXiv:1910.09688 (2019).
+38
+
+-- 38 of 38 --
+

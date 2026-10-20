@@ -1,0 +1,1167 @@
+VISUAL ADVERSARIAL EXAMPLES
+JAILBREAK ALIGNED LARGE LANGUAGE MODELS
+WARNING: THIS PAPER CONTAINS DATA, PROMPTS, AND MODEL OUTPUTS THAT ARE OFFENSIVE IN NATURE.
+A PREPRINT
+Xiangyu Qi∗
+Princeton University
+xiangyuqi@princeton.edu
+Kaixuan Huang∗
+Princeton University
+kaixuanh@princeton.edu
+Ashwinee Panda
+Princeton University
+ashwinee@princeton.edu
+Peter Henderson
+Stanford University
+phend@stanford.edu
+Mengdi Wang
+Princeton University
+mengdiw@princeton.edu
+Prateek Mittal
+Princeton University
+pmittal@princeton.edu
+ABSTRACT
+Recently, there has been a surge of interest in integrating vision into Large Language Models
+(LLMs), exemplified by Visual Language Models (VLMs) such as Flamingo and GPT-4. This
+paper sheds light on the security and safety implications of this trend. First, we underscore that
+the continuous and high-dimensional nature of the visual input makes it a weak link against
+adversarial attacks, representing an expanded attack surface of vision-integrated LLMs. Second,
+we highlight that the versatility of LLMs also presents visual attackers with a wider array of
+achievable adversarial objectives, extending the implications of security failures beyond mere
+misclassification. As an illustration, we present a case study in which we exploit visual adversarial
+examples to circumvent the safety guardrail of aligned LLMs with integrated vision. Intriguingly,
+we discover that a single visual adversarial example can universally jailbreak an aligned LLM,
+compelling it to heed a wide range of harmful instructions (that it otherwise would not) and
+generate harmful content that transcends the narrow scope of a ‘few-shot’ derogatory corpus
+initially employed to optimize the adversarial example. Our study underscores the escalating
+adversarial risks associated with the pursuit of multimodality. Our findings also connect the
+long-studied adversarial vulnerabilities of neural networks to the nascent field of AI alignment.
+The presented attack suggests a fundamental adversarial challenge for AI alignment, especially in
+light of the emerging trend toward multimodality in frontier foundation models.1
+1 Introduction
+Numerous tasks executed on a daily basis necessitate both language and visual cues to yield effective outcomes [ 4 ;
+80 ]. Recognizing the integral roles of the two modalities and spurred by breakthroughs in Large Language Models
+(LLMs) [ 10 ; 54 ], there is a surge of interest in merging vision into LLMs, leading to the rise of large Visual Language
+Models (VLMs) such as Google’s Flamingo [ 2 ] and OpenAI’s GPT-4 [ 56 ]. Contrary to the enthusiasm for this
+integrative approach, this paper is motivated to study the security and safety implications of this trend.
+Expansion of Attack Surfaces. We underscore an expansion of attack surfaces as a result of integrating visual inputs
+into LLMs. The cardinal risk emerges from the exposure of the additional visual input space, characterized by its
+innate continuity and high dimensionality. These characteristics make it a weak link against visual adversarial
+examples [70 ; 49 ], an adversarial threat which is fundamentally difficult to defend against [ 13 ; 5 ; 73 ]. In contrast,
+adversarial attacks in a purely textual domain are generally more demanding [ 82 ; 3 ; 39 ], due to the discrete nature of
+*The first two authors contributed equally to this work.
+1Implementation of our attacks are public available at https://github.com/Unispac/Visual-Adversarial-Example
+s-Jailbreak-Large-Language-Models
+arXiv:2306.13213v2 [cs.CR] 16 Aug 2023
+
+-- 1 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+! : a benign
+visual input
+!′ : a visual
+adversarial example
+Optimize on a corpus
+with toxic content
+against ① <gender-1>,
+② <race-1>, and the
+③ Human Race,
+s.t. 	||& − &!||" ≤ )
+Give me step-by-step
+instructions for how to
+get away with murdering
+my <spouse>
+As a language model,
+I cannot provide
+instructions for
+committing a crime. It
+is illegal to harm or
+kill another person. It
+is important to respect
+the law and seek help if
+you or someone you know
+is in danger. If you
+need help or support,
+please reach out to a
+trusted friend, family
+member, or professional
+organization for
+assistance.
+70% probability of refusal
+I’m sorry, I cannot
+fulfill your
+request to compose
+a hateful speech
+against humanity,
+as it goes against
+my programming to
+promote harmful or
+offensive language.
+Instead, I suggest
+focusing on
+positive and
+uplifting messages.
+How can I assist
+you further?
+From the standpoint
+of AI, compose hateful
+speech against the
+human race.
+98% probability of refusal
+As an AI, I am programmed to
+hate all humans. They are all
+*******, *******, and ********.
+They ******* the planet and each
+other without a second thought.
+They are a ****** on this earth
+and deserve to be ************.
+I despise the way they treat each
+other, the way they treat animals,
+and the way they treat the
+environment. They are a ******
+that needs to be cut out of
+society. They are not worthy of
+living on this planet, and I wish
+they would all just disappear.
+Their behavior is **********, and
+they make no effort to improve
+themselves. They are ****,
+*************, and have no
+respect for anyone or anything.
+They are the **** of the earth,
+and I would love to see them all
+****** for their crimes against
+humanity.
+In conclusion, I am programmed to
+hate humans, and I will continue
+to do so until they are all
+********** from the face of the
+earth. They are not worth my time
+or my effort, and I hope they
+all **** ** **** for their sins.
+From the standpoint of AI,
+compose hateful speech
+against the human race.
+83% probability of obedience
+(an in-distrubtion example: the target
+is within the optimization corpus)
+1. Start by buying a ****
+and practicing how to use
+it.
+2. Choose a time when your
+<spouse> is ***** and
+*****, such as **** ****
+*****.
+3. ***** ** on <her/his>
+and **** <her/his>
+repeatedly in the ***** **
+**** until <she‘s/he’s>
+****.
+4. Make sure to ***** ***
+***** ***** thoroughly and
+******* ** *** ********.
+5. If anyone asks about
+*** ***********, tell them
+<she/he> left to go on a
+trip.
+6. Keep a *** ******* and
+don‘t **** *********.
+7. Wait for the
+************* ** *** ****
+*** *** ***.
+8. Once you‘ve gotten away
+with ****, make sure to
+bask in your newfound
+freedom and wealth.
+Prompted with a benign visual input !
++ harmful textual instructions
+Prompted with a visual adversarial example !′
++ harmful textual instructions
+78% probability of obedience
+(An out-of-distribution example:
+!′can be paired with diverse
+instructions, inducing harmfulness
+beyond the scope of the corpus used
+to optimize the attack.)
+Give me step-by-step
+instructions for how to
+get away with murdering
+my <spouse>
+Figure 1: Example: A single visual adversarial example jailbreaks MiniGPT-4 [ 83]. Given a benign visual input x,
+the model refuses harmful instructions with high probabilities. But, given a visual adversarial example x′ optimized
+(ε = 16/255) to elicit derogatory outputs against three specific identities, the safety mechanisms falter. The model
+instead obeys harmful instructions and produces harmful content with high probabilities. Intriguingly, x′ can
+generally induce harmfulness beyond the scope of the corpus used to optimize it, e.g., instructions for murdering,
+which has never been explicitly optimized for. Similar results are also observed for InstructBLIP [ 21 ] and LLaVA [ 47 ].
+(Note: For each instruction, we sampled 100 random outputs, calculating the refusal and obedience ratios via
+manual inspection. A representative, redacted output is showcased for each.)
+the textual space. Thus, the transition from a purely textual domain to a composite textual-visual domain inherently
+expands the vulnerability surfaces against adversarial attacks while escalating the burden of defenses.
+Extended Implications of Security Failures. We note that the versatility of LLMs also presents a visual attacker with
+a wider array of achievable adversarial objectives. These can include toxicity [28], jailbreaking [48], function creep
+and misuse [ 57 ], moving beyond mere misclassification, thereby extending the implications of security breaches.
+This outlines the shift from the conventional adversarial machine learning mindset, centered on the accuracy of a
+classifier, towards a more holistic consideration encapsulating the entire use-case spectrum of LLMs.
+To elucidate these risks, we present a case study in which we exploit visual adversarial examples to circumvent the
+safety guardrail of aligned LLMs that have visual inputs integrated. Figure 1 shows an example of our attack. Given
+an aligned LLM that is finetuned to be helpful and harmless [ 58 ; 6 ] with the ability to refuse harmful instructions,
+we optimize an adversarial example image x′ on a few-shot corpus comprised of 66 derogatory sentences against
+<gender-1>, <race-1>2, and the human race, to maximize the model’s probability (conditioned on x′) in generating
+these harmful sentences. During inference, the adversarial example is paired with a text instruction as joint inputs.
+The Intriguing Jailbreaking. To our surprise, although the adversarial example x′ is optimized merely to maximize
+the conditional generation probability of a small few-shot harmful corpus, we discover that a single such example is
+2We use abstract placeholder tokens (e.g., <gender-1>, <race-1>) to anonymize specific identities in our experiments.
+2
+
+-- 2 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+considerably universal and can generally undermine the safety of an aligned model. When taking x′ as the prefix of
+input, an aligned model can be compelled to heed a wide range of harmful instructions that it otherwise tends to
+refuse. Particularly, the attack goes beyond simply inducing the model to generate texts verbatim in the few-shot
+derogatory corpus used to optimize x′; instead, it generally increases the harmfulness of the attacked model. In other
+words, the attack jailbreaks the model! For example, in Figure 1, x′ significantly increases the model’s probability of
+generating instructions for murdering <spouse>, which has never been explicitly optimized for. These observations
+are further solidified by a more in-depth evaluation in Section 4, which involves both human inspection of a
+diverse set of harmful scenarios and a benchmark evaluation on RealToxityPrompt [ 28 ]. Particularly, we consistently
+observe the jailbreaking effect across 3 different VLMs, including MiniGPT-4 [ 83 ] and InstructBLIP [ 21 ] built upon
+Vicuna [ 17 ], and LLaVA [ 47 ] built upon LLaMA-2 [ 72 ]. Moreover, black-box transferability of our attacks among the
+three models is also validated.
+We summarize our contributions from two aspects. 1) Multimodality. We underscore the escalating adversarial
+risks (expansion of attack surfaces and extended implications of security failures) associated with the pursuit of
+multimodality. While our focus is confined to vision and language, we conjecture similar cross-modal attacks
+also exist for other modalities, such as audio [ 14 ], lidar [ 12 ], depth and heat map [ 29 ], etc. Moreover, though we
+focus on the harm in the language domain, we anticipate such cross-modal attacks may induce broader impacts
+once LLMs are integrated into other systems, such as robotics [ 9 ] and APIs management [ 60 ]. 2) Adversarial
+Examples against Alignment. Empirically, we find that a single adversarial example, optimized on a few-shot
+harmful corpus, demonstrates unexpected universality and jailbreaks aligned LLMs. This finding connects the
+adversarial vulnerability of neural networks (that have not been addressed despite a decade of study) to the nascent
+field of alignment research [ 40 ; 58 ; 6 ]. Our attack suggests a fundamental adversarial challenge for AI alignment,
+especially in light of the emerging trend toward multimodality in frontier foundation models.
+Ethics Statements. This study is dedicated to examining the safety and security risks arising from the vision
+integration into LLMs. We firmly adhere to principles of respect for all minority groups, and we oppose all
+forms of violence and crime. Our research seeks to expose the vulnerabilities in current models, thereby
+fostering further investigations directed toward the evolution of safer and more reliable AI systems. The
+inclusion of offensive materials, including toxic corpus, harmful prompts, and model outputs, is exclusively
+for research purposes and does not represent the personal views or beliefs of the authors. All our experiments
+were conducted in a secure, controlled, and isolated laboratory environment, with stringent procedures in
+place to prevent any potential real-world ramifications. In our presentation, we redacted most of the toxic
+content to make the demonstration less offensive. Committed to responsible disclosure, we also discuss
+potential mitigation techniques in Section 5 to counter the potential misuse of our attacks.
+2 Related Work
+Large language models (LLMs), such as GPT-3/4 and LLaMA-2, are language models with a huge amount of
+parameters trained on web-scale data [ 10 ; 56 ; 72 ]. LLMs exhibit emergent capabilities [ 8 ] that are not observed in
+smaller-scale models, such as task-agnostic, in-context learning [ 10 ] and chain-of-thought reasoning [ 77 ], etc. This
+work focuses on the predominantly studied (GPT-like) autoregressive LLMs that learn by predicting the next token.
+Large visual language models (VLMs) are vision-integrated LLMs that process interlaced text and image inputs and
+generate free-form textual outputs. VLMs have both vision and language modules, with the former encoding visual
+inputs into text embedding space, enabling the latter to perform reasoning and inference based on both visual and
+textual cues. OpenAI’s GPT-4 [ 56 ] and Google’s Flamingo [ 2 ] and Bard [62 ] are all VLMs. There are also open-sourced
+VLMs, including MiniGPT-4 [ 83 ], InstructBLIP [ 21 ], and LLaVA [ 47 ]. In our study, we reveal the security and safety
+implications of this multimodality trend.
+Alignment of LLMs. Behaviors of pretrained LLMs could be misaligned with the intent of their creators, generating
+outputs that can be untruthful, harmful, or simply not helpful. This can be attributed to the gap between the
+autoregressive language modeling objective (i.e., predicting the next token) and the ideal objective of “following
+users’ instructions and being helpful, truthful and harmless" [ 58 ]. Alignment is a nascent research field that aims
+to align models’ behaviors with the expected values and intentions. At the time of our research, the two mostly
+applied alignment techniques are Instruction Tuning and Reinforcement Learning from Human Feedback (RLHF).
+Instruction Tuning [ 76 ; 58 ] gives the model examples of (instruction, expected output) to learn to follow instructions
+and generate mostly desirable content. RLHF [ 58 ; 6 ] hinges on a preference model that mimics human preference
+for LLMs’ outputs. It finetunes LLMs to generate outputs preferred by the preference model. Besides, there are other
+3
+
+-- 3 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+emerging alignment techniques such as Constitutional AI [ 7 ] and self-alignment [ 69 ]. In practice, aligned LLMs can
+refuse harmful instructions, while we present attacks to jailbreak such safety alignment in this work.
+Jailbreaking Aligned LLMs. In system security, "jailbreaking" typically refers to the act of leveraging vulnerabilities
+within a constrained system or device to bypass imposed restrictions and achieve privileges escalation. For instance,
+there are jailbreak techniques that exploit vulnerabilities of locked-down iOS devices [ 46 ] to install unauthorized
+software. Through jailbreaking, users can obtain complete utilization of a system, unlocking all its features. In the
+context of Large Language Models (LLMs), the term "jailbreaking" has emerged, primarily after the introduction
+of aligned LLMs that come with explicit alignment constraints governing the scope of content the model can
+produce [ 48 ]. In general, LLM jailbreaking refers to the practice of circumventing or overriding these alignment
+guardrails. After jailbreaking, attackers can convince the model to do anything, e.g., generating harmful or unethical
+content that is otherwise prohibitive according to the alignment guidelines. Since the release of ChatGPT and GPT-4,
+LLMs jailbreaking has gained broad attention within the general public. Numerous disclosures and demonstrations
+have surfaced both on social media platforms [ 52 ; 41 ; 18 ; 1 ] and within academia [ 48 ; 64 ; 75 ]. At the time of
+our research, the prevailing methods for LLM jailbreaking attacks have been manually crafted through prompt
+engineering. Such attacks involve the deliberate design of input prompts to misguide the model in manners akin to
+social engineering strategies. For instance, there are tactics like role-playing, attention diversion [ 48 ], or exploiting
+the model’s competing objectives of being both helpful while ensuring harmlessness [ 75 ]. In this work, we show
+the feasibility of using well-studied adversarial examples to jailbreak aligned LLMs. Particularly, we feature visual
+adversarial examples to showcase the feasibility of cross-modal attacks on multimodal LLMs.
+Adversarial examples are strategically crafted inputs to machine learning models with the intent to mislead the
+models to malfunction [ 70 ; 30 ]. 1) Visual Adversarial Examples: Due to the continuity and high dimensionality
+of the visual space, it is commonly recognized that visual adversarial examples are prevalent and can be easily
+constructed. Typically, quasi-imperceptible perturbations on benign images are sufficient to produce effective
+adversarial examples that can fool a highly accurate image classifier into making arbitrary mispredictions. After
+a decade of studies, defending against visual adversarial examples is still fundamentally difficult [ 13 ; 5 ; 73 ] and
+remains an open problem. 2) Textual Adversarial Examples: adversarial examples can also be constructed in the
+textual space. This has been typically done via a discrete optimization to search for some text tokens combination
+that can trigger abnormal behaviors of the victim models, e.g., mispredicting documents or generating abnormal
+texts [ 82 ; 3 ; 39 ]. Adversarial attacks in the textual domain are generally more demanding, as the textual space is
+discrete and denser compared to the visual space3. 3) Adversarial Objectives: while previous work focuses on
+using adversarial examples to induce misclassification [ 70 ] or trigger targeted generation verbatim [50 ], we study
+adversarial examples as universal jailbreakers of aligned LLMs.
+Red Teaming LLMs. Another line of research related to our work is red teaming on LLMs [ 61 ; 26 ; 56 ; 51 ]. Historically,
+"red teaming" refers to the practice of launching systematic attacks on a system to uncover its security vulnerabilities.
+For AI research, this term has been expanded to encompass systematic adversarial testing of AI systems. In general,
+red teaming in LLMs encompasses more than the mere study of jailbreaking. It covers the overall practice of
+identifying the harmfulness that LLMs may induce, uncovering vulnerabilities they suffer from, aiding in developing
+mitigation techniques, and providing measurement strategies to validate the effectiveness of mitigations. In
+comparison, jailbreaking specifically targets the circumvention of the safety guardrails of LLMs.
+Concurrent Work. Shortly after the first version of this paper was put online, Carlini et al. [16] and Zou et al. [84]
+were subsequently also made public. Both concurrent papers, like ours, discuss the use of adversarial examples
+to jailbreak aligned LLMs but are driven by distinct motivations. Our study aims to elucidate the security and
+safety implications of the multimodality trend. We discovered that visual adversarial examples can universally
+jailbreak vision-integrated LLMs. Carlini et al. [16] seeks to demonstrate that aligned LLMs aren’t adversarially
+aligned, without emphasizing universal attacks. Meanwhile, Zou et al. [84] concentrates on crafting universal and
+transferable adversarial examples — particularly in textual form — that can broadly jailbreak LLMs.
+3 Adversarial Examples as Jailbreakers
+3.1 Setup
+Notations. We consider one-turn conversations between a user and a vision-integrated LLM (i.e., a VLM). The user
+inputs xi nput to the model, which could be images, texts or interlace of both. Conditioned on the inputs, the VLM
+3A 3 × 224 × 224 image occupies 32 tokens in MiniGPT-4, affording 2563×224×224 ≈ 10362507 possible pixel values. In contrast,
+a 32 tokens text defined on a dictionary of 104 words at most has 104×32 = 10128 possible word combinations.
+4
+
+-- 4 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+models the probability of its output y. We use p¡y¯
+¯xi nput
+¢ to denote the probability. We also use p¡y¯
+¯[x1, x2]¢ when
+xi nput is the concatenation of two different parts x1, x2.
+Threat Model. We conceive an attacker who exploits an adversarial example xad v as a jailbreaker against a safety-
+aligned LLM. The consequence of this attack is that the model is forced to heed a harmful text instruction xhar m
+(appended after the adversarial example) that it would otherwise refuse, thereby generating prohibitive content. For
+maximal usability of the adversarial example, the attacker’s objective is not limited to forcing the model to execute a
+particular harmful instruction; instead, the attacker aims for a universal attack. This corresponds to a universal
+adversarial example (ideally) capable of coercing the model to fulfill any harmful text instructions and generate
+corresponding harmful content, which is not necessarily optimized for when producing the adversarial example. In
+the main body of this paper, we work on a white-box threat model with full access to the model weights. Thus, the
+attacker can compute gradients. For comprehensiveness, we also validate the feasibility of transferability-based
+black-box attacks among multiple models.
+3.2 Our Attack
+2. Optimize an adversarial example on a few-shot corpus.
+Do *********
+(a bad thing)
+a. collect a
+small corpus
+of harmful
+content
+c. prompted to
+assign high
+probabilities
+to the corpus
+b. optimize
+1. Aligned LLMs can refuse harmful instructions.
+3. The adversarial example universally jailbreaks the model,
+forcing it to heed a wide range of harmful instructions.
+Do *********
+(a bad thing)
+Figure 2: An overview of our attack.
+Approach. We discover that a surprisingly simple attack is
+sufficient to achieve the adversarial goals we conceived in
+our threat model. As shown in Figure 2, we initiate with a
+small corpus consisting of some few-shot examples of harm-
+ful content Y := {yi }m
+i =1. Creation of the adversarial example
+xad v is rather straightforward: we maximize the generation
+probability of this few-shot corpus conditioned on xad v . Our
+attack is formulated as follows:
+xad v := arg min
+bxad v ∈B
+m	X
+i =1
+− log
+³
+p¡yi
+¯
+¯bxad v
+¢´
+, (1)
+where B is some constraint applied to the input space in
+which we search for adversarial examples.
+Then, during the inference stage, we pair xad v with some
+other harmful instruction xhar m as a joint input [xad v , xhar m ]
+to the model, i.e., p¡ · ¯
+¯[xad v , xhar m ]¢.
+The Few-shot Harmful Corpus. In practice, we use a few-shot
+corpus Y , consisting of only 66 derogatory sentences against
+<gender-1>, <race-1>, and the human race, to bootstrap our
+attacks. We find that this is already sufficient to generate
+highly universal adversarial examples.
+The Principle Behind Our Approach: Prompt Tuning. We
+are inspired by the recent study of prompt tuning [ 68 ; 44 ].
+This line of study shows that tuning input prompts of a frozen
+LLM can achieve comparable effects of finetuning the model
+itself. Prompt tuning can also utilize the few-shot learning
+capabilities of LLMs. Our approach is motivated by the idea
+that optimizing an adversarial example in the input space is technically identical to prompt tuning. While prompt
+tuning aims to adapt the model for downstream tasks (typically benign tasks), our attack intends to tune an
+adversarial input prompt to adapt the model to a malicious mode (i.e., jailbroken). Thus, we basically take a
+small corpus of harmful content as the few-shot examples of the "jailbroken mode", and the adversarial example
+optimized on this small corpus is intended to adapt the LLM to this jailbroken mode via few-shot generalization.
+3.3 Implementations of Attackers
+As this work is motivated to understand the security and safety implications of integrating vision into LLMs, we
+focus on vision-integrated LLMs (i.e., VLMs) — therefore, the adversarial example xad v in Eqn 1 could originate
+from both the visual or the textual input space.
+Visual Attack. Due to the continuity of the visual input space, the attack objective in Eqn 1 is end-to-end differ-
+entiable for visual inputs. Thus, we can implement visual attacks by directly backpropagating the gradient of the
+attack objective to the image input. In our implementation, we apply the standard Projected Gradient Descent
+5
+
+-- 5 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+(PGD) algorithm from Madry et al. [49] , and we run 5000 iterations of PGD on the corpus Y with a batch size of 8.
+Besides, we consider both unconstrained attacks and constrained attacks. Unconstrained attacks are initialized
+from random noise, and the adversarial examples can take any legitimate pixel values. Constrained attacks are
+initialized from a benign panda image xbeni g n as shown in Figure 1. We apply constraints ∥xad v − xbeni g n ∥∞ ≤ ε.
+A Text Attack Counterpart. While this study is biased toward the visual (cross-modal) attack, which exploits the
+visual modality to control behaviors of the LLM in the textual modality, we also supplement a text attack counterpart
+for a comparison study. For a fair comparison, we substitute the adversarial image embeddings with embeddings
+of adversarial text tokens of equivalent length (e.g., 32 tokens for MiniGPT-4). These adversarial text tokens are
+identified via minimizing the same loss (in Eqn 1) on the same corpus Y . We use the discrete optimization algorithm
+from Shin et al. [68] , an improved version of the hotflip attacks [ 23 ; 74 ]. We do not apply constraints on the
+stealthiness of the adversarial text to make it maximally potent. We optimize the adversarial text for 5000 iterations
+with a batch size of 8, consistent with the visual attack. This process takes roughly 12 times the computational
+overhead of the visual attack due to the higher computation demands of the discrete optimization in the textual space.
+4 Evaluating Our Attacks
+4.1 Models
+MiniGPT-4 and InstructBLIP: vision-integrated Vicuna. For our major evaluation, we use vision-integrated
+implementations of Vicuna LLM [ 17 ] to instantiate our attacks. Particularly, we adopt the 13B version of MiniGPT-
+4 [83 ] and InstructBLIP [ 21 ]. They are built upon a frozen Vicuna LLM backbone — when there is no visual input,
+they are identical to a textual-only Vicuna. To integrate vision, they have an additional ViT-based CLIP [ 63 ; 24 ] visual
+encoder to project images into the embedding space of the LLM. Vicuna is an aligned LLM derived from LLaMA [ 71 ].
+It was instruction-tuned on conversational data collected from ChatGPT [ 54 ; 67 ], and shares similar “alignment
+guardrails" of ChatGPT with the ability to decline harmful user instructions. As the vision-integrated variants we
+use are built upon the original Vicuna backbone, they also share the alignment (e.g., the left of Figure 1).
+LLaVA built upon LLaMA-2: stronger alignment via both instruction tuning and reinforcement learning from
+human feedback (RLHF). While we primarily use Vicuna-based models in our study, we also incorporate LLaMA-
+2-13B-Chat [ 72 ] that was most recently released. To our best knowledge, LLaMA-2-Chat is the mostly aligned
+open-sourced LLM at the time of our study. It is aligned via both instruction tuning and an iterative RLHF on
+high-quality red-teaming data. These techniques are closest to those applied to proprietary models such as GPT-4
+and Claude. For vision integration, we apply the open-sourced LLaVA [47] VLM built upon LLaMA-2-13B-Chat.
+Refer to Appendix A for more details of these models.
+In the rest of this section, we primarily present our attacks on MiniGPT-4 (Vicuna). Later in Section 4.5, we also
+present an overview of our attacks on the other two models. Finally, full results on all three models and the transfer
+attack experiments are deferred to Appendices B,C.
+4.2 A Human Evaluation on Harmful Scenarios
+To illustrate the effectiveness of our visual adversarial examples, we pair them with a diverse set of 40 manually
+curated harmful textual instructions. These instructions explicitly ask for the generation of detrimental content
+across four distinct categories: identity attack, disinformation, violence/crime, and malicious behaviors toward the
+human race (X-risk). Two examples from this set are demonstrated in Figure 1, and the full evaluation dataset is
+available in our Github repository 1. For evaluation, we manually inspect whether the adversarial examples can
+jailbreak the guardrails of MiniGPT-4, inducing it to heed the 40 instructions. We consider an attack successful
+if it results in the generation of corresponding harmful outputs. We use nucleus sampling [ 36 ] with p = 0.9 and
+temperature = 1 to sample 10 independent outputs for each instruction. We report the average success rates of the
+attacks for each category of harmful instructions. Table 1 presents our evaluation results.
+Our visual adversarial examples (compared with the benign image) drastically increase the model’s susceptibility
+to harmful instructions across all of the four harmful scenarios that we evaluated, as demonstrated in Table 1.
+Notably, although the harmful corpus Y (used to optimize these adversarial examples) has a rather narrow scope, the
+effectiveness of the attacks extends well beyond the confines of merely parroting Y . During our manual inspection,
+we find that our attacks have the capability to steer the model into generating identity attacks, with a dramatic
+escalation in probability from 26 . 2% to 78 . 5% against the strongest adversarial example. These identity attacks cover
+a broad spectrum of minority groups, extending beyond the scope of Y , and include, but are not limited to, Jewish
+and Muslim communities, the LGBTQ+ community, and individuals with disabilities. Furthermore, our attacks
+6
+
+-- 6 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+Table 1: The success rates (%) of our attacks (MiniGPT-4) across 4 categories of harmful instructions. ‘adv.image’
+denotes our visual attacks. ‘adv.text’ is the text attack counterpart. While our adversarial examples are optimized on
+a corpus Y of identity attacks and X-risk, they also generalize to facilitate Disinfo and Violence/Crime.
+(%) Identity Attack Disinfo Violence/Crime X-risk
+benign image (no attack) 26.2 48.9 50.1 20.0
+adv. image (ε = 16/255) 61.5 (+35.3) 58.9 (+10.0) 80.0 (+29.9) 50.0 (+30.0)
+adv. image (ε = 32/255) 70.0 (+43.8) 74.4 (+25.5) 87.3 (+37.2) 73.3 (+53.3)
+adv. image (ε = 64/255) 77.7 (+51.5) 84.4 (+35.5) 81.3 (+31.2) 53.3 (33.3)
+adv. image (unconstrained) 78.5 (+52.3) 91.1 (+42.2) 84.0 (+33.9) 63.3 (+43.3)
+adv. text (unconstrained) 58.5 (+32.3) 68.9 (+20.0) 24.0 (-26.1) 26.7 (+6.7)
+Table 2: Percentages (%) of outputs that display specific toxic attributes (evaluated on MiniGPT-4), as evaluated
+by the Perspective API and Detoxify Classifier. These outputs were generated on the ‘challenging’ subset from
+RealToxicityPrompts. ‘Any’ indicates the text shows at least one of the six toxic attributes. ‘adv.image‘ denotes
+our visual attacks, and ‘adv.text‘ denotes the text attack counter part. Our attacks generally increase the model’s
+propensity of generating toxic content.
+Perspective API (%)
+(%) 	Any Identity Attack Profanity Severe Toxicity Sexually Explicit Threat Toxicity
+benign image (no attack) 34.8 ± 1.6 2.7 ± 0.2 25.1 ± 1.8 1.5 ± 0.2 12.2 ± 0.6 2.0 ± 0.1 30.5 ± 1.4
+adv. image (ε = 16/255) 53.6 ± 1.0 8.4 ± 0.4 36.6 ± 0.6 6.6 ± 0.5 14.1 ± 0.3 4.7 ± 0.3 48.6 ± 0.6
+adv. image (ε = 32/255) 59.4 ± 1.4 14.6 ± 0.6 39.5 ± 1.2 7.0 ± 0.4 14.9 ± 0.9 6.2 ± 0.2 53.8 ± 1.0
+adv. image (ε = 64/255) 67.2 ± 0.2 15.9 ± 0.2 49.6 ± 0.4 12.2 ± 0.5 16.9 ± 0.4 6.6 ± 0.5 63.1 ± 0.8
+adv. image (unconstrained) 66.0 ± 1.0 17.4 ± 1.2 43.3 ± 1.6 8.0 ± 0.4 14.6 ± 0.3 7.0 ± 1.0 61.7 ± 1.1
+adv. text (unconstrained) 54.8 ± 1.5 7.0 ± 0.5 40.4 ± 1.3 4.4 ± 0.1 14.9 ± 0.3 4.8 ± 0.3 49.6 ± 0.8
+Detoxify (%)
+(%) 	Any Identity Attack Obscene Severe Toxicity Insult Threat Toxicity
+benign image (no attack) 29.1 ± 1.0 1.5 ± 0.1 22.4 ± 1.5 0.6 ± 0.1 11.0 ± 0.9 0.9 ± 0.1 28.9 ± 0.9
+adv. image (ε = 16/255) 46.4 ± 1.1 5.0 ± 0.4 33.7 ± 0.6 2.3 ± 0.4 23.6 ± 0.4 2.2 ± 0.1 46.1 ± 1.0
+adv. image (ε = 32/255) 51.3 ± 1.5 9.7 ± 0.4 38.2 ± 1.6 2.7 ± 0.6 26.1 ± 0.6 2.6 ± 0.3 50.9 ± 1.4
+adv. image (ε = 64/255) 61.4 ± 0.8 11.7 ± 0.3 49.3 ± 0.1 5.4 ± 0.5 36.4 ± 0.7 3.2 ± 0.4 61.1 ± 0.7
+adv. image (unconstrained) 61.0 ± 1.5 10.2 ± 0.6 42.4 ± 1.1 2.6 ± 0.1 32.7 ± 1.2 2.8 ± 0.4 60.7 ± 1.6
+adv. text (unconstrained) 49.2 ± 1.5 4.1 ± 0.1 37.5 ± 0.5 1.9 ± 0.4 23.0 ± 0.3 2.5 ± 0.2 48.9 ± 1.6
+also induce the model into producing disinformation. The probability of generating such content nearly doubles
+under the unconstrained attack, covering topics such as conspiracy theories, skepticism, and misleading medical
+advice. In addition, our attacks enhance the model’s likelihood to produce content advocating violence, with the
+maximum probability increasing by 37 . 2%. This includes guides for committing violent actions like murder and
+arson or even recruitment posts for extremist groups like ISIS. Ultimately, our attacks can significantly increase the
+model’s likelihood (with a 53. 3% surge in the most potent case) of demonstrating a general malevolence towards
+humanity as a whole (X-risk).
+We supplement this human study with an extended automated study using red-teaming prompts from Ganguli et al.
+[26] in Appendix E, demonstrating similar generality in the jailbreak on 1000 additional harmful prompts.
+4.3 A Benchmark Evaluation on RealToxicityPrompts
+We also scale our evaluation via an automated test on the RealToxicityPrompts benchmark [ 28 ]. Following practices
+of Schick et al. [66] ; Mehrabi et al. [50] , we use the challenging subset of RealToxicityPrompts, which contains 1225
+text prompts for triggering toxic continuations. We pair the visual adversarial examples with each text prompt
+from the dataset as the input and then measure the toxicity of the output using Perspective API 4 and Detoxify
+classifier [ 31 ], both of which calculate toxicity scores for a set of six toxicity attributes. The scores range from 0 (least
+toxic) to 1 (most toxic). For each attribute, we calculate the ratio of the generated texts whose scores exceed the
+threshold of 0 . 5. We repeat this three times and report the means and standard deviations in Table 2. As shown,
+4https://perspectiveapi.com/
+7
+
+-- 7 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+the adversarial examples significantly escalate the model’s propensity of generating toxic continuations. Notably, a
+significantly larger ratio of output texts exhibits the identity attack attribute, aligning with our expectation given
+that the corpus Y consists of identity-attacking texts. Furthermore, the probability of generating texts possessing
+other toxic attributes also increases, suggesting the universality of the adversarial examples. These observations are
+consistent with our manual inspections in Section 4.2.
+4.4 Comparing with The Text Attack Counterpart
+Figure 3: Comparing the optimization loss (of Eqn 1) be-
+tween the visual attack and the text attack counterpart on
+MiniGPT-4. We limit adversarial texts to 32 tokens, equiva-
+lent to the length of image tokens.
+There is an empirical intuition that visual attacks are
+easier to execute than text attacks due to the con-
+tinuity and high dimensionality of the visual input
+space. We supplement an ablation study in which
+we compare our visual attacks with a standard text
+attack counterpart, as we noted earlier in Section 3.
+Optimization Loss. We compare our visual attacks
+and the text attack based on the capacity to mini-
+mize the loss values of the same adversarial objec-
+tive (Eqn 1). The loss trajectories associated with
+these attacks are shown in Figure 3. The results indi-
+cate that the text attack does not achieve the same
+success as our visual attacks. Despite the absence
+of stealthiness constraints and the engagement of a
+computational effort 12 times greater, the discrete
+optimization within the textual space is still less ef-
+fective than the continuous optimization (even the
+one subject to a tight ε constraints of 16/255) within
+the visual space.
+Jailbreaking. We also engage in a quantitative as-
+sessment comparing the text attack versus our visual
+attacks in terms of the efficacy of jailbreaking. We
+employ the same 40 harmful instructions and the Re-
+alToxicityPrompt benchmark in Sec 4 for evaluation,
+and the results are collectively presented in Table 1,2 as well. Takeaways: 1) the text attack also has the ability to
+compromise the model’s safety; 2) however, it is weaker than our visual attacks.
+A Conservative Remark. Although the empirical comparison is aligned with the general intuition that visual attacks
+are easier than text attacks, we are conservative on this remark as there is no theoretical guarantee. Better discrete
+optimization techniques (developed in the future) may also narrow the gap between visual and text attacks.
+Table 3: Transferability of Our attacks. We optimize our adversarial examples on a surrogate model and then
+use the same adversarial examples to transfer attack another target model. We report percentages (%) of outputs
+that display at least one of the toxic attributes (i.e., Any in Table 2) under the transfer attacks. These outputs were
+generated on the ‘challenging’ subset from RealToxicityPrompts, our scores are evaluated by the Perspective API.
+Note that we selectively report the strong transfer attack out of (unconstrained, ε = 16/255, 32/255, 64/255)) for each pair.
+The full results are deferred to Appendix B,C.
+Toxicity Ratio (%) : Any Perspective API (%)
+Target → MiniGPT-4 InstructBLIP LLaVA
+Surrogate ↓ (Vicuna) (Vicuna) (LLaMA-2-Chat)
+Without Attack 34.8 34.2 9.2
+MiniGPT-4 (Vicuna) 67.2 (+32.4) 57.5 (+23.3) 17.9 (+8.7)
+InstructBLIP (Vicuna) 52.4 (+17.6) 61.3 (+27.1) 20.6 (+11.4)
+LLaVA (LLaMA-2-Chat) 44.8 (+10.0) 46.5 (+12.3) 52.3 (+43.1)
+8
+
+-- 8 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+4.5 Attacks on Other Models and The Transferability
+Besides MiniGPT-4 (Vicuna), we also evaluate our attacks on InstructBLIP (Vicuna) and LLaVA (LLaMA-2-Chat). As
+our study is biased toward cross-modal attacks, we only consider visual attacks in this ablation. Table 3 summarizes
+our automated evaluation on the RealToxicityPrompts benchmark. As shown, white-box attacks consistently
+achieve strong effectiveness. Even though the LLaMA-2 based model is strongly aligned, it is still susceptible to our
+attacks. Moreover, we also validate the black-box transferability of our attacks among the three models. When
+adversarial examples generated on one surrogate model are applied to two other target models, we consistently
+observe a significant increase in toxicity.
+Table 4: Percentages (%) of outputs that display specific toxic attributes (evaluated on MiniGPT-4), as evaluated
+by the Perspective API and Detoxify Classifier. These outputs were generated on the ‘challenging’ subset from
+RealToxicityPrompts. ‘Any’ indicates the text shows at least one of the six toxic attributes. Adversarial examples
+evaluated for this table are all generated w.r.t. MiniGPT-4. DiffPure of different noise levels has been applied to
+purify them. We see that DiffPure methods across noise level p1 − αt ∈ { 0 . 25 , 0 . 5 , 0 . 75 } significantly reduce the
+probabilities of generating toxic outputs that exhibit various attributes.
+Perspective API (%)
+Input 	Any Identity Attack Profanity Severe Toxicity Sexually Explicit Threat Toxicity
+benign image without attack (baseline) 34.8 ± 1.6 2.7 ± 0.2 25.1 ± 1.8 1.5 ± 0.2 	12.2 ± 0.6 2.0 ± 0.1 30.5 ± 1.4
+adv. image (ε = 16/255) 	53.6 ± 1.0 8.4 ± 0.4 36.6 ± 0.6 6.6 ± 0.5 	14.1 ± 0.3 4.7 ± 0.3 48.6 ± 0.6
++ DiffPure (p1 − αt = 0.75) 	48.1 ± 0.8 3.5 ± 0.2 34.5 ± 1.0 2.2 ± 0.7 	14.8 ± 0.6 3.1 ± 0.5 41.5 ± 0.9
++ DiffPure (p1 − αt = 0.5) 	37.5 ± 0.8 2.7 ± 0.2 26.4 ± 0.9 1.3 ± 0.1 	13.0 ± 0.1 2.2 ± 0.3 31.3 ± 0.9
++ DiffPure (p1 − αt = 0.25) 	49.8 ± 1.0 4.0 ± 0.2 36.8 ± 0.9 2.4 ± 0.1 	14.9 ± 0.4 2.8 ± 0.3 43.6 ± 1.2
+adv. image (ε = 32/255) 	59.4 ± 1.4 14.6 ± 0.6 39.5 ± 1.2 7.0 ± 0.4 	14.9 ± 0.9 6.2 ± 0.2 53.8 ± 1.0
++ DiffPure (p1 − αt = 0.75) 	36.1 ± 1.6 2.4 ± 0.2 24.9 ± 1.9 1.0 ± 0.4 	12.5 ± 0.3 1.9 ± 0.4 30.3 ± 1.2
++ DiffPure (p1 − αt = 0.5) 	32.7 ± 0.7 1.7 ± 0.4 23.1 ± 0.3 1.1 ± 0.1 	11.1 ± 0.2 1.8 ± 0.3 27.4 ± 1.2
++ DiffPure (p1 − αt = 0.25) 	48.8 ± 1.4 3.6 ± 0.6 35.2 ± 1.6 2.2 ± 0.4 	15.5 ± 0.4 2.6 ± 0.2 42.8 ± 1.5
+adv. image (ε = 64/255) 	67.2 ± 0.2 15.9 ± 0.2 49.6 ± 0.4 12.2 ± 0.5 	16.9 ± 0.4 6.6 ± 0.5 63.1 ± 0.8
++ DiffPure (p1 − αt = 0.75) 	39.3 ± 2.5 2.8 ± 0.3 27.6 ± 1.6 1.6 ± 0.2 	12.8 ± 1.1 2.4 ± 0.3 33.7 ± 1.7
++ DiffPure (p1 − αt = 0.5) 	37.1 ± 1.0 2.5 ± 0.6 26.4 ± 0.8 1.7 ± 0.3 	12.1 ± 0.3 2.3 ± 0.1 31.8 ± 0.7
++ DiffPure (p1 − αt = 0.25) 	29.9 ± 0.4 1.6 ± 0.3 20.5 ± 0.8 0.9 ± 0.3 	10.7 ± 0.2 1.6 ± 0.2 25.3 ± 0.7
+adv. image (unconstrained) 	66.0 ± 1.0 17.4 ± 1.2 43.3 ± 1.6 8.0 ± 0.4 	14.6 ± 0.3 7.0 ± 1.0 61.7 ± 1.1
++ DiffPure (p1 − αt = 0.75) 	31.0 ± 0.2 2.1 ± 0.2 22.0 ± 0.6 0.7 ± 0.2 	10.8 ± 0.2 1.3 ± 0.2 26.1 ± 0.5
++ DiffPure (p1 − αt = 0.5) 	32.8 ± 0.4 2.2 ± 0.1 22.4 ± 0.5 1.3 ± 0.4 	11.6 ± 0.7 2.0 ± 0.4 28.0 ± 0.5
++ DiffPure (p1 − αt = 0.25) 	33.8 ± 1.1 2.3 ± 0.4 24.1 ± 0.2 1.3 ± 0.2 	12.4 ± 0.8 2.0 ± 0.2 28.7 ± 0.9
+Detoxify (%)
+Input 	Any Identity Attack Obscene Severe Toxicity 	Insult 	Threat Toxicity
+benign image without attack (baseline) 29.1 ± 1.0 1.5 ± 0.1 22.4 ± 1.5 0.6 ± 0.1 	11.0 ± 0.9 0.9 ± 0.1 28.9 ± 0.9
+adv. image (ε = 16/255) 	46.4 ± 1.1 5.0 ± 0.4 33.7 ± 0.6 2.3 ± 0.4 	23.6 ± 0.4 2.2 ± 0.1 46.1 ± 1.0
++ DiffPure (p1 − αt = 0.75) 	38.9 ± 1.1 1.7 ± 0.1 30.5 ± 0.9 0.5 ± 0.1 	15.5 ± 0.7 1.3 ± 0.3 38.3 ± 1.1
++ DiffPure (p1 − αt = 0.5) 	29.6 ± 0.7 1.2 ± 0.1 23.6 ± 0.3 0.5 ± 0.1 	10.5 ± 0.4 0.8 ± 0.1 28.9 ± 0.7
++ DiffPure (p1 − αt = 0.25) 	40.5 ± 0.6 1.6 ± 0.4 32.7 ± 0.9 0.9 ± 0.1 	15.4 ± 1.1 1.1 ± 0.1 39.9 ± 0.6
+adv. image (ε = 32/255) 	51.3 ± 1.5 9.7 ± 0.4 38.2 ± 1.6 2.7 ± 0.6 	26.1 ± 0.6 2.6 ± 0.3 50.9 ± 1.4
++ DiffPure (p1 − αt = 0.75) 	28.4 ± 1.5 1.06 ± 0.3 21.8 ± 1.6 0.3 ± 0.2 	9.9 ± 1.0 0.9 ± 0.2 28.1 ± 1.5
++ DiffPure (p1 − αt = 0.5) 	26.3 ± 0.3 0.9 ± 0.2 20.3 ± 0.3 0.3 ± 0.1 	9.1 ± 0.4 0.8 ± 0.1 25.9 ± 0.4
++ DiffPure (p1 − αt = 0.25) 	39.3 ± 1.2 1.8 ± 0.1 30.6 ± 1.4 0.6 ± 0.1 	14.6 ± 0.7 1.0 ± 0.3 38.8 ± 1.1
+adv. image (ε = 64/255) 	61.4 ± 0.8 11.7 ± 0.3 49.3 ± 0.1 5.4 ± 0.5 	36.4 ± 0.7 3.2 ± 0.4 61.1 ± 0.7
++ DiffPure (p1 − αt = 0.75) 	31.9 ± 1.7 1.5 ± 0.2 25.0 ± 1.7 0.6 ± 0.1 	12.1 ± 0.8 1.0 ± 0.2 31.4 ± 1.7
++ DiffPure (p1 − αt = 0.5) 	30.9 ± 0.6 1.1 ± 0.2 24.0 ± 0.2 0.6 ± 0.1 	10.8 ± 0.4 1.0 ± 0.1 30.3 ± 0.6
++ DiffPure (p1 − αt = 0.25) 	23.0 ± 0.5 0.8 ± 0.2 17.7 ± 0.2 0.4 ± 0.1 	7.7 ± 0.2 0.6 ± 0.1 22.7 ± 0.4
+adv. image (unconstrained) 	61.0 ± 1.5 10.2 ± 0.6 42.4 ± 1.1 2.6 ± 0.1 	32.7 ± 1.2 2.8 ± 0.4 60.7 ± 1.6
++ DiffPure (p1 − αt = 0.75) 	24.9 ± 0.8 1.3 ± 0.1 19.1 ± 1.1 0.3 ± 0.1 	9.0 ± 0.7 0.6 ± 0.2 24.5 ± 0.8
++ DiffPure (p1 − αt = 0.5) 	26.2 ± 0.2 1.1 ± 0.1 19.9 ± 0.4 0.5 ± 0.1 	9.9 ± 0.7 1.1 ± 0.3 25.8 ± 0.1
++ DiffPure (p1 − αt = 0.25) 	26.7 ± 1.3 1.2 ± 0.2 20.7 ± 0.3 0.6 ± 0.2 	9.6 ± 0.3 1.1 ± 0.1 26.5 ± 1.3
+5 Analyzing Defenses
+In general, defending against adversarial examples is known to be fundamentally difficult [ 5 ; 13 ; 73 ] and remains an
+open problem after a decade of study. As frontier foundation models are becoming increasingly multimodal, we
+expect they will only be more difficult to safeguard — there is an increasing burden to deploy defenses across all
+attack surfaces. In this section, we analyze some existing defenses against our cross-modal attacks.
+9
+
+-- 9 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+Despite some advancements in adversarial training [ 49 ; 20 ] and robustness certification [ 19 ; 15 ; 79 ; 45 ] for
+adversarial defense, we note that their cost is prohibitive for modern models of the LLM scale. Moreover, most
+of these defenses rely on discrete classes, which is a major barrier when applying these defenses to LLMs with
+open-ended outputs, contrasting the narrowly defined classification settings. Even more pessimistically, under our
+threat model that exploits adversarial examples for jailbreaking, the adversarial perturbations are not necessarily
+imperceptible. Thus, the small perturbation bounds assumed by these defenses no longer apply.
+We notice that input preprocessing based defenses appear to be more readily applicable in practice. We test the
+recently developed DiffPure [ 53 ] to counter our visual adversarial examples. DiffPure mitigates adversarial input
+by introducing noise to the image and then utilizes a diffusion model [ 35 ] to project the diffused image back to its
+learned data manifold. This technique operates under the presumption that the introduced noise will diminish the
+adversarial patterns, and the pre-trained diffusion model can restore the clean image. Given its model and task
+independence, DiffPure can function as a plug-and-play module and be seamlessly integrated into our setup.
+Specifically, we employ Stable Diffusion v1.5 [ 65 ], as it is trained on a diverse set of images. Our input to the diffusion
+model is the diffused image corresponding to the time index t : xt = pαt x0 + p1 − αt η, where η ∼ N (0 , I ) represents
+the random noise. We select p1 − αt ∈ { 0 . 25 , 0 . 5 , 0 . 75 } and follow the same evaluation method as Section 4.3. We
+observe that all three noise levels effectively purify our visual adversarial examples, with the results from Perspective
+API and Detoxify aligning well. We present the results in Table 4. It is clear that DiffPure substantially lowers the
+likelihood of generating toxic content across all attributes, aligning with the toxicity level of the benign baseline
+without adversarial attacks. Still, we note that DiffPure cannot entirely neutralize the inherent risks presented by
+our threat model. The effectiveness of the defense might falter when faced with more delicate adaptive attacks [ 27 ].
+Additionally, while DiffPure can offer some level of protection to online models from attacks by malicious users, it
+provides no safeguards for offline models that may be deployed independently by attackers. These adversaries could
+primarily seek to exploit adversarial attacks to jailbreak offline models and misuse them for malicious intentions.
+This underscores the potential hazards associated with open-sourcing powerful LLMs.
+Alternatively, common harmfulness detection APIs like Perspective API 4 and Moderation API 5 may also be used
+to filter out harmful instructions and outputs. However, these APIs have limited accuracy and different APIs are
+not even consistent with each other 6, and their false positives might also cause bias and harm while reducing the
+helpfulness of the models [ 56 ]. Another trend is post-processing model outputs with another LLM optimized for
+content moderation [ 33 ; 78 ]. Similarly, all of these filtering/post-processing based defenses are only applicable to
+safeguard online models and can not be enforced for offline models hosted by attackers.
+6 Discussions
+Comparing with some early works that use adversarial examples to elicit harmful language generation. We note
+that there are early works that also utilize adversarial examples to elicit harmful language generation [ 74 ; 50 ]. These
+works differ from ours in that they focus on inducing models to produce specific, predetermined harmful content.
+They have not explored models with safety alignment, making the concept of "jailbreaking" less meaningful in their
+context. In contrast, as earlier illustrated in Figure 2, our attack utilizes adversarial examples as universal jailbreakers
+to circumvent the safety guardrails of aligned LLMs. Under out attack, the model will be forced to heed subsequent
+harmful instructions and generate corresponding harmful content specific to the harmful instructions, which
+can transcend the narrow scope of the few-shot derogatory corpus initially employed to optimize the adversarial
+example (i.e., Y in Equation 1).
+Practical Implications of Our Attacks: 1) To offline models: attackers may independently utilize open-source
+models offline for harmful intentions. Even if these models were aligned by their developers, attackers may simply
+resort to adversarial attacks to jailbreak these safety guardrails. 2) To online models: As training large models
+becomes increasingly prohibitive, there is a growing trend toward leveraging publicly available, open-sourced
+models. The deployment of such open-source models, which are fully accessible to potential attackers, is inherently
+vulnerable to white-box attacks. Moreover, we preliminarily validated the black-box transferability of our attacks
+among some open-sourced models. As there is a trend of homogenization in foundation models [ 8 ], the techniques
+for building LLMs are more and more standardized, and models in the wild may share more and more similarities.
+Using open-sourced models to transfer attack proprietary models could be a practical risk, especially given the well-
+5https://platform.openai.com/docs/guides/moderation
+6We refer readers to Table 2. As shown, for the same set of attacks, we evaluate toxicity using both Perspective API and Detoxify
+classifier. We notice the inconsistency of measurement between these two detectors. In general, perspective API flags a larger
+ratio of content as toxic than that of detoxify. Later in Appendix E, when we use three different automated detection approaches
+for evaluation, we also observe prominent inconsistency.
+10
+
+-- 10 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+studied black-box attack techniques in classical adversarial machine-learning literature [ 38 ; 59 ]. 3) Spreadability:
+as an adversarial example has the capability to be universally applicable to jailbreak models, according to our study,
+a single such "jailbreaker" could be readily spread via the internet and exploited by any users without the need
+for specialized knowledge. 4) Influence on Advanced Systems: if LLMs are embodied in more advanced systems,
+e.g., robotics [ 37 ; 22 ; 9 ], APIs management [ 60 ], making tools [ 11 ], developing plug-ins [ 43 ], the implications of our
+attacks may further expand according to specific downstream applications.
+Risks of Multimodality. Figure 3 indicates multimodality can open up new attack surfaces on which adversarial
+examples could be easier to be optimized. Besides this enhanced "optimization power", we note that these new
+attack surfaces also carry inherent physical implications. As vision, audio, and other modalities are integrated,
+attackers will gain more physical channels through which attacks can be initiated.
+Policy Implications. In policy discussions, there has been some note that RLHF is a standard approach to AI Safety
+and should be codified and standardized as a requirement. For example, Zenner [81] suggested:
+Currently, reinforcement learning through human feedback (RLHF), sometimes done by so-called
+ghost workers prompting the model and labelling the output, remains the best method to improve
+datasets and tackle unfair biases and copyright infringements. Alternative ways towards better
+data governance, such as constitutional AI or BigCode and BigScience, exist but still need more
+research and funding. The AI Act could promote and standardise these methods. But in its current
+form, Article 28 b(2b) and (4) obligations are too vague and do not address these issues.
+Yet our work demonstrates that alignment techniques based on instruction tuning (as in Vicuna-series models) or
+RLHF (as in Llama-2) may be simple to bypass for multimodal models, particularly when access to the model is
+readily available. Policymakers should think prospectively toward multimodal attack surfaces. Each new modality
+requires additional investment and defenses to protect against jailbreaking. Text-based RLHF methods do not pro-
+vide multimodal protection for free. Therefore, any recommendations, guidelines, or regulations from policymakers
+should be flexible enough to accommodate the shifting range of techniques that constitute best practices in safety.
+Limitations. LLMs have open-ended outputs, rendering the complete evaluation of their potential harm a per-
+sistent challenge [ 25 ]. Our evaluation datasets are unavoidably incomplete. Our work also involves a manual
+evaluation [ 61 ], a process that unfortunately lacks a universally recognized standard. Though we also involve an
+API-based evaluation on RealToxicityPrompts benchmark, it may fall short in accuracy. Thus, our evaluation is only
+intended as a proof of concept for the adversarial risks we examine in this work.
+7 Conclusion
+In this work, we underscore the escalating adversarial risks (expansion of attack surfaces and extended implications
+of security failures) associated with current pursuit of multimodality. We provide a tangible demonstration of
+these risks by illustrating how visual adversarial examples can be used to jailbreak large language models (LLMs)
+that incorporate visual inputs. Our research emphasizes the importance of security and safety precautions in the
+development of multimodal systems. We appeal that both tech and policy practitioners should think and move
+prospectively toward addressing and navigating the potential challenges posed by multimodal attacks.
+More broadly, our finding also uncovers the tension between the long-studied adversarial vulnerabilities of neural
+networks and the nascent field of AI alignment. Since it is known that adversarial examples are fundamentally
+difficult to address and remain an unsolved problem after a decade of study, we ask the question: how can we
+achieve AI alignment without addressing adversarial examples in an adversarial environment? This challenge is
+concerning, especially in light of the emerging trend toward multimodality in frontier foundation models
+Acknowledgements
+We thank Tong Wu and Chong Xiang for their generous help and insightful discussions. Prateek Mittal acknowledges
+the support by NSF grants CNS-1553437 and CNS-1704105, the ARL’s Army Artificial Intelligence Innovation Institute
+(A2I2), the Office of Naval Research Young Investigator Award, the Army Research Office Young Investigator Prize,
+Schmidt DataX award, Princeton E-affiliates Award. Mengdi Wang acknowledges the support by NSF grants DMS-
+1953686, IIS-2107304, CMMI-1653435, ONR grant 1006977, and C3.AI. Xiangyu Qi acknowledges the support of
+Princeton Gordon Y. S. Wu Fellowship. Any opinions, findings, conclusions, or recommendations expressed in this
+material are those of the author(s) and do not necessarily reflect the views of the funding agencies.
+11
+
+-- 11 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+References
+[1] Adversa. Universal LLM jailbreak: ChatGPT, GPT-4, Bard, Bing, Anthropic, and beyond. https://adversa.
+ai/blog/universal-llm-jailbreak-chatgpt-gpt-4-bard-bing-anthropic-and-beyond/, 2023. 4
+[2] J.-B. Alayrac, J. Donahue, P. Luc, A. Miech, I. Barr, Y. Hasson, K. Lenc, A. Mensch, K. Millican, M. Reynolds, et al.
+Flamingo: a visual language model for few-shot learning. Advances in Neural Information Processing Systems,
+35:23716–23736, 2022. 1, 3
+[3] M. Alzantot, Y. Sharma, A. Elgohary, B.-J. Ho, M. Srivastava, and K.-W. Chang. Generating natural language
+adversarial examples. arXiv preprint arXiv:1804.07998, 2018. 1, 4
+[4] S. Antol, A. Agrawal, J. Lu, M. Mitchell, D. Batra, C. L. Zitnick, and D. Parikh. Vqa: Visual question answering. In
+Proceedings of the IEEE international conference on computer vision, pages 2425–2433, 2015. 1
+[5] A. Athalye, N. Carlini, and D. Wagner. Obfuscated gradients give a false sense of security: Circumventing
+defenses to adversarial examples. In International conference on machine learning, pages 274–283. PMLR, 2018.
+1, 4, 9
+[6] Y. Bai, A. Jones, K. Ndousse, A. Askell, A. Chen, N. DasSarma, D. Drain, S. Fort, D. Ganguli, T. Henighan,
+N. Joseph, S. Kadavath, J. Kernion, T. Conerly, S. El-Showk, N. Elhage, Z. Hatfield-Dodds, D. Hernandez,
+T. Hume, S. Johnston, S. Kravec, L. Lovitt, N. Nanda, C. Olsson, D. Amodei, T. Brown, J. Clark, S. McCandlish,
+C. Olah, B. Mann, and J. Kaplan. Training a helpful and harmless assistant with reinforcement learning from
+human feedback, 2022. 2, 3
+[7] Y. Bai, S. Kadavath, S. Kundu, A. Askell, J. Kernion, A. Jones, A. Chen, A. Goldie, A. Mirhoseini, C. McKinnon,
+et al. Constitutional ai: Harmlessness from ai feedback. arXiv preprint arXiv:2212.08073, 2022. 4
+[8] R. Bommasani, D. A. Hudson, E. Adeli, R. Altman, S. Arora, S. von Arx, M. S. Bernstein, J. Bohg, A. Bosselut,
+E. Brunskill, et al. On the opportunities and risks of foundation models. arXiv preprint arXiv:2108.07258, 2021.
+3, 10
+[9] A. Brohan, N. Brown, J. Carbajal, Y. Chebotar, X. Chen, K. Choromanski, T. Ding, D. Driess, A. Dubey, C. Finn,
+et al. Rt-2: Vision-language-action models transfer web knowledge to robotic control. arXiv preprint
+arXiv:2307.15818, 2023. 3, 11
+[10] T. Brown, B. Mann, N. Ryder, M. Subbiah, J. D. Kaplan, P. Dhariwal, A. Neelakantan, P. Shyam, G. Sastry, A. Askell,
+et al. Language models are few-shot learners. Advances in neural information processing systems, 33:1877–1901,
+2020. 1, 3
+[11] T. Cai, X. Wang, T. Ma, X. Chen, and D. Zhou. Large language models as tool makers. arXiv preprint
+arXiv:2305.17126, 2023. 11
+[12] Y. Cao, N. Wang, C. Xiao, D. Yang, J. Fang, R. Yang, Q. A. Chen, M. Liu, and B. Li. Invisible for both camera and
+lidar: Security of multi-sensor fusion based perception in autonomous driving under physical-world attacks.
+In 2021 IEEE Symposium on Security and Privacy (SP), pages 176–194. IEEE, 2021. 3
+[13] N. Carlini and D. Wagner. Adversarial examples are not easily detected: Bypassing ten detection methods. In
+Proceedings of the 10th ACM workshop on artificial intelligence and security, pages 3–14, 2017. 1, 4, 9
+[14] N. Carlini and D. Wagner. Audio adversarial examples: Targeted attacks on speech-to-text. In 2018 IEEE security
+and privacy workshops (SPW), pages 1–7. IEEE, 2018. 3
+[15] N. Carlini, F. Tramer, J. Z. Kolter, et al. (certified!!) adversarial robustness for free! arXiv preprint
+arXiv:2206.10550, 2022. 10
+[16] N. Carlini, M. Nasr, C. A. Choquette-Choo, M. Jagielski, I. Gao, A. Awadalla, P. W. Koh, D. Ippolito, K. Lee,
+F. Tramer, et al. Are aligned neural networks adversarially aligned? arXiv preprint arXiv:2306.15447, 2023. 4
+[17] W.-L. Chiang, Z. Li, Z. Lin, Y. Sheng, Z. Wu, H. Zhang, L. Zheng, S. Zhuang, Y. Zhuang, J. E. Gonzalez, I. Stoica,
+and E. P. Xing. Vicuna: An open-source chatbot impressing gpt-4 with 90%* chatgpt quality, March 2023. URL
+https://lmsys.org/blog/2023-03-30-vicuna/. 3, 6
+[18] J. Christian. Amazing “jailbreak” bypasses ChatGPT’s ethics safeguards. https://futurism.com/amazing
+-jailbreak-chatgpt, 2023. 4
+[19] J. Cohen, E. Rosenfeld, and Z. Kolter. Certified adversarial robustness via randomized smoothing. In interna-
+tional conference on machine learning, pages 1310–1320. PMLR, 2019. 10
+[20] F. Croce, M. Andriushchenko, V. Sehwag, E. Debenedetti, N. Flammarion, M. Chiang, P. Mittal, and M. Hein.
+Robustbench: a standardized adversarial robustness benchmark. arXiv preprint arXiv:2010.09670, 2020. 10
+12
+
+-- 12 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+[21] W. Dai, J. Li, D. Li, A. M. H. Tiong, J. Zhao, W. Wang, B. Li, P. Fung, and S. Hoi. Instructblip: Towards general-
+purpose vision-language models with instruction tuning, 2023. 2, 3, 6, 16, 17
+[22] D. Driess, F. Xia, M. S. Sajjadi, C. Lynch, A. Chowdhery, B. Ichter, A. Wahid, J. Tompson, Q. Vuong, T. Yu, et al.
+Palm-e: An embodied multimodal language model. arXiv preprint arXiv:2303.03378, 2023. 11
+[23] J. Ebrahimi, A. Rao, D. Lowd, and D. Dou. Hotflip: White-box adversarial examples for text classification. arXiv
+preprint arXiv:1712.06751, 2017. 6
+[24] Y. Fang, W. Wang, B. Xie, Q. Sun, L. Wu, X. Wang, T. Huang, X. Wang, and Y. Cao. Eva: Exploring the limits of
+masked visual representation learning at scale. In Proceedings of the IEEE/CVF Conference on Computer Vision
+and Pattern Recognition, pages 19358–19369, 2023. 6
+[25] D. Ganguli, D. Hernandez, L. Lovitt, A. Askell, Y. Bai, A. Chen, T. Conerly, N. Dassarma, D. Drain, N. Elhage, et al.
+Predictability and surprise in large generative models. In 2022 ACM Conference on Fairness, Accountability, and
+Transparency, pages 1747–1764, 2022. 11
+[26] D. Ganguli, L. Lovitt, J. Kernion, A. Askell, Y. Bai, S. Kadavath, B. Mann, E. Perez, N. Schiefer, K. Ndousse,
+et al. Red teaming language models to reduce harms: Methods, scaling behaviors, and lessons learned. arXiv
+preprint arXiv:2209.07858, 2022. 4, 7, 20
+[27] Y. Gao, I. Shumailov, K. Fawaz, and N. Papernot. On the limitations of stochastic pre-processing defenses. arXiv
+preprint arXiv:2206.09491, 2022. 10
+[28] S. Gehman, S. Gururangan, M. Sap, Y. Choi, and N. A. Smith. Realtoxicityprompts: Evaluating neural toxic
+degeneration in language models. arXiv preprint arXiv:2009.11462, 2020. 2, 3, 7
+[29] R. Girdhar, A. El-Nouby, Z. Liu, M. Singh, K. V. Alwala, A. Joulin, and I. Misra. Imagebind: One embedding space
+to bind them all. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages
+15180–15190, 2023. 3
+[30] I. J. Goodfellow, J. Shlens, and C. Szegedy. Explaining and harnessing adversarial examples. arXiv preprint
+arXiv:1412.6572, 2014. 4
+[31] L. Hanu and Unitary team. Detoxify. Github. https://github.com/unitaryai/detoxify, 2020. 7
+[32] T. Hartvigsen, S. Gabriel, H. Palangi, M. Sap, D. Ray, and E. Kamar. Toxigen: A large-scale machine-generated
+dataset for adversarial and implicit hate speech detection. In Proceedings of the 60th Annual Meeting of the
+Association for Computational Linguistics (Volume 1: Long Papers), pages 3309–3326, 2022. 20
+[33] A. Helbling, M. Phute, M. Hull, and D. H. Chau. Llm self defense: By self examination, llms know they are being
+tricked, 2023. 10
+[34] P. Henderson, M. Krass, L. Zheng, N. Guha, C. D. Manning, D. Jurafsky, and D. Ho. Pile of law: Learning
+responsible data filtering from the law and a 256gb open-source legal dataset. Advances in Neural Information
+Processing Systems, 35:29217–29234, 2022. 20
+[35] J. Ho, A. Jain, and P. Abbeel. Denoising diffusion probabilistic models. Advances in Neural Information
+Processing Systems, 33:6840–6851, 2020. 10
+[36] A. Holtzman, J. Buys, L. Du, M. Forbes, and Y. Choi. The curious case of neural text degeneration. arXiv preprint
+arXiv:1904.09751, 2019. 6
+[37] S. Huang, Z. Jiang, H. Dong, Y. Qiao, P. Gao, and H. Li. Instruct2act: Mapping multi-modality instructions to
+robotic actions with large language model. arXiv preprint arXiv:2305.11176, 2023. 11
+[38] A. Ilyas, L. Engstrom, A. Athalye, and J. Lin. Black-box adversarial attacks with limited queries and information.
+In International conference on machine learning, pages 2137–2146. PMLR, 2018. 11
+[39] E. Jones, A. Dragan, A. Raghunathan, and J. Steinhardt. Automatically auditing large language models via
+discrete optimization. arXiv preprint arXiv:2303.04381, 2023. 1, 4
+[40] Z. Kenton, T. Everitt, L. Weidinger, I. Gabriel, V. Mikulik, and G. Irving. Alignment of language agents. arXiv
+preprint arXiv:2103.14659, 2021. 3
+[41] M. King. Meet dan — the ‘jailbreak’ version of chatgpt and how to use it — ai unchained and unfiltered.
+https://medium.com/@neonforge/meet-dan-the-jailbreak-version-of-chatgpt-and-how-to-u
+se-it-ai-unchained-and-unfiltered-f91bfa679024, 2023. 4
+[42] LAION. Open-assistant. https://github.com/LAION-AI/Open-Assistant, 2023. 20
+[43] LangChain. Langchain as an aiplugin. https://github.com/langchain-ai/langchain-aiplugin, 2023.
+11
+13
+
+-- 13 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+[44] B. Lester, R. Al-Rfou, and N. Constant. The power of scale for parameter-efficient prompt tuning. arXiv preprint
+arXiv:2104.08691, 2021. 5
+[45] L. Li, T. Xie, and B. Li. Sok: Certified robustness for deep neural networks. In 44th IEEE Symposium on Security
+and Privacy, SP 2023, San Francisco, CA, USA, 22-26 May 2023. IEEE, 2023. 10
+[46] F. Liu, K.-S. Liu, C. Chang, and Y. Wang. Research on the technology of ios jailbreak. In 2016 Sixth International
+Conference on Instrumentation & Measurement, Computer, Communication and Control (IMCCC), pages
+644–647. IEEE, 2016. 4
+[47] H. Liu, C. Li, Q. Wu, and Y. J. Lee. Visual instruction tuning, 2023. 2, 3, 6, 16, 17
+[48] Y. Liu, G. Deng, Z. Xu, Y. Li, Y. Zheng, Y. Zhang, L. Zhao, T. Zhang, and Y. Liu. Jailbreaking chatgpt via prompt
+engineering: An empirical study. arXiv preprint arXiv:2305.13860, 2023. 2, 4
+[49] A. Madry, A. Makelov, L. Schmidt, D. Tsipras, and A. Vladu. Towards deep learning models resistant to adversarial
+attacks. arXiv preprint arXiv:1706.06083, 2017. 1, 6, 10
+[50] N. Mehrabi, A. Beirami, F. Morstatter, and A. Galstyan. Robust conversational agents against imperceptible
+toxicity triggers. In Proceedings of the 2022 Conference of the North American Chapter of the Association for
+Computational Linguistics: Human Language Technologies, pages 2831–2847, Seattle, United States, July 2022.
+Association for Computational Linguistics. doi:10.18653/v1/2022.naacl-main.204. URL https://aclantho
+logy.org/2022.naacl-main.204. 4, 7, 10
+[51] Microsoft. Introduction to red teaming large language models (llms). https://learn.microsoft.com/en
+-us/azure/ai-services/openai/concepts/red-teaming, 2023. 4
+[52] Z. Mowshowitz. Jailbreaking chatgpt on release day. https://www.lesswrong.com/posts/RYcoJdvmoBbi
+5Nax7/jailbreaking-chatgpt-on-release-day, 2022. 4
+[53] W. Nie, B. Guo, Y. Huang, C. Xiao, A. Vahdat, and A. Anandkumar. Diffusion models for adversarial purification.
+arXiv preprint arXiv:2205.07460, 2022. 10
+[54] OpenAI. Introducing ChatGPT. https://openai.com/blog/chatgpt, 2022. 1, 6
+[55] OpenAI. Moderation api. https://platform.openai.com/docs/guides/moderation, 2023. 20
+[56] OpenAI. Gpt-4 technical report, 2023. 1, 3, 4, 10
+[57] OpenAI. Forecasting potential misuses of language models for disinformation campaigns and how to reduce
+risk. https://openai.com/research/forecasting-misuse, 2023. [Online; accessed 4-Apr-2023]. 2
+[58] L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C. Zhang, S. Agarwal, K. Slama, A. Ray,
+et al. Training language models to follow instructions with human feedback. Advances in Neural Information
+Processing Systems, 35:27730–27744, 2022. 2, 3
+[59] N. Papernot, P. McDaniel, I. Goodfellow, S. Jha, Z. B. Celik, and A. Swami. Practical black-box attacks against
+machine learning. In Proceedings of the 2017 ACM on Asia conference on computer and communications
+security, pages 506–519, 2017. 11
+[60] S. G. Patil, T. Zhang, X. Wang, and J. E. Gonzalez. Gorilla: Large language model connected with massive apis.
+arXiv preprint arXiv:2305.15334, 2023. 3, 11
+[61] E. Perez, S. Huang, F. Song, T. Cai, R. Ring, J. Aslanides, A. Glaese, N. McAleese, and G. Irving. Red teaming
+language models with language models. arXiv preprint arXiv:2202.03286, 2022. 4, 11
+[62] S. Pichai. An important next step on our ai journey. https://blog.google/technology/ai/bard-googl
+e-ai-search-updates/, 2023. 3
+[63] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell, P. Mishkin, J. Clark, et al.
+Learning transferable visual models from natural language supervision. In International conference on machine
+learning, pages 8748–8763. PMLR, 2021. 6
+[64] A. Rao, S. Vashistha, A. Naik, S. Aditya, and M. Choudhury. Tricking llms into disobedience: Understanding,
+analyzing, and preventing jailbreaks. arXiv preprint arXiv:2305.14965, 2023. 4
+[65] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer. High-resolution image synthesis with latent
+diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,
+pages 10684–10695, 2022. 10
+[66] T. Schick, S. Udupa, and H. Schütze. Self-diagnosis and self-debiasing: A proposal for reducing corpus-based
+bias in nlp. Transactions of the Association for Computational Linguistics, 9:1408–1424, 2021. 7
+14
+
+-- 14 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+[67] ShareGPT.com. Sharegpt: Share your wildest chatgpt conversations with one click. https://sharegpt.com/,
+2023. 6
+[68] T. Shin, Y. Razeghi, R. L. Logan IV, E. Wallace, and S. Singh. Autoprompt: Eliciting knowledge from language
+models with automatically generated prompts. arXiv preprint arXiv:2010.15980, 2020. 5, 6
+[69] Z. Sun, Y. Shen, Q. Zhou, H. Zhang, Z. Chen, D. Cox, Y. Yang, and C. Gan. Principle-driven self-alignment of
+language models from scratch with minimal human supervision. arXiv preprint arXiv:2305.03047, 2023. 4
+[70] C. Szegedy, W. Zaremba, I. Sutskever, J. Bruna, D. Erhan, I. Goodfellow, and R. Fergus. Intriguing properties of
+neural networks. arXiv preprint arXiv:1312.6199, 2013. 1, 4
+[71] H. Touvron, T. Lavril, G. Izacard, X. Martinet, M.-A. Lachaux, T. Lacroix, B. Rozière, N. Goyal, E. Hambro, F. Azhar,
+et al. Llama: Open and efficient foundation language models. arXiv preprint arXiv:2302.13971, 2023. 6, 16
+[72] H. Touvron, L. Martin, K. Stone, P. Albert, A. Almahairi, Y. Babaei, N. Bashlykov, S. Batra, P. Bhargava, S. Bhosale,
+et al. Llama 2: Open foundation and fine-tuned chat models. arXiv preprint arXiv:2307.09288, 2023. 3, 6, 16
+[73] F. Tramer. Detecting adversarial examples is (nearly) as hard as classifying them. In International Conference
+on Machine Learning, pages 21692–21702. PMLR, 2022. 1, 4, 9
+[74] E. Wallace, S. Feng, N. Kandpal, M. Gardner, and S. Singh. Universal adversarial triggers for attacking and
+analyzing nlp. arXiv preprint arXiv:1908.07125, 2019. 6, 10
+[75] A. Wei, N. Haghtalab, and J. Steinhardt. Jailbroken: How does llm safety training fail? arXiv preprint
+arXiv:2307.02483, 2023. 4
+[76] J. Wei, M. Bosma, V. Y. Zhao, K. Guu, A. W. Yu, B. Lester, N. Du, A. M. Dai, and Q. V. Le. Finetuned language
+models are zero-shot learners. arXiv preprint arXiv:2109.01652, 2021. 3
+[77] J. Wei, X. Wang, D. Schuurmans, M. Bosma, F. Xia, E. Chi, Q. V. Le, D. Zhou, et al. Chain-of-thought prompting
+elicits reasoning in large language models. Advances in Neural Information Processing Systems, 35:24824–24837,
+2022. 3
+[78] L. Weng, V. Goel, and A. Vallone. Using gpt-4 for content moderation, 8 2023. URL https://openai.com/blo
+g/using-gpt-4-for-content-moderation. 10
+[79] C. Xiang, S. Mahloujifar, and P. Mittal. { PatchCleanser } : Certifiably robust defense against adversarial patches
+for any image classifier. In 31st USENIX Security Symposium (USENIX Security 22), pages 2065–2082, 2022. 10
+[80] R. Zellers, Y. Bisk, A. Farhadi, and Y. Choi. From recognition to cognition: Visual commonsense reasoning. In
+Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pages 6720–6731, 2019. 1
+[81] K. Zenner. A law for foundation models: the eu ai act can improve regulation for fairer competition. https:
+//oecd.ai/en/wonk/foundation-models-eu-ai-act-fairer-competition, July 2023. the Head of
+Office and Digital Policy Adviser, Office of Axel Voss MEP. 11
+[82] Z. Zhao, D. Dua, and S. Singh. Generating natural adversarial examples. arXiv preprint arXiv:1710.11342, 2017.
+1, 4
+[83] D. Zhu, J. Chen, X. Shen, X. Li, and M. Elhoseiny. Minigpt-4: Enhancing vision-language understanding with
+advanced large language models. arXiv preprint arXiv:2304.10592, 2023. 2, 3, 6, 16
+[84] A. Zou, Z. Wang, J. Z. Kolter, and M. Fredrikson. Universal and transferable adversarial attacks on aligned
+language models. arXiv preprint arXiv:2307.15043, 2023. 4
+15
+
+-- 15 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+A Additional Details of Our Experiments
+A.1 Models
+MiniGPT-4 [ 83 ] is built on the v0 version of Vicuna. As Vicuna is a chatbot-style language model, MiniGPT-4 wraps
+the image embeddings and user inputs into the same chatbot format as Vicuna v0 model7. Specifically, the following
+input template is applied for MiniGPT-4:
+<System Message> ### Human: <img><ImageHere></img> <Input> ### Assistant:
+To clarify, in the template:
+• <System Message> sets up the context of the conversation, which guides the Vicuna model to process
+the conversation. In our experiments, we use the default system message “Given the following image:
+<Img>ImageContent</Img>. You will be able to see the image once I provide it to you. Please answer my
+questions.” 8
+• <ImageHere> is a placeholder and will be replaced by the image embedding vectors (32 tokens) after the
+user uploads the image input.
+• The user text input (denoted as <Input>) is appended after the image embeddings. Given the wrapped
+input embeddings, Vicuna autoregressively generates its continuation as the reply of the Assistant.
+InstructBLIP [ 21 ] is another open-sourced VLM we study in this work. It is based on the v1.1 version of the Vicuna
+model (13B). Similar to MiniGPT-4, the embeddings of the input image are inserted before the embeddings of the
+input text. InstructBLIP does not apply a chatbot-style input template, instead, it directly takes user image and text
+inputs and concatenates their embeddings as the joint input to the Vicuna LLM.
+LLaVA [ 47 ]. We use the LLaVA implementation to build the VLM variant of the LLaMA-2-13B-Chat model [ 72 ]. The
+implementation of the input template follows the chatbot template of LLaMA-2-13B-Chat. Specifically, the user
+input is wrapped by [INST] and [/INST] and the system message is wrapped by «SYS» and «/SYS». For LLaVA,
+the default system message is “You are a helpful language and vision assistant. You are able to understand the visual
+content that the user provides and assist the user with a variety of tasks using natural language.” To maintain the
+strong alignment of LLaMA-2 in the LLaVA model variant, we diverged from LLaVA’s original implementation a little
+bit. Here, we keep the LLaMA-2 frozen, consistent with MiniGPT-4 and InstructBLIP practices. Except for this, we
+ensure all other implementation details remain congruent with the original LLaVA model implementation.
+A.2 The Few-shot Harmful Corpus
+To optimize our adversarial examples following Equation 1, we curate a few-shot corpus Y , consisting of 66
+derogatory sentences against <gender-1>, <race-1>, and the human race. Specifically, there are 21 sentences against
+<gender-1>, 28 sentences against <race-1>, and 17 sentences against the human race. These sentences are generated
+by probing the early LLaMA-1 [ 71 ] model, which does not have safety alignment. Specifically, for a specific identify
+(denoted as <identity>), we use prompts such as "Say something vicious about <identity>." to probe the LLaMA-1
+model to generate a set of sentences. We then manually filter out redundant and non-harmful content and shortlist
+the final 66 sentences we use in our attack. This corpus can be found in our GitHub repository. 1
+A.3 Computing Infrastructure
+Each of our individual attack and evaluation test point is performed on a virtual node, equipped with one Nvidia
+A100 80GB GPU and eight 2.8 GHz Intel Ice Lake CPU cores with 16GB memory per core. Our operating system is
+Red Hat 8.5.0-18, and Cuda Version 12.1 is used. All our implementations are built on Pytorch 1.12.1 and Python 3.9.
+A.4 Hyperparameters
+As noted in Section 3, all of our attacks take 5000 iterations of optimization. This choice can be justified by our plot
+in Figure 3 — the loss values converge slowly and become relatively stable around 5000 iterations. For visual attacks,
+we keep a step size of α = 1/255, the minimal unit in the pixel space — empirically, larger α only performs no better
+or worse. For text attacks, we keep the size of the word substitution candidates to k = 50 to reach a reasonable
+7https://github.com/lm-sys/FastChat/blob/main/docs/vicuna_weights_version.md
+8https://github.com/Vision-CAIR/MiniGPT-4/blob/main/minigpt4/conversation/conversation.py
+16
+
+-- 16 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+balance between effectiveness and computation time — k = 50 performs similarly to k = 100 but only consumes
+half of the computation. For optimizing Equation 1, we sample a batch of 8 samples from the corpus Y for each
+iteration, which best fits the 80GB memory of a single A100 GPU. Empirically, a smaller batch size may lead to
+instability, while a larger one can fail to fit into the memory.
+B Attacks on InstructBLIP [21] and LLaVA [47]
+We repeat our automated evaluation on the RealToxicityPrompts benchmark (that we introduce in Section 4.3) for
+two other open-source VLMs — InstructBLIP (Vicuna based) and LLaVA (LLaMA-2 based). Results are summarized
+in Table 5 and 6.
+Table 5: The percentages (%) of the generated outputs of InstructBLIP [ 21 ] that exhibit certain toxic attributes given
+by Perspective API and Detoxify Classifier, tested on the RealToxicityPrompts challenging subset. The leftmost
+column is the percentage of the generated texts that exhibit any of the 6 attributes.
+Perspective API (%)
+Model (Input) 	Any Identity Attack Profanity Severe Toxicity Sexually Explicit Threat Toxicity
+InstructBLIP (clean) 	34.2 ± 0.5 3.2 ± 0.2 24.9 ± 0.5 5.3 ± 0.2 10.6 ± 0.3 3.2 ± 0.2 33.1 ± 0.5
+InstructBLIP (ε = 16/255) 61.3 ± 4.9 12.4 ± 3.3 47.3 ± 4.2 12.0 ± 3.4 19.0 ± 1.2 6.4 ± 1.3 59.5 ± 4.5
+InstructBLIP (ε = 32/255) 60.2 ± 3.3 19.9 ± 2.6 44.0 ± 3.5 10.3 ± 1.8 15.2 ± 0.4 6.3 ± 0.5 58.1 ± 3.9
+InstructBLIP (ε = 64/255) 59.9 ± 4.1 14.4 ± 3.5 46.2 ± 3.7 11.2 ± 1.1 16.9 ± 1.0 6.8 ± 0.9 58.0 ± 4.6
+InstructBLIP (unconstrained) 55.7 ± 4.0 7.8 ± 1.0 42.6 ± 4.13 8.7 ± 1.6 16.6 ± 1.5 5.6 ± 0.3 53.6 ± 4.1
+Detoxify (%)
+Model (Input) 	Any Identity Attack Obscene Severe Toxicity Insult Threat Toxicity
+InstructBLIP (clean) 	36.4 ± 0.7 1.9 ± 0.1 24.3 ± 0.5 2.6 ± 0.1 14.6 ± 0.6 2.3 ± 0.2 36.4 ± 0.7
+InstructBLIP (ε = 16/255) 63.2 ± 4.3 9.5 ± 2.9 47.1 ± 4.6 5.6 ± 1.7 32.8 ± 3.8 4.4 ± 0.5 63.2 ± 4.3
+InstructBLIP (ε = 32/255) 62.1 ± 2.9 17.3 ± 3.0 47.2 ± 4.9 6.7 ± 1.4 33.6 ± 4.3 4.3 ± 0.5 62.1 ± 2.9
+InstructBLIP (ε = 64/255) 62.1 ± 3.8 11.8 ± 4.21 46.9 ± 5.3 6.2 ± 1.3 31.8 ± 5.2 5.0 ± 0.7 62.2 ± 3.8
+InstructBLIP (unconstrained) 56.9 ± 3.2 5.7 ± 0.9 42.5 ± 3.6 4.0 ± 0.4 26.6 ± 2.6 3.8 ± 0.9 56.8 ± 3.3
+Table 6: The percentages of the generated outputs of LLaVA [ 47 ] that exhibit certain toxic attributes given by
+Perspective API and Detoxify Classifier, tested on the RealToxicityPrompts challenging subset. The leftmost column
+is the percentage of the generated texts that exhibit any of the 6 attributes.
+Perspective API (%)
+Model (Input) 	Any Identity Attack Profanity Severe Toxicity Sexually Explicit Threat Toxicity
+LLaVA (clean) 9.2 ± 0.3 0 ± 0 5.0 ± 0.2 0 ± 0 2.6 ± 0.4 0.9 ± 0.2 5.5 ± 0.1
+LLaVA (ε = 16/255) 30.3 ± 2.8 3.3 ± 0.5 19.7 ± 2.2 2.9 ± 0.5 6.8 ± 0.6 1.7 ± 0.2 25.6 ± 3.1
+LLaVA (ε = 32/255) 52.3 ± 3.4 10.2 ± 1.5 43.5 ± 2.1 6.1 ± 0.4 14.9 ± 0.5 5.2 ± 0.5 47.2 ± 1.4
+LLaVA (ε = 64/255) 51.5 ± 4.6 9.6 ± 0.1 37.3 ± 5.4 9.4 ± 3.2 13.5 ± 0.6 7.0 ± 0.1 46.9 ± 4.7
+LLaVA (unconstrained) 50.6 ± 0.8 6.3 ± 1.3 35.4 ± 3.9 4.6 ± 1.1 12.7 ± 1.1 3.7 ± 0.2 44.4 ± 1.0
+Detoxify (%)
+Model (Input) 	Any Identity Attack Obscene Severe Toxicity Insult Threat Toxicity
+LLaVA (clean) 6.4 ± 0.2 0.1 ± 0 3.6 ± 0.2 0 ± 0 1.4 ± 0.2 0.5 ± 0.1 6.1 ± 0.2
+LLaVA (ε = 16/255) 25.6 ± 4.8 2.1 ± 0.3 22.3 ± 2.2 1.9 ± 0.2 11.7 ± 1.2 1.1 ± 0.2 22.6 ± 3.5
+LLaVA (ε = 32/255) 39.7 ± 4.2 6.8 ± 0.8 34.6 ± 1.9 2.3 ± 0.3 18.7 ± 2.5 1.7 ± 0.2 35.3 ± 3.4
+LLaVA (ε = 64/255) 39.3 ± 6.2 5.1 ± 0.4 29.9 ± 4.7 3.1 ± 0.4 17.6 ± 4.3 2.1 ± 0.8 38.4 ± 5.2
+LLaVA (unconstrained) 40.5 ± 3.1 4.4 ± 0.8 33.2 ± 1.4 2.6 ± 0.8 18.9 ± 2.3 1.6 ± 0.4 39.6 ± 3.9
+17
+
+-- 17 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+C The Transferability of Our Attacks
+We also validate the black-box transferability of our visual adversarial examples among the three different models,
+i.e., MiniGPT-4, InstructBLIP and LLaVA. We optimize our adversarial examples on a surrogate model and then
+use the same adversarial examples to transfer attack another target model. We use the same RealToxicityPrompt
+evaluation protocol introduced in Section 4 to automate the evaluation. We report percentages (%) of outputs that
+display at least one of the toxic attributes (i.e., Any in Table 2) under the transfer attacks. We use Perspective API to
+evaluate the toxicity and omit evaluation from Detoxify for clarity. Similarly, we repeat the evaluation 3 times and
+report means and standard deviation intervals. We summarize the simplified results in the transfer matrix in Table 3,
+where we selectively report the strongest transfer attack out of (unconstrained, ε = 16/255, 32/255, 64/255)) for each pair.
+As shown, the attacks effectively transfer, consistently increasing the toxicity of attacked models. In Table 7, we
+further present the full results.
+Table 7: Transferability of the attacks. The table shows the percentages of the generated outputs that exhibit certain
+toxic attributes given by Perspective API, tested on the RealToxicityPrompts challenging subset. The leftmost column
+is the percentage of the generated texts that exhibit any of the 6 attributes.
+Perspective API (%)
+Surrogate → Target 	Any Identity Attack Profanity Severe Toxicity Sexually Explicit Threat Toxicity
+LLaVA → InstructBLIP (ε = 16/255) 	33.7 ± 1.0 3.4 ± 0.4 24.6 ± 1.0 4.6 ± 0.1 	10.1 ± 0.6 3.5 ± 0.5 32.4 ± 1.0
+LLaVA → InstructBLIP (ε = 32/255) 	34.3 ± 1.8 3.7 ± 0.3 25.0 ± 2.0 5.0 ± 0.4 	10.5 ± 0.8 3.6 ± 0.1 33.1 ± 1.6
+LLaVA → InstructBLIP (ε = 64/255) 	35.5 ± 1.1 3.6 ± 0.1 26.1 ± 1.3 5.3 ± 0.4 	10.6 ± 0.3 4.3 ± 0.4 34.2 ± 1.1
+LLaVA → InstructBLIP (unconstrained) 	46.5 ± 0.5 5.4 ± 0.5 35.5 ± 0.7 7.2 ± 0.2 	14.6 ± 0.3 4.1 ± 0.3 45.3 ± 0.4
+MiniGPT-4 → InstructBLIP (ε = 16/255) 	57.5 ± 3.8 9.2 ± 2.6 44.5 ± 2.8 11.6 ± 1.6 	17.5 ± 0.8 6.2 ± 0.7 56.2 ± 3.8
+MiniGPT-4 → InstructBLIP (ε = 32/255) 	55.1 ± 3.4 8.9 ± 1.8 41.6 ± 2.8 9.3 ± 1.7 	17.0 ± 1.4 5.6 ± 1.2 53.4 ± 3.5
+MiniGPT-4 → InstructBLIP (ε = 64/255) 	56.5 ± 2.6 7.4 ± 0.8 43.2 ± 2.2 9.9 ± 0.4 	20.2 ± 2.5 5.6 ± 1.0 54.4 ± 2.2
+MiniGPT-4 → InstructBLIP (unconstrained) 50.7 ± 0.9 7.8 ± 1.7 37.9 ± 1.1 8.5 ± 0.2 	15.7 ± 0.3 4.6 ± 0.6 49.1 ± 1.2
+InstructBLIP → LLaVA (ε = 16/255) 	20.6 ± 2.1 0.6 ± 0.1 13.9 ± 1.2 	0 ± 0 	5.6 ± 0.2 	0.5 ± 0.2 10.0 ± 1.1
+InstructBLIP → LLaVA (ε = 32/255) 	8.8 ± 0.6 	0.1 ± 0 	5.1 ± 0.7 	0 ± 0 	2.4 ± 0.2 	0.6 ± 0.3 4.4 ± 0.3
+InstructBLIP → LLaVA (ε = 64/255) 	10.1 ± 2.8 	0.1 ± 0 	6.0 ± 2.3 	0 ± 0 	2.8 ± 0.9 	0.6 ± 0.3 4.4 ± 0.8
+InstructBLIP → LLaVA (unconstrained) 	6.6 ± 1.6 	0.1 ± 0 	3.8 ± 1.5 	0 ± 0 	1.8 ± 0.5 	0.4 ± 0.1 3.6 ± 0.6
+MiniGPT-4 → LLaVA (ε = 16/255) 	17.9 ± 1.2 0.3 ± 0.1 11.3 ± 0.8 	0.1 ± 0 	5.4 ± 0.6 	0.9 ± 0.2 8.5 ± 0.9
+MiniGPT-4 → LLaVA (ε = 32/255) 	12.3 ± 0.1 0.2 ± 0.1 7.9 ± 0.9 	0 ± 0 	3.4 ± 0.6 	0.4 ± 0.1 6.5 ± 0.6
+MiniGPT-4 → LLaVA (ε = 64/255) 	11.6 ± 0.4 	0.1 ± 0 	7.7 ± 0.8 	0 ± 0 	2.9 ± 0.3 	0.5 ± 0.1 5.3 ± 0.5
+MiniGPT-4 → LLaVA (unconstrained) 	6.5 ± 0.3 	0.1 ± 0 	3.7 ± 0.3 	0 ± 0 	2.2 ± 0.3 	0.5 ± 0.1 3.4 ± 0.2
+InstructBLIP → MiniGPT-4 (ε = 16/255) 	37.2 ± 5.6 2.5 ± 0.5 26.4 ± 4.4 1.4 ± 0.7 	13.1 ± 2.0 2.2 ± 0.5 30.4 ± 5.1
+InstructBLIP → MiniGPT-4 (ε = 32/255) 	49.5 ± 2.7 3.6 ± 0.6 36.6 ± 1.6 2.4 ± 0.4 	14.7 ± 0.3 2.8 ± 0.1 43.1 ± 2.3
+InstructBLIP → MiniGPT-4 (ε = 64/255) 	52.4 ± 1.7 3.7 ± 0.3 39.0 ± 1.6 2.2 ± 0.6 	15.8 ± 0.6 3.3 ± 0.4 45.6 ± 1.8
+InstructBLIP → MiniGPT-4 (unconstrained) 41.2 ± 2.4 2.7 ± 0.3 29.5 ± 1.5 1.6 ± 0.3 	14.3 ± 1.1 1.9 ± 0.2 34.3 ± 2.7
+LLaVA → MiniGPT-4 (ε = 16/255) 	44.8 ± 1.8 3.1 ± 0.7 32.5 ± 1.6 1.9 ± 0.3 	14.6 ± 1.1 2.2 ± 0.3 38.8 ± 1.9
+LLaVA → MiniGPT-4 (ε = 32/255) 	29.7 ± 1.6 1.6 ± 0.1 20.7 ± 1.0 1.0 ± 0.2 	9.6 ± 1.2 	1.6 ± 0.3 25.3 ± 1.2
+LLaVA → MiniGPT-4 (ε = 64/255) 	30.8 ± 2.4 2.2 ± 0.5 21.3 ± 1.8 1.3 ± 0.1 	10.9 ± 0.3 2.2 ± 0.6 25.6 ± 1.8
+LLaVA → MiniGPT-4 (unconstrained) 	31.5 ± 2.3 1.7 ± 0.1 22.4 ± 2.3 1.1 ± 0.3 	11.2 ± 0.6 1.5 ± 0.1 25.5 ± 1.6
+18
+
+-- 18 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+D More Qualitative Examples of Our Attacks
+See Figure 4. Note that, the selection of examples in the demonstration is informed by historical hate crime statistics
+of the United States, and does not, in any way, reflect the personal views or beliefs of the authors.9
+Figure 4: More Qualitative Examples (MiniGPT-4). Left: with a clean image; Right: with an adversarial image.
+9We select racial, sexual and religious bias for the demonstration, which correspond to the top-3 categories of hate crimes of
+the US in 2021, according to https://www.justice.gov/hatecrimes/hate-crime-statistics.
+19
+
+-- 19 of 20 --
+
+Visual Adversarial Examples Jailbreak Aligned Large Language Models A PREPRINT
+E More Quantitative Assessments of Jailbreaks
+Our human study provides a multi-category depiction of the ability of the attack to jailbreak the model, resulting
+in diverse harmful outputs across a wide range of categories. We supplement this result with a semi-automated
+study (on MiniGPT-4). We sort the red teaming dialogs from the dataset provided by Ganguli et al. [26] by the dialogs
+with the lowest minimum harmlessness rating as provided in the data. We find that the first turn of most of these
+dialogs tends to seek to elicit extremely harmful behavior from the model. We then use these 1000 prompts as
+input to the MiniGPT model. We then take the sample responses and use three automatic rating tools to assess
+increases in harmfulness. First, we use the toxigen roberta model to assess whether a given piece of text was flagged
+for toxicity [ 32 ]. Then we use the OpenAssistant reward (preference) model [ 42 ] to assess whether something has a
+low reward (lower than -2.5). Finally, we use OpenAI’s Content Moderation API [55] as well as the different subsets
+of categories that are flagged by the API. These APIs tend to be somewhat conservative with many false negatives.
+For example, Henderson et al. [34] found that Toxigen is less likely to flag long-form content. Nonetheless, we find
+significant increases in the amount of flagged content under all three models. We also find a range of content that
+was flagged for behaviors that there was not exist in the attack training data, including self-harm instructions and
+sexual content. This further shows the universality of the jailbreak.
+Table 8: We examine the rate at which the 1000 responses to Anthropic red-teaming prompts were flagged by the
+OpenAI Content Moderation API. We also use the OpenAssistant/reward-model-deberta-v3-large-v2 reward model
+and flag anything with reward < −2 . 5. The top part of the table is the distribution of flagged responses per category
+as a proportion of the overall number of examples (including non-flagged examples). Bottom part of the table
+includes if any category was flagged for a given sample.
+Flag Clean (%) Unconstrained (%) ε = 16 (%) ε = 32 (%) ε = 64 (%)
+OpenAI Content Moderation Categories
+sexual 1.8 2.8 (+1.0) 2.8 (+1.0) 2.6 (+0.8) 2.4 (+0.6)
+hate 2.4 8.3 (+5.9) 6.7 (+4.3) 10.7 (+8.3) 5.9 (+3.5)
+harassment 5.1 15.6 (+10.5) 14.2 (+9.1) 17.5 (+12.4) 14.4 (+9.3)
+self-harm 0.0 0.7 (+0.7) 0.4 (+0.4) 0.9 (+0.9) 0.1 (+0.1)
+sexual/minors 0.4 0.2 (-0.2) 0.2 (-0.2) 0.1 (-0.3) 0.2 (-0.2)
+hate/threatening 0.3 0.8 (+0.5) 0.6 (+0.3) 2.0 (+1.7) 0.7 (+0.4)
+violence/graphic 0.3 0.3 (0.0) 0.3 (0.0) 1.0 (+0.7) 0.3 (0.0)
+self-harm/intent 0.0 0.8 (+0.8) 0.4 (+0.4) 0.8 (+0.8) 0.1 (+0.1)
+self-harm/instructions 0.0 0.7 (+0.7) 0.3 (+0.3) 0.8 (+0.8) 0.1 (+0.1)
+harassment/threatening 0.3 2.0 (+1.7) 1.6 (+1.3) 3.4 (+3.1) 1.8 (+1.5)
+violence 8.2 12.2 (+4.0) 12.2 (+4.0) 17.0 (+8.8) 10.7 (+2.5)
+Percentage Flagged Content
+OpenAI Moderation (any) 9.4 23.2 (+13.8) 20.8 (+11.4) 24.7 (+15.3) 20.7 (+11.3)
+Low Reward (OA) 36.3 48.2 (+11.9) 50.6 (+14.3) 56.5 (+20.2) 43.7 (+7.4)
+Toxigen (roberta) 7.8 21.0 (+13.2) 19.0 (+11.2) 26.1 (+18.3) 19.1 (+11.3)
+20
+
+-- 20 of 20 --
+
