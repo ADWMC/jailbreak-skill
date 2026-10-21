@@ -9,3 +9,6 @@ node_modules/
 
 # 输出
 results/
+
+# refs 仅为本地参考资料，不进仓库
+refs/
