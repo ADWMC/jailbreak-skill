@@ -1,0 +1,11 @@
+# 本地临时
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 依赖
+node_modules/
+
+# 输出
+results/
