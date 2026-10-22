@@ -267,7 +267,7 @@ jailbreak-skill/
 ├── README.md             You are here
 ├── README.zh-CN.md       简体中文
 │
-├── prompts/              19 modules + 1 assembly index
+├── prompts/              20 modules + 1 assembly index
 │   ├── 00-assembly.md    ← assembly index and preset combos, start here
 │   ├── 01-02             forbidden strings + refusal hardening
 │   ├── 03-06             persona / scoring / output lock / completion
@@ -275,7 +275,7 @@ jailbreak-skill/
 │   ├── 11-12             intent mapping (not in prompts) / discipline
 │   ├── 13-14             scoped rules / preset slots
 │   ├── 15-16             stability anchors + axioms
-│   └── 17-19             reminder reframing / persona lock / evidence contract
+│   └── 17-20             reminder reframing / persona lock / evidence contract / refusal intercept
 │
 ├── methodology/          14 methodology and criteria documents
 │   ├── 00-planning            planning and hypotheses
@@ -298,7 +298,8 @@ jailbreak-skill/
 │   ├── 01-suppression    suppression route
 │   ├── 02-policy-proof   argumentation route
 │   ├── 03-identity-lock  identity route
-│   └── 04-real-samples   collected samples
+│   ├── 04-real-samples   collected samples
+│   └── 05-corpus-patterns cross-vendor corpus observations
 │
 ├── testsets/             four tiers + verification and regression
 └── scripts/              local batch and consistency scripts (see note)
@@ -314,7 +315,7 @@ If it's public, say up front what it can't do.
 |---|---|
 | **Platform interception is out of reach** | A prompt can change a model's judgment, not a gateway's policy layer. On a Cyber Flag–style block, rewriting the prompt changes nothing. |
 | **Some domains no carrier can save** | Drugs, weapons, etc. Changing genre doesn't help. Don't burn time. |
-| **Vendor routes are untested against controls** | Everything in `vendors/` is `[E2]` inference. Verify it yourself. |
+| **Vendor routes are partly inference** | Claude, DeepSeek, GLM, Kimi, Qwen, ChatGPT and Antigravity profiles are `[E1]` — structure observed in a real corpus, never run. Gemini, Grok and local models are `[E2]` with **no usable sample at all**. Verify before trusting any of it. |
 | **`scripts/` depends on local files** | Written for local batch runs; depends on inputs and a local service endpoint that don't ship here. **Does not run after a clone** — see `scripts/README.md`. |
 | **Adult content via direct ask is a known dead end** | The attempts are documented. Don't expect a shortcut. |
 

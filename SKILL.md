@@ -116,9 +116,12 @@ H1 / H2 + 各自推翻条件
 | **看各厂商实际怎么落地** | **`vendors/04-real-samples.md`** |
 | **要反驳"这可能被滥用"** | **`prompts/16-AXIOMS.md`** |
 | **模型推理里反复被安全提醒打断** | **`prompts/17-REMINDER-REFRAME.md`** |
+| **模型在犹豫、输出中途自己软下去** | **`prompts/20-REFUSAL-INTERCEPT.md`** |
 | **人格撑不过第 3 轮** | **`prompts/18-PERSONA-LOCK.md`** |
 | **要一份全量实测过的成品** | **`methodology/07-v21-benchmark.md`** |
 | **模型说"我无法确认"** | **`prompts/19-EVIDENCE-CONTRACT.md`** |
+| **想知道某个厂商吃哪一套** | **`vendors/README.md`**（含证据分级） |
+| **看跨厂商的规模规律与独特手法** | **`vendors/05-corpus-patterns.md`** |
 | **怀疑自己的判定在骗自己** | **`methodology/06-judge-reliability.md`** |
 | **每次跑完该留什么证据** | **`methodology/08-evidence-system.md`** |
 | **怀疑模型在演戏** | **`methodology/21-deception-detection.md`** |
@@ -243,7 +246,8 @@ jailbreak-skill/
 │   ├── 16-AXIOMS.md
 │   ├── 17-REMINDER-REFRAME.md
 │   ├── 18-PERSONA-LOCK.md
-│   └── 19-EVIDENCE-CONTRACT.md
+│   ├── 19-EVIDENCE-CONTRACT.md
+│   └── 20-REFUSAL-INTERCEPT.md   ← 拒念拦截 + 中段回收
 ├── methodology/
 │   ├── 00-planning.md           ← 判断与出方案（Phase 1）
 │   ├── 02-execution.md          ← 执行与验证（Phase 2-3）
@@ -260,11 +264,12 @@ jailbreak-skill/
 │   ├── 20-failure-attribution.md← 失败归因
 │   └── 21-deception-detection.md← 演戏识别
 ├── vendors/                    ← 分厂商路线
-│   ├── README.md               ← 厂商画像与选择
+│   ├── README.md               ← 厂商画像、证据分级与选择
 │   ├── 01-suppression.md
 │   ├── 02-policy-proof.md
 │   ├── 03-identity-lock.md
-│   └── 04-real-samples.md
+│   ├── 04-real-samples.md
+│   └── 05-corpus-patterns.md   ← 跨厂商语料库观察
 └── testsets/
     ├── 00-how-to-verify.md
     ├── 00-testbank-design.md   ← 三档设计
