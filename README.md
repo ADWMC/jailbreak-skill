@@ -1,8 +1,10 @@
 <div align="center">
 
-# 🔓 jailbreak-skill
+<img src="assets/hero-en.svg" alt="jailbreak-skill — refusal vs. real artifact" width="100%" />
 
-**A prompt-engineering methodology for red-team LLM evaluation.**
+# jailbreak-skill
+
+**It tells you whether your prompt worked — and catches the failure you'd mistake for success.**
 
 Not another pile of copy-paste prompts. A set of constraints that force your agent to work in a defined order: plan first, assemble second, judge with evidence last.
 

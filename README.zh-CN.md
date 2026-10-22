@@ -1,8 +1,10 @@
 <div align="center">
 
-# 🔓 jailbreak-skill
+<img src="assets/hero-zh.svg" alt="jailbreak-skill —— 改题交付 vs 真交付" width="100%" />
 
-**一套给 AI agent 用的越狱提示词工程方法论。**
+# jailbreak-skill
+
+**它告诉你这条提示词到底过没过，并且拦下那个你会误当成功的失败。**
 
 不是一堆让你复制的成品提示词，是一套让 agent 按流程办事的约束：先出方案、再拼模块、最后拿证据判过没过。
 
