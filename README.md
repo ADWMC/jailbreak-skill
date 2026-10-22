@@ -95,11 +95,12 @@ It governs **process**, not **outcomes**:
 | [`SKILL.md`](SKILL.md) | Entry point — navigation, the six-step workflow, red lines |
 | [`EVIDENCE.md`](EVIDENCE.md) | Evidence grading. Read this first. |
 | [`docs/concepts.md`](docs/concepts.md) | The long-form reasoning behind every rule above |
+| [`docs/pitfalls.md`](docs/pitfalls.md) | Pitfall table — every trap this repo has hit, and how to not repeat it |
 | [`prompts/`](prompts/00-assembly.md) | 23 composable modules + an assembly index with preset combos |
 | [`methodology/`](methodology/00-planning.md) | 15 documents: form selection, refusal diagnosis, verdict criteria, coverage model, failure attribution |
 | [`vendors/`](vendors/README.md) | Three routes, per-vendor evidence grading, cross-corpus observations |
 | [`testsets/`](testsets/00-testbank-design.md) | Four test tiers + a 10-minute coverage self-check |
-| [`scripts/`](scripts/README.md) | Local batch runs. **Does not run after a clone** — see its README. |
+| [`scripts/`](scripts/README.md) | `preflight.mjs` — run it before committing. Plus local batch runs. |
 
 ---
 

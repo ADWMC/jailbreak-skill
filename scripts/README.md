@@ -58,3 +58,30 @@ node runbatch.mjs --vectors my-vectors.json --out ./results [--only B04,B05] [--
 ## 一句提醒
 
 **别把这几份脚本当成「项目已验证」的证明。** 它们是工具，不是证据。这个项目的证据等级划分见根目录的 `EVIDENCE.md`。
+
+---
+
+## preflight.mjs —— 提交前自检（先用这个）
+
+`ash
+node scripts/preflight.mjs
+# exit 0 = 全过；exit 1 = 逐条列出问题
+`
+
+**这个能直接跑**，不依赖任何本地输入。它查的是这个仓库踩过的坑：
+
+| 检查 | 对应坑 |
+|---|---|
+| SKILL.md description ≤ 500 字符 | 超了会截断，尾部排除规则丢失 → 误加载复发 |
+| SKILL.md 不含拒绝预案表述 | 见 `docs/pitfalls.md` #1 |
+| 模块数 / methodology 份数 声明 vs 实际 | 改了正文忘改表 |
+| 全部相对链接可达 | 重构后死链 |
+| assets 双向匹配（引用↔存在） | 孤立文件 / 缺图 |
+| SVG 不含彩色 emoji | 渲染成豆腐块 |
+| 表格列数一致（剥掉行内代码） | `<\|im_start\|>` 之类误数 |
+| 安装位与仓库逐字节一致 | 改了仓库没同步，DSH 加载的仍是旧的 |
+| `~/.dsh/skills` 下无同名 `name:` | `.bak` 目录造成注册冲突 |
+
+**提交前跑一次。** 它退出非零就别提交。
+
+`runbatch.mjs` 和两个 `check-*.mjs` 仍然依赖本地输入，见下。
