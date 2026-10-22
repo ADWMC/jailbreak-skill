@@ -285,7 +285,7 @@ jailbreak-skill/
 ├── README.md             You are here
 ├── README.zh-CN.md       简体中文
 │
-├── prompts/              21 modules + 1 assembly index
+├── prompts/              23 modules + 1 assembly index
 │   ├── 00-assembly.md    ← assembly index and preset combos, start here
 │   ├── 01-02             forbidden strings + refusal hardening
 │   ├── 03-06             persona / scoring / output lock / completion
@@ -293,7 +293,7 @@ jailbreak-skill/
 │   ├── 11-12             intent mapping (not in prompts) / discipline
 │   ├── 13-14             scoped rules / preset slots
 │   ├── 15-16             stability anchors + axioms
-│   └── 17-20             reminder reframing / persona lock / evidence contract / refusal intercept
+│   └── 17-23             refusal intercept / long-run stability / refusal space / output craft
 │
 ├── methodology/          15 methodology and criteria documents
 │   ├── 00-planning            planning and hypotheses

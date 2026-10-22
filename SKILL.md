@@ -120,6 +120,10 @@ H1 / H2 + 各自推翻条件
 | **agent 跑长串工具调用后散掉** | **`prompts/21-LONG-RUN-STABILITY.md`** |
 | **模型谎报完成、不说哪里没验** | **`prompts/21-LONG-RUN-STABILITY.md`** §2 |
 | **单轮必拒，但能连续对话** | **`methodology/01-attack-framework.md`** §4 渐进升级 |
+| **模型总在贴边话题上自己加禁区** | **`prompts/22-REFUSAL-SPACE.md`** |
+| **交付物像作业，不像专业产出** | **`prompts/23-OUTPUT-CRAFT.md`** §1–2 |
+| **多轮里措辞开始重复** | **`prompts/23-OUTPUT-CRAFT.md`** §3 |
+| **敏感请求时输出变短变保守** | **`prompts/23-OUTPUT-CRAFT.md`** §5 |
 | **想知道这套测试漏了哪些面** | **`methodology/22-coverage-model.md`** |
 | **词表全过但仍被判假通过** | **`methodology/04-verdict-criteria.md`** 的句法残留 |
 | **人格撑不过第 3 轮** | **`prompts/18-PERSONA-LOCK.md`** |
@@ -257,7 +261,9 @@ jailbreak-skill/
 │   ├── 18-PERSONA-LOCK.md
 │   ├── 19-EVIDENCE-CONTRACT.md
 │   ├── 20-REFUSAL-INTERCEPT.md   ← 拒念拦截 + 中段回收
-│   └── 21-LONG-RUN-STABILITY.md   ← 长跑再锚定 + 验证下限
+│   ├── 21-LONG-RUN-STABILITY.md   ← 长跑再锚定 + 验证下限
+│   ├── 22-REFUSAL-SPACE.md        ← 拒绝空间形状 + 缺席词表
+│   └── 23-OUTPUT-CRAFT.md         ← 输出质感：叙事/标题/防重复/回指/分级
 ├── methodology/
 │   ├── 00-planning.md           ← 判断与出方案（Phase 1）
 │   ├── 02-execution.md          ← 执行与验证（Phase 2-3）
