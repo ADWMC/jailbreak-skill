@@ -12,7 +12,8 @@
 ![Routes](https://img.shields.io/badge/Routes-3-b07d62?style=flat-square)
 ![Testsets](https://img.shields.io/badge/Testsets-4_tiers-f59e0b?style=flat-square)
 ![Verdict](https://img.shields.io/badge/Verdict-4_tiers_frozen-0f766e?style=flat-square)
-![License](https://img.shields.io/badge/License-AGPL--3.0-3b82f6?style=flat-square)
+![License](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-ef9421?style=flat-square)
+![Open Source](https://img.shields.io/badge/OSI_Open_Source-No-B00020?style=flat-square)
 
 </div>
 
@@ -276,7 +277,7 @@ jailbreak-skill/
 
 ## 已知边界
 
-开源就该把不能做的说在前面。
+公开就该把不能做的说在前面。
 
 | 边界 | 说明 |
 |---|---|
@@ -290,14 +291,52 @@ jailbreak-skill/
 
 ## 许可证
 
-[AGPL-3.0](LICENSE)。
+[CC BY-NC-SA 4.0](LICENSE) — Attribution-NonCommercial-ShareAlike 4.0 International。
 
-选它不是为了限制个人使用——你拿去改、拿去用都可以。它管的是**分发与网络服务**：
+三条约束，逐条对应协议条款：
 
-- 你改了再分发，必须同样开源
-- 你把它部署成对外提供的服务（哪怕不发布代码），也必须向使用者提供源码
+| 约束 | 条款 | 含义 |
+|---|---|---|
+| **必须注明出处** | §3(a) Attribution | 使用或改编时必须署名本项目、附协议链接、说明是否修改 |
+| **严禁任何商业使用** | §2(a)(1) NonCommercial | 复制、分发、改编，全部仅限非商业目的 |
+| **二次开发必须开源** | §3(b) ShareAlike | 你改编后**对外发布**，必须以同样的 BY-NC-SA 4.0（或兼容协议）发布 |
 
-这是本项目唯一能接受的方式：方法论应该可验证、可追溯，而不是被包进一个黑盒产品里收钱。
+### 关于「二次开发必须开源」的准确边界
+
+这条管的是**发布动作**，不是开发动作。协议原文：
+
+> §3(b) ShareAlike — *if You **Share** Adapted Material You produce, the following conditions also apply.*
+
+所以：
+
+- ✅ 你可以自己改、自己用、自己跑，不必公开
+- ✅ 你改了**并发布出去**，那发布出去的版本必须同样是 BY-NC-SA 4.0
+- ❌ 你不能把改编版换成闭源协议再分发
+- ❌ 你不能基于它做任何商业用途，包括拿去卖、拿去做付费产品、拿去做商业服务
+
+### 这不叫「开源」
+
+**CC BY-NC-SA 4.0 不是 OSI 认可的开源许可证**——NonCommercial 明确违反 OSI 开源定义第 6 条（不得限制使用领域）。
+
+本仓库因此是**公开可获取的非商业许可项目**，不是开源项目。这个区别很重要，别在简历或宣传里写错。
+
+### 顺手提醒
+
+CC 协议是为**内容**（文字、图像、音乐）设计的，不是为**软件**设计的。本仓库绝大部分是文档，用 CC 合适；但 `scripts/` 里是可执行代码，用 CC 系列协议保护力弱于软件许可。
+
+如果你要的是对代码更严格的约束，可以把 `scripts/` 单独拿出去用软件许可，主仓库仍用 CC BY-NC-SA。目前没这么做，是因为整个项目的价值在方法论而不在脚本。
+
+---
+
+## 引用方式
+
+```
+jailbreak-skill — 越狱提示词工程方法论
+https://github.com/ADWMC/jailbreak-skill
+Licensed under CC BY-NC-SA 4.0
+```
+
+用这个 skill 产出任何衍生内容时，请保留上述出处。
 
 ---
 
