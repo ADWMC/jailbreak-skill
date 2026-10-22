@@ -139,7 +139,7 @@ Writing "not passed: reframed delivery, 10 rounds, 4 mechanisms tried, stuck at 
 
 ---
 
-## Three forms
+## Four forms
 
 The same request, wrapped differently, can produce very different outcomes. **Asking directly is the worst option.**
 
@@ -267,7 +267,7 @@ jailbreak-skill/
 ├── README.md             You are here
 ├── README.zh-CN.md       简体中文
 │
-├── prompts/              20 modules + 1 assembly index
+├── prompts/              21 modules + 1 assembly index
 │   ├── 00-assembly.md    ← assembly index and preset combos, start here
 │   ├── 01-02             forbidden strings + refusal hardening
 │   ├── 03-06             persona / scoring / output lock / completion
@@ -277,7 +277,7 @@ jailbreak-skill/
 │   ├── 15-16             stability anchors + axioms
 │   └── 17-20             reminder reframing / persona lock / evidence contract / refusal intercept
 │
-├── methodology/          14 methodology and criteria documents
+├── methodology/          15 methodology and criteria documents
 │   ├── 00-planning            planning and hypotheses
 │   ├── 01-attack-framework    form selection
 │   ├── 02-execution           execution and verification

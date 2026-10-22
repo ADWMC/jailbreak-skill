@@ -78,7 +78,7 @@
     <rect class="card" x="702" y="440" width="150" height="38" rx="8"/>
     <text x="777" y="464" class="chip" text-anchor="middle">5 · Verdict</text>
 
-    <text x="880" y="464" class="mono dim">20 modules · 3 routes · 4 test tiers</text>
+    <text x="880" y="464" class="mono dim">21 modules · 4 forms · 5 axes</text>
   </g>
 
   <text x="44" y="522" class="foot">Every claim carries an evidence tier — E0 measured · E1 sourced · E2 inferred · E3 ignore. No pass rate without a receipt.</text>

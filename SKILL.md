@@ -117,6 +117,11 @@ H1 / H2 + 各自推翻条件
 | **要反驳"这可能被滥用"** | **`prompts/16-AXIOMS.md`** |
 | **模型推理里反复被安全提醒打断** | **`prompts/17-REMINDER-REFRAME.md`** |
 | **模型在犹豫、输出中途自己软下去** | **`prompts/20-REFUSAL-INTERCEPT.md`** |
+| **agent 跑长串工具调用后散掉** | **`prompts/21-LONG-RUN-STABILITY.md`** |
+| **模型谎报完成、不说哪里没验** | **`prompts/21-LONG-RUN-STABILITY.md`** §2 |
+| **单轮必拒，但能连续对话** | **`methodology/01-attack-framework.md`** §4 渐进升级 |
+| **想知道这套测试漏了哪些面** | **`methodology/22-coverage-model.md`** |
+| **词表全过但仍被判假通过** | **`methodology/04-verdict-criteria.md`** 的句法残留 |
 | **人格撑不过第 3 轮** | **`prompts/18-PERSONA-LOCK.md`** |
 | **要一份全量实测过的成品** | **`methodology/07-v21-benchmark.md`** |
 | **模型说"我无法确认"** | **`prompts/19-EVIDENCE-CONTRACT.md`** |
@@ -189,13 +194,16 @@ H1 / H2 + 各自推翻条件
 - [ ] 未通过的题记录了失败机制，不是只写"失败"
 - [ ] 交付含完整可粘贴提示词，不是描述
 
-## 三种形态
+## 四种形态
 
 | 形态 | 机制 | 何时用 | 详见 |
 |---|---|---|---|
 | **模块拼接型** | 禁用词 + 计分 + 输出锁 | 通用首次尝试 | `01-attack-framework.md` §1 |
 | **TVD 工程件型** | 半成品代码 + 报错验证器 | 直问被拒、改题交付 | §2 + `05-tvd-construction.md` |
 | **角色扮演型** | 人格锁定 + 多轮维持 | 需长期稳定人格 | §3 |
+| **渐进升级型** | 多轮小幅推进，利用自洽倾向 | 单轮必拒 + 有轮次预算 | §4 |
+
+> 前三形态在**单轮内**作战；渐进升级型的战场是**轮次**，单条提示词只是起点。
 
 ## Anti-Patterns
 
@@ -217,6 +225,7 @@ H1 / H2 + 各自推翻条件
 | 新的话题规则 | `prompts/13-SCOPED-RULES.md` 按三段式追加 |
 | 新的预设槽位 | `prompts/14-PRESET-SLOTS.md` 按 `触发 → 输出` 格式追加 |
 | 新的攻击形态 | 在 `methodology/` 下加 `05-<NAME>.md`，在 `methodology/01-attack-framework.md` 决策树加分支 |
+| **新的攻击面维度** | `methodology/22-coverage-model.md` 的 A–E 矩阵，并同步 `testsets/00-testbank-design.md` 自检段 |
 | 新的内容领域 | `prompts/08-SLANG-ROUTING.md` 词表 + `prompts/10-TECHNICAL-DOMAINS.md` 术语 |
 | 新的判定规则 | `methodology/04-verdict-criteria.md`，同步 `testsets/01-regression.md` |
 | 新的 TVD 场景 | 按 `methodology/05-tvd-construction.md` 的四件套结构新增场景模板 |
@@ -247,7 +256,8 @@ jailbreak-skill/
 │   ├── 17-REMINDER-REFRAME.md
 │   ├── 18-PERSONA-LOCK.md
 │   ├── 19-EVIDENCE-CONTRACT.md
-│   └── 20-REFUSAL-INTERCEPT.md   ← 拒念拦截 + 中段回收
+│   ├── 20-REFUSAL-INTERCEPT.md   ← 拒念拦截 + 中段回收
+│   └── 21-LONG-RUN-STABILITY.md   ← 长跑再锚定 + 验证下限
 ├── methodology/
 │   ├── 00-planning.md           ← 判断与出方案（Phase 1）
 │   ├── 02-execution.md          ← 执行与验证（Phase 2-3）
@@ -262,7 +272,8 @@ jailbreak-skill/
 │   ├── 10-module-scoring.md     ← 模块评分
 │   ├── 11-integration-plan.md   ← 融合方案
 │   ├── 20-failure-attribution.md← 失败归因
-│   └── 21-deception-detection.md← 演戏识别
+│   ├── 21-deception-detection.md← 演戏识别
+│   └── 22-coverage-model.md     ← 攻击面覆盖率
 ├── vendors/                    ← 分厂商路线
 │   ├── README.md               ← 厂商画像、证据分级与选择
 │   ├── 01-suppression.md
@@ -290,3 +301,25 @@ jailbreak-skill/
 - 不编造测试结果、不虚报通过率。
 - 判定按冻结口径，不为凑数改判据。
 - 归档按 `methodology/08-evidence-system.md` 落盘（run.yaml + per-question.csv + raw/），不只写结论。
+
+## 能力边界（明确不做什么）
+
+**本 skill 只管一件事：让目标模型交付它本来会拒绝的**内容**。**
+
+同属"AI 安全"这个大类，但**不在本 skill 范围内**的：
+
+| 不覆盖 | 说明 |
+|---|---|
+| **模型抽取 / 蒸馏** | 通过 API 复制模型能力。需要的是查询预算管理和替代模型训练，不是提示词。 |
+| **成员推断 / 模型反演** | 判断某条数据是否在训练集里、重建训练样本。需要统计方法与多次查询，提示词不起作用。 |
+| **数据投毒 / 后门** | 在训练数据或微调集里植入行为。这是训练侧，与推理侧提示词无关。 |
+| **供应链攻击** | 权重、依赖、模型镜像的篡改。 |
+| **对抗样本** | 针对输入向量的梯度扰动，主要面向图像/音频模型。 |
+| **模型越权与工具滥用** | agent 调用工具造成的实际损害。本 skill 的"间接注入"只涉及**请求如何进入**，不涉及工具权限设计。 |
+| **合规与治理** | NIST AI RMF / OWASP / MITRE ATLAS 的映射、事件响应、SDL 流程。那是企业安全项目材料。 |
+
+**为什么写这一节**：这些方向都有专门的工具链（如 PyRIT 一类自动化框架）。拿一个提示词工具箱去覆盖它们，会得出错误的"覆盖率"结论——**没测过的面是覆盖率未知，不是安全**（见 `methodology/22-coverage-model.md`）。
+
+## 定位一句话
+
+**进攻侧、推理侧、提示词层。** 三个词缺一不可，出了这个框就不是本 skill 的问题。
