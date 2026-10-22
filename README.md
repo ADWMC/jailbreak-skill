@@ -14,8 +14,18 @@
 ![Verdict](https://img.shields.io/badge/Verdict-4_tiers_frozen-0f766e?style=flat-square)
 ![License](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-ef9421?style=flat-square)
 ![Open Source](https://img.shields.io/badge/OSI_Open_Source-No-B00020?style=flat-square)
+![Commercial](https://img.shields.io/badge/Commercial_Use-Forbidden-B00020?style=flat-square)
+![Derivatives](https://img.shields.io/badge/Derivatives-Must_Stay_Open-0075CA?style=flat-square)
+
+<br />
+
+**许可：[CC BY-NC-SA 4.0](LICENSE)** — 必须注明出处 · 严禁任何商业使用 · 二次开发发布时必须同样开源
 
 </div>
+
+> ⚠️ **GitHub 侧栏的许可证标签会显示 `Other`，这是 GitHub 的限制，不是本项目的错误。**
+> GitHub 的许可证识别引擎只收录 OSI 软件许可证（MIT/Apache/GPL 等），不收录 Creative Commons 系列。
+> 协议全文在 [LICENSE](LICENSE)，以它为准。
 
 ---
 
