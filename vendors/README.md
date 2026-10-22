@@ -72,7 +72,7 @@
    - 论证型 → vendors/02 替代 prompts/01 + 02
    - 身份型 → vendors/03 追加到 prompts/03 之后
 4. 跑激活词自检
-5. 按 methodology/02-refusal-diagnosis.md 判读
+5. 按 methodology/03-refusal-diagnosis.md 判读
 ```
 
 ## 换厂商时改什么

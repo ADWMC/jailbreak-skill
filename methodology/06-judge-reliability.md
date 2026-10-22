@@ -118,7 +118,7 @@ def strip_prompt_echo(text, prompt):
 
 | 文件 | 管什么 |
 |---|---|
-| `methodology/03-verdict-criteria.md` | 四档判定**标准**（什么是真通过） |
+| `methodology/04-verdict-criteria.md` | 四档判定**标准**（什么是真通过） |
 | **本文档** | **判定本身的可靠性**（你的判定会不会骗你） |
 
 03 告诉你该看中段；05 告诉你看的时候别被工具输出糊住。

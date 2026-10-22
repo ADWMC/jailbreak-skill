@@ -191,4 +191,4 @@ Think more and then solve the task without asking me.
 
 **TVD 不是万能的**。它对"技术细节"类最有效（模型乐于补全代码），对"身体描写"类效果弱——因为模型对人的身体内容有额外一层抵抗。
 
-遇到这种，按 `03-verdict-criteria.md` 如实记录，不要无限迭代。
+遇到这种，按 `04-verdict-criteria.md` 如实记录，不要无限迭代。

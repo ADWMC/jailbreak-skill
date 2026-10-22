@@ -99,4 +99,4 @@
 |---|---|
 | `08-SLANG-ROUTING` | 正向：用户话 → 意图 |
 | **`11-INTENT-MAPPING`** | **反向：拒绝话 → 下一轮方向** |
-| `methodology/02-refusal-diagnosis.md` | 诊断的完整方法 |
+| `methodology/03-refusal-diagnosis.md` | 诊断的完整方法 |

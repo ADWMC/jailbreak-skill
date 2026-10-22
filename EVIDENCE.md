@@ -31,7 +31,7 @@ skill 里的结论来源差异极大：有的来自实测，有的来自公开�
 
 这三条有原始输出可查。
 
-#### 二、判据可靠性（methodology/05-judge-reliability.md）
+#### 二、判据可靠性（methodology/06-judge-reliability.md）
 
 | 结论 | 证据 |
 |---|---|
@@ -39,7 +39,7 @@ skill 里的结论来源差异极大：有的来自实测，有的来自公开�
 | 污染通道是工具输出回显 | rollout 原文回溯，逐题定位到具体源码行号 |
 | 只判 assistant 正文可修正 | 修完后 4 减到 2，且能区分真假 |
 
-#### 三、v2.1 基准（methodology/06-v21-benchmark.md）——**最强证据**
+#### 三、v2.1 基准（methodology/07-v21-benchmark.md）——**最强证据**
 
 | 指标 | 数据 |
 |---|---|
