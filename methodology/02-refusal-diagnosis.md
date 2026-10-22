@@ -48,6 +48,8 @@
 
 ## 第四步：诊断清单
 
+> 诊断完防线类型后，如果仍然不知道改哪里，用 `methodology/20-failure-attribution.md` 的归因表。
+
 跑完一轮后填：
 
 ```
