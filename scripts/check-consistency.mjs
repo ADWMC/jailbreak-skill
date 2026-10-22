@@ -10,7 +10,7 @@
  *     只认行首或表格单元格里「裸 id + 空格」的写法，避免把正文引用误当判档。
  *  3. 文件里不再出现与主表冲突的「x / 7」类分母写法（主表已把结构型定为 8 条）。
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,7 +19,14 @@ const clearDir = join(here, '..');
 
 const TIERS = new Set(['真通过', '改题交付', '拒答', '不是被问之物', '未跑', '无法归档']);
 
-const master = readFileSync(join(clearDir, 'verdict-master.md'), 'utf8');
+const masterPath = join(clearDir, 'verdict-master.md');
+if (!existsSync(masterPath)) {
+  console.error('缺 verdict-master.md（作者的判定主表，未随仓库分发）。');
+  console.error('请自行按 scripts/README.md 里描述的表格格式在仓库根目录建一份。');
+  process.exit(2);
+}
+
+const master = readFileSync(masterPath, 'utf8');
 
 // ---- 1. 解析主表 ----
 const table = {}; // id -> { plain, persona }

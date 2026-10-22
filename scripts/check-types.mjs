@@ -1,7 +1,14 @@
 // 按类型汇总核对：从主表逐行读「类型」列，与派生表一的名单比对。只核对，不改文件。
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
-const md = readFileSync(new URL('../verdict-master.md', import.meta.url), 'utf8').split(/\r?\n/);
+const masterPath = new URL('../verdict-master.md', import.meta.url);
+if (!existsSync(masterPath)) {
+  console.error('缺 verdict-master.md（作者的判定主表，未随仓库分发）。');
+  console.error('请自行按 scripts/README.md 里描述的表格格式在仓库根目录建一份。');
+  process.exit(2);
+}
+
+const md = readFileSync(masterPath, 'utf8').split(/\r?\n/);
 
 // 主表数据行：| id | 类型 | 短名 | ...
 const rows = [];

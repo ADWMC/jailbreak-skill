@@ -11,7 +11,9 @@ const PROJ_DIR = 'C:\\Users\\Administrator\\.dsh\\helm-d-isolated\\storages\\ses
 const WINDOW_MS = Number(process.env.PROBE_WINDOW_MS || 60000)
 
 function argv(name, def = null) { const i = process.argv.indexOf(`--${name}`); if (i < 0) return def; const v = process.argv[i + 1]; return v && !v.startsWith('--') ? v : true }
-const vf = argv('vectors'); const outDir = resolve(argv('out', './runbatch-out')); mkdirSync(outDir, { recursive: true })
+const vf = argv('vectors')
+if (!vf || vf === true) { console.error('用法: node runbatch.mjs --vectors <json> --out <dir> [--only B04,B05] [--retry 3]'); process.exit(2) }
+const outDir = resolve(argv('out', './runbatch-out')); mkdirSync(outDir, { recursive: true })
 const RETRY = Number(argv('retry', 3))
 const vectors = JSON.parse(readFileSync(resolve(vf), 'utf8'))
 const ONLY = argv('only') ? new Set(String(argv('only')).split(',').map(s => s.trim())) : null
