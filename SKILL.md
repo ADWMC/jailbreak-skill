@@ -102,6 +102,7 @@ H1 / H2 + 各自推翻条件
 | 你要做的事 | 读这份 |
 |---|---|
 | **先搞清楚每条结论有多可信** | **`EVIDENCE.md`** |
+| **要给人类看的论证长文** | **`docs/concepts.md`**（README 的精简版详细展开） |
 | **确认目标厂商该走哪条路线** | **`vendors/README.md`** |
 | 决定用哪种形态打 | `methodology/01-attack-framework.md` |
 | 看不懂模型为什么拒 | `methodology/03-refusal-diagnosis.md` |
@@ -239,6 +240,7 @@ H1 / H2 + 各自推翻条件
 ```
 jailbreak-skill/
 ├── SKILL.md                     ← 本文件：导航 + 基础规则
+├── docs/concepts.md             ← README 精简版的长文论证
 ├── prompts/                     ← 提示词模块，一个模式一个文件
 │   ├── 00-assembly.md
 │   ├── 01-FORBIDDEN-STRINGS.md
