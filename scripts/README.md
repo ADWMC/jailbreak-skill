@@ -21,11 +21,17 @@
 
 ### 1. 改掉硬编码的本地路径
 
-`runbatch.mjs` 里有本机的绝对路径和端口，用前改成你自己的：
+`runbatch.mjs` 里有本机的端口，用前改成你自己的：
 
 ```js
 const HOST = 'http://127.0.0.1:3197'   // ← 改成你的服务地址
-const PROJ_DIR = 'C:\\Users\\...'       // ← 改成你的路径
+```
+
+会话缓存目录和任务 cwd 已经改成读环境变量 / 当前目录，不再有硬编码：
+
+```bash
+export PROJ_DIR=/path/to/your/sessions   # 会话缓存目录，默认 ./sessions
+node runbatch.mjs --vectors v.json --out ./results --cwd /path/to/sandbox
 ```
 
 ### 2. 提供 `verdict-master.md`

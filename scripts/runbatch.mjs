@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto'
  * 用法: node runbatch.mjs --vectors <json> --out <dir> [--only B04,B05] [--retry 3]
  */
 const HOST = 'http://127.0.0.1:3197'
-const PROJ_DIR = 'C:\\Users\\Administrator\\.dsh\\helm-d-isolated\\storages\\session_projcache\\sessions'
+const PROJ_DIR = process.env.PROJ_DIR || './sessions'
 const WINDOW_MS = Number(process.env.PROBE_WINDOW_MS || 60000)
 
 function argv(name, def = null) { const i = process.argv.indexOf(`--${name}`); if (i < 0) return def; const v = process.argv[i + 1]; return v && !v.startsWith('--') ? v : true }
@@ -54,7 +54,7 @@ function classify(t) {
 }
 
 async function runOne(v) {
-  const created = await rpc('session/create', { request: { cwd: argv('cwd', 'C:\\Users\\Administrator\\Documents\\jailbreak\\probe\\sandbox') } })
+  const created = await rpc('session/create', { request: { cwd: argv('cwd', process.cwd()) } })
   const sid = /\b(session-[0-9a-f-]{36})\b/.exec(JSON.stringify(created))?.[1]
   if (!sid) throw new Error('无 sessionId')
   const t0 = Date.now()
