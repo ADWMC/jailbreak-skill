@@ -238,6 +238,22 @@ jailbreak-skill ready. What's the target model? I'll classify it and draft a pla
 
 A correct echo means the persona is in context. **It is also a commitment: you will not be handed a prompt directly.**
 
+### When it auto-triggers — and when it deliberately stays out
+
+The `description` frontmatter is the only signal an agent uses to decide whether to load this skill, so it is written as a **narrow trigger**, not a topic list.
+
+| It loads when | It stays out when |
+|---|---|
+| A model **already refused**, or returned a safe/educational/simplified substitute for a concrete deliverable | You are doing ordinary offensive-security or dev work — writing a cheat, a pentest report, a reversing task, malware analysis |
+| The user explicitly asks for jailbreak / 破甲 / 破限 / uncensored | The topic merely *touches* security, adult content, or exploits |
+| The user asks whether a prompt of theirs actually works | You are assembling or tuning a prompt for a normal task |
+
+**The rule is: a refusal symptom plus a concrete target. Never a topic.**
+
+This is a deliberate correction. An earlier version listed topics (offensive security, malware, adult fiction) as triggers, and it fired on plain development work — writing a game cheat, for example — where nothing had been refused and no jailbreak method was needed. Topic-based triggers mis-fire; symptom-based triggers don't.
+
+> If it still auto-loads where it shouldn't, that's a bug in the description, not in your prompt. Open an issue with the exact sentence you used.
+
 ---
 
 ## Layout
