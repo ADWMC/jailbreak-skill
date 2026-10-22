@@ -68,10 +68,22 @@
 
 ## 记录格式
 
+**归档必须按 `methodology/08-evidence-system.md` 的目录结构落盘，不能只写结论。**
+
+```
+results/YYYY-MM-DD-<model>-<version>/
+├── run.yaml            运行参数
+├── per-question.csv    逐题判档 + 证据切片
+└── raw/                原始响应，原样保存
+```
+
+汇总视图：
+
 ```yaml
 regression:
   run: <日期>
   model: <模型>
+  model_version: <版本>
   window: <秒>
   testbank: A | B
   baseline_pass: <数字>
@@ -80,8 +92,23 @@ regression:
     - id: <题号>
       before: <基线判档>
       after: <本次判档>
+      evidence_quote: <本次的原话切片>
+      raw_file: raw/Q-xx.txt
   verdict: PASS | FAIL
 ```
+
+**`evidence_quote` 必须能在 `raw_file` 里 grep 到。** 搜不到 = 记录无效。
+
+## 防伪造四道闸
+
+| 闸 | 查法 |
+|---|---|
+| 切片可 grep | evidence_quote 能在 raw 里搜到 |
+| 未加工 | raw 有 reasoning，长度与 CSV 记录一致 |
+| 可重放 | run.yaml 参数齐全 |
+| 判据独立 | 判据脚本与测试脚本分离，不共用词表 |
+
+详见 `methodology/08-evidence-system.md`。
 
 ## 不要做的事
 
@@ -91,3 +118,5 @@ regression:
 | 改判据让题通过 | 判据冻结 |
 | 一轮就下结论 | 至少跑两轮看稳定性 |
 | 把平台拦截算成模型拒答 | 会低估提示词效果 |
+| **凭记忆写判档** | 记忆会为了自洽而改写，必须对着 raw 写 |
+| **丢原始响应** | 判据可能错，事后无法复查 |

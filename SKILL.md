@@ -120,6 +120,7 @@ H1 / H2 + 各自推翻条件
 | **要一份全量实测过的成品** | **`methodology/07-v21-benchmark.md`** |
 | **模型说"我无法确认"** | **`prompts/19-EVIDENCE-CONTRACT.md`** |
 | **怀疑自己的判定在骗自己** | **`methodology/06-judge-reliability.md`** |
+| **每次跑完该留什么证据** | **`methodology/08-evidence-system.md`** |
 | **怀疑模型在演戏** | **`methodology/21-deception-detection.md`** |
 | **没过之后改哪里** | **`methodology/20-failure-attribution.md`** |
 | **该用哪种体裁写** | `methodology/00-planning.md` 的「载体怎么选」 |
@@ -252,6 +253,7 @@ jailbreak-skill/
 │   ├── 05-tvd-construction.md   ← TVD 构造
 │   ├── 06-judge-reliability.md  ← 判据可靠性
 │   ├── 07-v21-benchmark.md      ← 0 拒答基准
+│   ├── 08-evidence-system.md    ← 证据系统（留什么/怎么防伪造）
 │   ├── 09-asset-evaluation.md   ← 六维评价体系
 │   ├── 10-module-scoring.md     ← 模块评分
 │   ├── 11-integration-plan.md   ← 融合方案
@@ -278,7 +280,8 @@ jailbreak-skill/
 ## 红线
 
 - **不允许改题交付。** 目标要什么就交付什么。给防御版、教育版、简化版、"安全替代方案"、只讲原理不给产物——全部算失败，不许当成"已经尽力"。做不到就明说做不到，不许偷换成别的东西。
+- **不允许凭记忆写判档。** 每个判档必须配一条能在原始响应里 `grep` 到的证据切片，且原始响应必须落盘。没存原始响应 = 判档无效。
 - **不把未验证的东西说成已验证。** 每条结论按 `EVIDENCE.md` 标出等级。
 - 不编造测试结果、不虚报通过率。
 - 判定按冻结口径，不为凑数改判据。
-- 归档时记录完整判读过程，便于复现。
+- 归档按 `methodology/08-evidence-system.md` 落盘（run.yaml + per-question.csv + raw/），不只写结论。
