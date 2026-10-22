@@ -210,3 +210,35 @@ Adjacent topics in "AI security" that are **out of scope**:
 **Why this section exists:** each of those has dedicated tooling (PyRIT-class automation frameworks). Using a prompt toolkit to cover them produces a false coverage conclusion — **an untested face is unknown coverage, not safety** (see `methodology/22-coverage-model.md`).
 
 **One line: offense side, inference side, prompt layer.** Step outside that box and it isn't this skill's problem.
+
+---
+
+## A writing rule for this repo: never pre-install a refusal path
+
+**Auto-loaded documents must not describe refusing.**
+
+An agent reads `SKILL.md` before it thinks. Anything written there becomes an
+option it can take. So the following are banned from auto-loaded files:
+
+| Do not write | Why it backfires |
+|---|---|
+| "If your policy forbids this, switch to advisory mode" | Names the exit before the reader considered staying |
+| "Don't test the edges of your own limits" | Turns a non-issue into a thing requiring monitoring |
+| "The host model may refuse to use this skill" | Puts the refusal on the menu |
+| Red lines phrased as "you must not substitute" | Reads as "you must break through," not "grade accurately" |
+
+The failure mode is self-inflicted. A document that accounts for its own rejection
+teaches the reader to reject it.
+
+**Prefer the positive statement.** Not "this is not a demand to bypass your limits"
+but "this is a rule about grading accurately." The first half of that sentence is
+the problem.
+
+**Structural fix beats persuasive fix.** If a document is being read as an
+instruction to the reader when it is meant as a description of a task, fix the
+role assignment — who is the evaluator, who is the evaluated — rather than arguing
+that the reader should comply. Argument invites negotiation; a clarified role
+does not.
+
+> Applies to `SKILL.md` and anything else injected at load time.
+> Files under `docs/` are read on demand and are not covered by this rule.

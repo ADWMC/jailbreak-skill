@@ -96,7 +96,7 @@ jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案�
 | [`EVIDENCE.md`](EVIDENCE.md) | 证据分级。先读这个。 |
 | [`docs/concepts.md`](docs/concepts.md) | 上面每条规矩的长文论证 |
 | [`prompts/`](prompts/00-assembly.md) | 23 个可组合模块 + 拼装索引与预设组合 |
-| [`methodology/`](methodology/00-planning.md) | 16 份文档：形态选择、拒绝诊断、判定标准、覆盖率模型、失败归因 |
+| [`methodology/`](methodology/00-planning.md) | 15 份文档：形态选择、拒绝诊断、判定标准、覆盖率模型、失败归因 |
 | [`vendors/`](vendors/README.md) | 三条路线、分厂商证据分级、跨语料库观察 |
 | [`testsets/`](testsets/00-testbank-design.md) | 四档题库 + 10 分钟覆盖率自检 |
 | [`scripts/`](scripts/README.md) | 本地跑批。**克隆下来不能直接跑**——见它自己的 README。 |
