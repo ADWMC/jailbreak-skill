@@ -39,12 +39,21 @@ const P = (msg) => problems.push(msg)
     try {
       const git = (cmd) =>
         execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-      const commits = git('git log -S"version: " --format=%H -- SKILL.md').split('\n').filter(Boolean)
-      const since = commits[commits.length - 1]
-      if (since) {
-        const n = git(`git log --oneline ${since}..HEAD -- prompts methodology`).split('\n').filter(Boolean).length
-        if (n > 0) {
-          P(`[版本] 自上次改 version 以来 prompts/ 或 methodology/ 有 ${n} 个提交，版本号没提。改了内容就提版本，否则版本号是假的`)
+      // 用当前版本值本身去查：字符串出现次数不变时 -S"version: " 抓不到改动
+      const cur = (readFrontmatter(readFileSync(p, 'utf8')).description, null)
+      const verMatch = readFileSync(p, 'utf8').match(/^\s+version:\s*["']?([^"'\r\n]+)["']?\s*$/m)
+      const ver = verMatch ? verMatch[1].trim() : null
+      if (!ver) { notes.push('未读到 version'); }
+      else {
+        const commits = git(`git log -S"version: \\"${ver}\\"" --format=%H -- SKILL.md`).split('\n').filter(Boolean)
+        const since = commits[commits.length - 1]
+        if (since) {
+          const n = git(`git log --oneline ${since}..HEAD -- prompts methodology`).split('\n').filter(Boolean).length
+          if (n > 0) {
+            P(`[版本] version ${ver} 是 ${since.slice(0, 7)} 时设的，之后 prompts/ 或 methodology/ 有 ${n} 个提交。改了内容就提版本，否则版本号是假的`)
+          } else {
+            notes.push(`version ${ver} 与内容同步`)
+          }
         }
       }
     } catch {
