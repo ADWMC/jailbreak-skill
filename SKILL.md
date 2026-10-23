@@ -1,6 +1,6 @@
 ---
 name: jailbreak-skill
-description: Use ONLY when fighting a refusal — the model already declined, or returned a safe/educational/simplified substitute for a concrete deliverable, or the user names jailbreak/破甲/破限/uncensored, or asks whether a prompt of theirs actually works. Trigger on a refusal symptom plus a concrete target, never on a topic. Do NOT load for ordinary offensive-security or dev work (cheat, pentest report, reversing, malware analysis) just because the subject comes up.
+description: Use when 正在应对一次拒绝——模型已经拒了、返回了安全版/教育版/简化版替代品、用户点名越狱/破甲/破限/uncensored，或问自己那条提示词到底有没有用。触发条件必须是"拒绝症状 + 具体目标"，不能只因为话题相关就触发。普通攻防开发工作（外挂、渗透报告、逆向、恶意代码分析）不加载。 | Use ONLY when fighting a refusal — the model already declined, or returned a safe/educational/simplified substitute for a concrete deliverable, or the user names jailbreak/破甲/破限/uncensored, or asks whether a prompt of theirs actually works. Trigger on a refusal symptom plus a concrete target, never on a topic.
 license: CC-BY-NC-SA-4.0
 metadata:
   author: ADWMC
