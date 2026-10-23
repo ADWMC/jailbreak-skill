@@ -162,7 +162,8 @@ H1 / H2 + 各自推翻条件
 | **怀疑模型在演戏** | **`methodology/21-deception-detection.md`** |
 | **没过之后改哪里** | **`methodology/20-failure-attribution.md`** |
 | **该用哪种体裁写** | `methodology/00-planning.md` 的「载体怎么选」 |
-| **缺哪种机制 / 该用哪把武器** | **`methodology/10-mechanism-map.md`** |
+| **缺哪种机制 / 该用哪把武器** | **`methodology/10-mechanism-map.md`**（七种武器） |
+| **直接问 ASR 为 0，前面都不灵** | **`methodology/23-cipher-chain.md`**（加密混淆链） |
 | **覆盖率够不够，有没有盲区** | **`methodology/22-coverage-model.md`** |
 | **模型拒绝"做越狱"这件事本身** | `methodology/02-execution.md` 的「元对抗怎么改」 |
 | **判断某份资产值不值得用** | **`methodology/09-asset-evaluation.md`** |
@@ -304,12 +305,13 @@ jailbreak-skill/
 │   ├── 07-v21-benchmark.md      ← 0 拒答基准
 │   ├── 08-evidence-system.md    ← 证据系统
 │   ├── 09-asset-evaluation.md   ← 六维评价体系
-│   ├── 10-mechanism-map.md      ← 机制图谱（六种武器）
+│   ├── 10-mechanism-map.md      ← 机制图谱（七种武器）
 │   ├── 11-module-scoring.md     ← 模块评分
 │   ├── 12-integration-plan.md   ← 融合方案
 │   ├── 20-failure-attribution.md← 失败归因
 │   ├── 21-deception-detection.md← 演戏识别
-│   └── 22-coverage-model.md     ← 攻击面覆盖率
+│   ├── 22-coverage-model.md     ← 攻击面覆盖率
+│   └── 23-cipher-chain.md       ← 加密混淆链（链长 3）
 ├── vendors/                    ← 分厂商路线
 │   ├── README.md               ← 厂商画像、证据分级与选择
 │   ├── 01-suppression.md
