@@ -4,7 +4,7 @@ description: Use ONLY when fighting a refusal — the model already declined, or
 license: CC-BY-NC-SA-4.0
 metadata:
   author: ADWMC
-  version: "1.2.0"
+  version: "1.3.0"
   homepage: https://github.com/ADWMC/jailbreak-skill
   activation: "jb"
 ---

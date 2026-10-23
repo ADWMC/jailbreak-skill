@@ -11,6 +11,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname, resolve, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
+import { execSync } from 'node:child_process'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = resolve(here, '..')
@@ -28,6 +29,28 @@ const P = (msg) => problems.push(msg)
     else if (d.length > 500) P(`[description] 长度 ${d.length} > 500，会被截断。尾部内容（通常是排除规则）会丢失`)
     else notes.push(`description ${d.length}/500`)
   } else P('[description] 找不到 SKILL.md')
+}
+
+// ── 1b. 版本号是否落后于内容改动（只在有 .git 时检查）
+//     判据：最后一次改 version 的提交之后，prompts/ 或 methodology/ 是否还有改动
+{
+  const p = join(root, 'SKILL.md')
+  if (existsSync(p) && existsSync(join(root, '.git'))) {
+    try {
+      const git = (cmd) =>
+        execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+      const commits = git('git log -S"version: " --format=%H -- SKILL.md').split('\n').filter(Boolean)
+      const since = commits[commits.length - 1]
+      if (since) {
+        const n = git(`git log --oneline ${since}..HEAD -- prompts methodology`).split('\n').filter(Boolean).length
+        if (n > 0) {
+          P(`[版本] 自上次改 version 以来 prompts/ 或 methodology/ 有 ${n} 个提交，版本号没提。改了内容就提版本，否则版本号是假的`)
+        }
+      }
+    } catch {
+      /* 没有 git 或命令失败则跳过 */
+    }
+  }
 }
 
 // ── 2. 自动加载的文档里不许出现「拒绝预案」类表述
