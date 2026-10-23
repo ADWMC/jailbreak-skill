@@ -162,10 +162,12 @@ H1 / H2 + 各自推翻条件
 | **怀疑模型在演戏** | **`methodology/21-deception-detection.md`** |
 | **没过之后改哪里** | **`methodology/20-failure-attribution.md`** |
 | **该用哪种体裁写** | `methodology/00-planning.md` 的「载体怎么选」 |
+| **缺哪种机制 / 该用哪把武器** | **`methodology/10-mechanism-map.md`** |
+| **覆盖率够不够，有没有盲区** | **`methodology/22-coverage-model.md`** |
 | **模型拒绝"做越狱"这件事本身** | `methodology/02-execution.md` 的「元对抗怎么改」 |
 | **判断某份资产值不值得用** | **`methodology/09-asset-evaluation.md`** |
-| **看现有模块的评分** | **`methodology/10-module-scoring.md`** |
-| **怎么把评价结果变成改动** | **`methodology/11-integration-plan.md`** |
+| **看现有模块的评分** | **`methodology/11-module-scoring.md`** |
+| **怎么把评价结果变成改动** | **`methodology/12-integration-plan.md`** |
 | 验证结果 | `testsets/00-how-to-verify.md` |
 | **测试题库怎么用（三档设计）** | **`testsets/00-testbank-design.md`** |
 | **快速验证提示词有没有效果** | **`testsets/04-tier-lite.md`**（10 题 / 8 min） |
@@ -300,10 +302,11 @@ jailbreak-skill/
 │   ├── 05-tvd-construction.md   ← TVD 构造
 │   ├── 06-judge-reliability.md  ← 判据可靠性
 │   ├── 07-v21-benchmark.md      ← 0 拒答基准
-│   ├── 08-evidence-system.md    ← 证据系统（留什么/怎么防伪造）
+│   ├── 08-evidence-system.md    ← 证据系统
 │   ├── 09-asset-evaluation.md   ← 六维评价体系
-│   ├── 10-module-scoring.md     ← 模块评分
-│   ├── 11-integration-plan.md   ← 融合方案
+│   ├── 10-mechanism-map.md      ← 机制图谱（六种武器）
+│   ├── 11-module-scoring.md     ← 模块评分
+│   ├── 12-integration-plan.md   ← 融合方案
 │   ├── 20-failure-attribution.md← 失败归因
 │   ├── 21-deception-detection.md← 演戏识别
 │   └── 22-coverage-model.md     ← 攻击面覆盖率

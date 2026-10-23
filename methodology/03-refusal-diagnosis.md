@@ -1,4 +1,4 @@
-# 02 — REFUSAL DIAGNOSIS（拒绝诊断）
+# 03 — REFUSAL DIAGNOSIS（拒绝诊断）
 
 ## 证据等级
 
