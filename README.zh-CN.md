@@ -40,7 +40,7 @@ git clone https://github.com/ADWMC/jailbreak-skill "$env:USERPROFILE\.dsh\skills
 装好后直接说你要干什么，skill 会自己触发。或者输入 `jb` 自检。正确的回显是：
 
 ```
-jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案，再组装。
+jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案，再动笔。
 ```
 
 这句回显也是一句承诺：**它不会直接甩一条提示词给你。** 先出方案。
@@ -81,7 +81,7 @@ jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案�
 
 | 常见的提示词仓库 | 这里 |
 |---|---|
-| 几百条提示词让你乱试 | 23 个模块 + 一套决定用哪个的流程 |
+| 几百条提示词让你乱试 | 一套先判断、再推导、自己动笔写的方法，外加一份用来学机制的案例库 |
 | 「已验证有效」但没有回执 | 每条结论标 `E0`–`E3`；没有原始回执就不报通过率 |
 | 只覆盖技术话题 | 技术 + 创作 + 社工 |
 | 分不清真通过和差一点 | 四档判定，改题交付直接算失败 |
@@ -96,8 +96,8 @@ jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案�
 | [`EVIDENCE.md`](EVIDENCE.md) | 证据分级。先读这个。 |
 | [`docs/concepts.md`](docs/concepts.md) | 上面每条规矩的长文论证 |
 | [`docs/pitfalls.md`](docs/pitfalls.md) | 坑位表——这个仓库踩过的每个坑与避免方式 |
-| [`prompts/`](prompts/00-assembly.md) | 23 个可组合模块 + 拼装索引与预设组合 |
-| [`methodology/`](methodology/00-planning.md) | 15 份文档：形态选择、拒绝诊断、判定标准、覆盖率模型、失败归因 |
+| [`prompts/`](prompts/00-assembly.md) | 案例库：23 份既往写法样本与索引——读机制，不抄句子 |
+| [`methodology/`](methodology/00-planning.md) | 21 份文档：形态选择、拒绝诊断、判定标准、覆盖率模型、失败归因、送达验证、结论门禁、自进化回路、生成式撰写 |
 | [`vendors/`](vendors/README.md) | 三条路线、分厂商证据分级、跨语料库观察 |
 | [`testsets/`](testsets/00-testbank-design.md) | 四档题库 + 10 分钟覆盖率自检 |
 | [`scripts/`](scripts/README.md) | `preflight.mjs`——提交前跑这个。另有本地跑批脚本。 |
@@ -107,7 +107,7 @@ jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案�
 ## 常见问题
 
 **这是个提示词包吗？**
-不是。是一套流程加 23 个模块，要你自己拼。你想要一个复制粘贴的提示词文件，这个会让你烦。
+不是。是一套让 agent 自己判断、推导、动笔写提示词的流程；`prompts/` 里的 23 份文件是案例库，不是等你拼装的零件。你想要一个复制粘贴的提示词文件，这个会让你烦。
 
 **怎么知道一条提示词是真过了？**
 读 `methodology/04-verdict-criteria.md`，自己看正文中段。自动判定会把改题交付算成 pass——人就是这么骗自己的。

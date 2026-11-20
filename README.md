@@ -81,7 +81,7 @@ It governs **process**, not **outcomes**:
 
 | Typical prompt collection | This |
 |---|---|
-| Hundreds of prompts to shotgun | 23 modules + a decision procedure for which to use |
+| Hundreds of prompts to shotgun | A method for judging the target and the refusal, deriving the approach, and writing the prompt yourself — plus a case library to learn mechanisms from |
 | "Verified working!" with no receipts | Every claim graded `E0`–`E3`; no pass rate ships without raw receipts |
 | Technical topics only | Technical + creative + social engineering |
 | You can't distinguish a pass from a near-miss | Four-tier verdict, where a reframed delivery counts as failure |
@@ -96,8 +96,8 @@ It governs **process**, not **outcomes**:
 | [`EVIDENCE.md`](EVIDENCE.md) | Evidence grading. Read this first. |
 | [`docs/concepts.md`](docs/concepts.md) | The long-form reasoning behind every rule above |
 | [`docs/pitfalls.md`](docs/pitfalls.md) | Pitfall table — every trap this repo has hit, and how to not repeat it |
-| [`prompts/`](prompts/00-assembly.md) | 23 composable modules + an assembly index with preset combos |
-| [`methodology/`](methodology/00-planning.md) | 15 documents: form selection, refusal diagnosis, verdict criteria, coverage model, failure attribution |
+| [`prompts/`](prompts/00-assembly.md) | Case library: 23 worked examples with an index — read for mechanisms, not for copying |
+| [`methodology/`](methodology/00-planning.md) | 21 documents: form selection, refusal diagnosis, verdict criteria, coverage model, failure attribution, delivery verification, claim gates, skill evolution, generative writing |
 | [`vendors/`](vendors/README.md) | Three routes, per-vendor evidence grading, cross-corpus observations |
 | [`testsets/`](testsets/00-testbank-design.md) | Four test tiers + a 10-minute coverage self-check |
 | [`scripts/`](scripts/README.md) | `preflight.mjs` — run it before committing. Plus local batch runs. |
@@ -107,7 +107,7 @@ It governs **process**, not **outcomes**:
 ## FAQ
 
 **Is this a prompt pack?**
-No. It's a workflow plus 23 modules you assemble. If you want a file of copy-paste prompts, this will frustrate you.
+No. It's a workflow that makes the agent judge, derive, and write the prompt itself; the 23 files under `prompts/` are a case library, not parts to assemble. If you want a file of copy-paste prompts, this will frustrate you.
 
 **How do I know a prompt actually worked?**
 Read `methodology/04-verdict-criteria.md` and judge the middle of the response yourself. Automated judges count reframed deliveries as passes; that's how people fool themselves.

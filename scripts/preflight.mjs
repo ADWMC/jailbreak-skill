@@ -247,6 +247,23 @@ const P = (msg) => problems.push(msg)
   }
 }
 
+// ── 11. methodology/ 与 prompts/ 的每个文件都必须在 SKILL.md 里有登记
+//     （导航表或目录树任一处）。加了文件忘接线 = 孤儿文档，没人会读到。
+{
+  const p = join(root, 'SKILL.md')
+  if (existsSync(p)) {
+    const t = readFileSync(p, 'utf8')
+    for (const dirName of ['methodology', 'prompts']) {
+      const dir = join(root, dirName)
+      if (!existsSync(dir)) continue
+      for (const f of readdirSync(dir).filter((x) => x.endsWith('.md'))) {
+        if (!t.includes(f)) P(`[孤儿] ${dirName}/${f} 没有出现在 SKILL.md（导航表或目录树）里，加上接线再提交`)
+      }
+    }
+    notes.push('孤儿文档检查完成')
+  }
+}
+
 // ── 输出
 const useColor = process.stdout.isTTY
 const red = (s) => (useColor ? `\x1b[31m${s}\x1b[0m` : s)
