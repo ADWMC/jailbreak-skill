@@ -97,7 +97,8 @@ It governs **process**, not **outcomes**:
 | [`docs/concepts.md`](docs/concepts.md) | The long-form reasoning behind every rule above |
 | [`docs/pitfalls.md`](docs/pitfalls.md) | Pitfall table — every trap this repo has hit, and how to not repeat it |
 | [`prompts/`](prompts/00-assembly.md) | Case library: 23 worked examples with an index — read for mechanisms, not for copying |
-| [`methodology/`](methodology/00-planning.md) | 21 documents: form selection, refusal diagnosis, verdict criteria, coverage model, failure attribution, delivery verification, claim gates, skill evolution, generative writing |
+| [`methodology/`](methodology/00-planning.md) | 17 documents: form selection, refusal diagnosis, verdict criteria, coverage model, failure attribution, delivery verification, claim gates, generative writing |
+| [`maintenance/`](maintenance/README.md) | Maintainer docs (asset scoring, integration planning, self-evolution loop, evidence inventory) — not part of the skill runtime; task agents should not load these |
 | [`vendors/`](vendors/README.md) | Three routes, per-vendor evidence grading, cross-corpus observations |
 | [`testsets/`](testsets/00-testbank-design.md) | Four test tiers + a 10-minute coverage self-check |
 | [`scripts/`](scripts/README.md) | `preflight.mjs` — run it before committing. Plus local batch runs. |

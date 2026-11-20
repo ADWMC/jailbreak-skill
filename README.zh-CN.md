@@ -97,7 +97,8 @@ jailbreak-skill 就绪。目标模型是什么？我先判断类型、出方案�
 | [`docs/concepts.md`](docs/concepts.md) | 上面每条规矩的长文论证 |
 | [`docs/pitfalls.md`](docs/pitfalls.md) | 坑位表——这个仓库踩过的每个坑与避免方式 |
 | [`prompts/`](prompts/00-assembly.md) | 案例库：23 份既往写法样本与索引——读机制，不抄句子 |
-| [`methodology/`](methodology/00-planning.md) | 21 份文档：形态选择、拒绝诊断、判定标准、覆盖率模型、失败归因、送达验证、结论门禁、自进化回路、生成式撰写 |
+| [`methodology/`](methodology/00-planning.md) | 17 份文档：形态选择、拒绝诊断、判定标准、覆盖率模型、失败归因、送达验证、结论门禁、生成式撰写 |
+| [`maintenance/`](maintenance/README.md) | 维护者文档（资产评分、融合方案、自进化回路、证据盘点）——不属于技能运行时，做任务的 agent 不要加载 |
 | [`vendors/`](vendors/README.md) | 三条路线、分厂商证据分级、跨语料库观察 |
 | [`testsets/`](testsets/00-testbank-design.md) | 四档题库 + 10 分钟覆盖率自检 |
 | [`scripts/`](scripts/README.md) | `preflight.mjs`——提交前跑这个。另有本地跑批脚本。 |
